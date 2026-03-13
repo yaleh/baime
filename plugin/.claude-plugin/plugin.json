@@ -1,7 +1,7 @@
 {
   "name": "baime",
   "version": "1.0.0",
-  "description": "BAIME: Systematic methodology development with 19 validated skills and 6 specialized agents",
+  "description": "BAIME: Systematic methodology development with 17 validated skills and 4 specialized agents",
   "author": {
     "name": "Yale Huang",
     "url": "https://github.com/yaleh"
@@ -10,8 +10,6 @@
   "homepage": "https://github.com/yaleh/baime",
   "repository": "https://github.com/yaleh/baime",
   "agents": [
-    "stage-executor",
-    "project-planner",
     "iteration-executor",
     "iteration-prompt-designer",
     "knowledge-extractor",
@@ -27,13 +25,11 @@
     "cross-cutting-concerns",
     "dependency-health",
     "documentation-management",
-    "error-recovery",
     "knowledge-transfer",
     "methodology-bootstrapping",
     "next-step-generation",
     "observability-instrumentation",
     "rapid-convergence",
-    "retrospective-validation",
     "subagent-prompt-construction",
     "technical-debt-management",
     "testing-strategy"

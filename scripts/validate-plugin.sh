@@ -139,8 +139,8 @@ done
 echo ""
 echo "=== Count Assertions ==="
 
-EXPECTED_AGENTS=6
-EXPECTED_SKILLS=19
+EXPECTED_AGENTS=4
+EXPECTED_SKILLS=17
 
 if [ "$AGENT_COUNT" -eq "$EXPECTED_AGENTS" ]; then
     pass "Agent count: $AGENT_COUNT (expected $EXPECTED_AGENTS)"
