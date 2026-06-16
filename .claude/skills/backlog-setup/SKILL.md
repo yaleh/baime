@@ -116,10 +116,9 @@ if m:
     existing = [s.strip().strip('"') for s in m.group(1).split(',') if s.strip()]
 
 missing = [c for c in REQUIRED if c not in existing]
-merged  = existing + missing
 
-# Rewrite statuses line
-new_statuses = ', '.join(f'"{c}"' for c in merged)
+# Always write exactly REQUIRED (authoritative); discard unrelated defaults like "To Do"
+new_statuses = ', '.join(f'"{c}"' for c in REQUIRED)
 content = re.sub(
     r'^statuses:\s*\[.*?\]',
     f'statuses: [{new_statuses}]',
