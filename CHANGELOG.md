@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-16
+
+### Added
+- `README.md`: New `## Backlog + Loop Workflow` section documenting the full 4-step autonomous pipeline (Initialize → Create Tasks → Run Worker → Monitor Progress), based on real session history analysis via meta-cc
+
 ## [1.1.1] - 2026-06-16
 
 ### Changed
