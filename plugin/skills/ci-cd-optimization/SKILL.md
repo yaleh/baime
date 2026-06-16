@@ -1,5 +1,5 @@
 ---
-name: CI/CD Optimization
+name: ci-cd-optimization
 description: Comprehensive CI/CD pipeline methodology with quality gates, release automation, smoke testing, observability, and performance tracking. Use when setting up CI/CD from scratch, build time over 5 minutes, no automated quality gates, manual release process, lack of pipeline observability, or broken releases reaching production. Provides 5 quality gate categories (coverage threshold 75-80%, lint blocking, CHANGELOG validation, build verification, test pass rate), release automation with conventional commits and automatic CHANGELOG generation, 25 smoke tests across execution/consistency/structure categories, CI observability with metrics tracking and regression detection, performance optimization including native-only testing for Go cross-compilation. Validated in meta-cc with 91.7% pattern validation rate (11/12 patterns), 2.5-3.5x estimated speedup, GitHub Actions native with 70-80% transferability to GitLab CI and Jenkins.
 allowed-tools: Read, Write, Edit, Bash
 ---

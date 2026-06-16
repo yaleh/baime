@@ -1,5 +1,5 @@
 ---
-name: Documentation Management
+name: documentation-management
 description: Systematic documentation methodology for Claude Code projects using empirically validated templates, patterns, and automation. Provides structure for living documentation, doc health checks, gap analysis, and doc evolution workflows.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---

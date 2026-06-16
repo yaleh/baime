@@ -1,5 +1,5 @@
 ---
-name: Technical Debt Management
+name: technical-debt-management
 description: Systematic technical debt quantification and management using SQALE methodology with value-effort prioritization, phased paydown roadmaps, and prevention strategies. Use when technical debt unmeasured or subjective, need objective prioritization, planning refactoring work, establishing debt prevention practices, or tracking debt trends over time. Provides 6 methodology components (measurement with SQALE index, categorization with code smell taxonomy, prioritization with value-effort matrix, phased paydown roadmap, trend tracking system, prevention guidelines), 3 patterns (SQALE-based quantification, code smell taxonomy mapping, value-effort prioritization), 3 principles (high-value low-effort first, SQALE provides objective baseline, complexity drives maintainability debt). Validated with 4.5x speedup vs manual approach, 85% transferability across languages (Go, Python, JavaScript, Java, Rust), SQALE industry-standard methodology.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---

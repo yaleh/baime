@@ -1,5 +1,5 @@
 ---
-name: API Design
+name: api-design
 description: Systematic API design methodology with 6 validated patterns covering parameter categorization, safe refactoring, audit-first approach, automated validation, quality gates, and example-driven documentation. Use when designing new APIs, improving API consistency, implementing breaking change policies, or building API quality enforcement. Provides deterministic decision trees (5-tier parameter system), validation tool architecture, pre-commit hook patterns. Validated with 82.5% cross-domain transferability, 37.5% efficiency gains through audit-first refactoring.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---

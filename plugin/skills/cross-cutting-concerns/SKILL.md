@@ -1,5 +1,5 @@
 ---
-name: Cross-Cutting Concerns
+name: cross-cutting-concerns
 description: Systematic methodology for standardizing cross-cutting concerns (error handling, logging, configuration) through pattern extraction, convention definition, automated enforcement, and CI integration. Use when codebase has inconsistent error handling, ad-hoc logging, scattered configuration, need automated compliance enforcement, or preparing for team scaling. Provides 5 universal principles (detect before standardize, prioritize by value, infrastructure enables scale, context is king, automate enforcement), file tier prioritization framework (ROI-based classification), pattern extraction workflow, convention selection process, linter development guide. Validated with 60-75% faster error diagnosis (rich context), 16.7x ROI for high-value files, 80-90% transferability across languages (Go, Python, JavaScript, Rust). Three concerns addressed: error handling (sentinel errors, context preservation, wrapping), logging (structured logging, log levels), configuration (centralized config, validation, environment variables).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---

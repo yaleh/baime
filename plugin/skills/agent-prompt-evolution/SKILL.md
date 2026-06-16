@@ -1,5 +1,5 @@
 ---
-name: Agent Prompt Evolution
+name: agent-prompt-evolution
 description: Track and optimize agent specialization during methodology development. Use when agent specialization emerges (generic agents show >5x performance gap), multi-experiment comparison needed, or methodology transferability analysis required. Captures agent set evolution (Aₙ tracking), meta-agent evolution (Mₙ tracking), specialization decisions (when/why to create specialized agents), and reusability assessment (universal vs domain-specific vs task-specific). Enables systematic cross-experiment learning and optimized M₀ evolution. 2-3 hours overhead per experiment.
 allowed-tools: Read, Grep, Glob, Edit, Write
 ---

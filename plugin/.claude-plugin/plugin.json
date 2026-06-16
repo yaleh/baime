@@ -9,29 +9,29 @@
   "license": "MIT",
   "homepage": "https://github.com/yaleh/baime",
   "repository": "https://github.com/yaleh/baime",
-  "agents": [
-    "iteration-executor",
-    "iteration-prompt-designer",
-    "knowledge-extractor",
-    "workflow-coach"
+  "commands": [
+    "./skills/agent-prompt-evolution/SKILL.md",
+    "./skills/api-design/SKILL.md",
+    "./skills/baseline-quality-assessment/SKILL.md",
+    "./skills/build-quality-gates/SKILL.md",
+    "./skills/ci-cd-optimization/SKILL.md",
+    "./skills/code-refactoring/SKILL.md",
+    "./skills/cross-cutting-concerns/SKILL.md",
+    "./skills/dependency-health/SKILL.md",
+    "./skills/documentation-management/SKILL.md",
+    "./skills/knowledge-transfer/SKILL.md",
+    "./skills/methodology-bootstrapping/SKILL.md",
+    "./skills/next-step-generation/SKILL.md",
+    "./skills/observability-instrumentation/SKILL.md",
+    "./skills/rapid-convergence/SKILL.md",
+    "./skills/subagent-prompt-construction/SKILL.md",
+    "./skills/technical-debt-management/SKILL.md",
+    "./skills/testing-strategy/SKILL.md"
   ],
-  "skills": [
-    "agent-prompt-evolution",
-    "api-design",
-    "baseline-quality-assessment",
-    "build-quality-gates",
-    "ci-cd-optimization",
-    "code-refactoring",
-    "cross-cutting-concerns",
-    "dependency-health",
-    "documentation-management",
-    "knowledge-transfer",
-    "methodology-bootstrapping",
-    "next-step-generation",
-    "observability-instrumentation",
-    "rapid-convergence",
-    "subagent-prompt-construction",
-    "technical-debt-management",
-    "testing-strategy"
+  "agents": [
+    "./agents/iteration-executor.md",
+    "./agents/iteration-prompt-designer.md",
+    "./agents/knowledge-extractor.md",
+    "./agents/workflow-coach.md"
   ]
 }
