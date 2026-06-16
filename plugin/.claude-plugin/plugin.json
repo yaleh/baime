@@ -1,7 +1,7 @@
 {
   "name": "baime",
   "version": "1.0.0",
-  "description": "BAIME: Systematic methodology development with 17 validated skills and 4 specialized agents",
+  "description": "BAIME: Systematic methodology development with 22 validated skills and 4 specialized agents",
   "author": {
     "name": "Yale Huang",
     "url": "https://github.com/yaleh"
@@ -26,7 +26,12 @@
     "./skills/rapid-convergence/SKILL.md",
     "./skills/subagent-prompt-construction/SKILL.md",
     "./skills/technical-debt-management/SKILL.md",
-    "./skills/testing-strategy/SKILL.md"
+    "./skills/testing-strategy/SKILL.md",
+    "./skills/backlog-setup/SKILL.md",
+    "./skills/feature-to-backlog/SKILL.md",
+    "./skills/task-to-backlog/SKILL.md",
+    "./skills/loop-backlog/SKILL.md",
+    "./skills/feature-developer/SKILL.md"
   ],
   "agents": [
     "./agents/iteration-executor.md",

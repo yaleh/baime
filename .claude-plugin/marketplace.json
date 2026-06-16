@@ -11,11 +11,18 @@
       "name": "baime",
       "source": "./plugin",
       "version": "1.0.0",
-      "description": "19 validated skills and 6 specialized agents for systematic AI methodology engineering via OCA cycles and dual-layer value functions",
+      "description": "22 validated skills and 4 specialized agents for systematic AI methodology engineering via OCA cycles and dual-layer value functions",
       "license": "MIT",
       "homepage": "https://github.com/yaleh/baime",
       "category": "methodology",
-      "tags": ["methodology", "engineering", "skills", "agents", "baime", "oca"]
+      "tags": [
+        "methodology",
+        "engineering",
+        "skills",
+        "agents",
+        "baime",
+        "oca"
+      ]
     }
   ]
 }
