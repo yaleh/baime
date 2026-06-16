@@ -43,7 +43,7 @@ Restart Claude Code after installation.
 |-------|---------|
 | `agent-prompt-evolution` | Evolve agent prompts through empirical validation |
 | `api-design` | Design APIs using systematic methodology |
-| `backlog-setup` | Initialize a Backlog.md project with all columns required by the BAIME workflow |
+| `backlog-setup` | Initialize a Backlog.md project with all columns required by the backlog+loop workflow (step 1) |
 | `baseline-quality-assessment` | Establish quality baselines for projects |
 | `build-quality-gates` | Define and enforce build quality checkpoints |
 | `ci-cd-optimization` | Optimize CI/CD pipelines using BAIME |
@@ -52,15 +52,15 @@ Restart Claude Code after installation.
 | `dependency-health` | Monitor and improve dependency health |
 | `documentation-management` | Maintain living documentation systematically |
 | `feature-developer` | Execute the full feature development lifecycle from proposal to implementation |
-| `feature-to-backlog` | Convert a feature description into a backlog task with TDD implementation plan |
+| `feature-to-backlog` | Convert a feature description into a backlog task with TDD implementation plan (step 2 of backlog+loop workflow) |
 | `knowledge-transfer` | Transfer knowledge between sessions and team members |
-| `loop-backlog` | Autonomous L0 worker that executes Ready tasks from the Backlog.md queue in isolated worktrees |
+| `loop-backlog` | Autonomous L0 worker that executes Ready tasks from the Backlog.md queue in isolated worktrees (step 3 of backlog+loop workflow) |
 | `methodology-bootstrapping` | Bootstrap new methodologies using the BAIME framework (includes Prompt Refinement methodology) |
 | `next-step-generation` | Generate ready-to-use next-step prompts from conversation context |
 | `observability-instrumentation` | Add observability to systems systematically |
 | `rapid-convergence` | Accelerate methodology convergence |
 | `subagent-prompt-construction` | Construct effective prompts for Claude Code subagents |
-| `task-to-backlog` | Convert a non-development task into a backlog task with a phase-based execution plan |
+| `task-to-backlog` | Convert a non-development task into a backlog task with a phase-based execution plan (step 2 of backlog+loop workflow) |
 | `technical-debt-management` | Manage and reduce technical debt systematically |
 | `testing-strategy` | Develop comprehensive testing strategies |
 
@@ -93,6 +93,61 @@ Start a coaching session:
 ```
 
 The workflow coach works without any other tools installed. If you also have [meta-cc](https://github.com/yaleh/meta-cc) installed, the coach can optionally enrich its analysis with your actual session history.
+
+---
+
+## Backlog + Loop Workflow
+
+Use the backlog-integrated skills to set up an autonomous task execution pipeline.
+
+### 1. Initialize
+
+Run once per project to set up the Backlog.md task queue with all required columns:
+
+```
+/backlog-setup
+```
+
+### 2. Create Tasks
+
+Convert feature requests or general tasks into structured backlog items with phase-based execution plans and automated DoD verification:
+
+```
+/feature-to-backlog Add OAuth2 login support
+/task-to-backlog Update the project README with workflow documentation
+```
+
+Move tasks to `Ready` when they are ready for execution:
+
+```bash
+backlog task edit TASK-1 --status "Ready"
+```
+
+### 3. Run the Autonomous Worker
+
+Invoke once to start the self-rescheduling worker loop:
+
+```
+/loop-backlog
+```
+
+The worker claims `Ready` tasks, executes them in isolated git worktrees, verifies DoD shell commands (with auto-retry), commits and merges changes back to `main`, marks tasks `Done`, and reschedules itself every 120 seconds.
+
+### 4. Monitor Progress
+
+```bash
+backlog task list --plain
+backlog task view TASK-1 --plain
+```
+
+Or launch the web UI:
+
+```bash
+backlog browser --port 6422 --no-open
+# open http://localhost:6422/
+```
+
+Tasks flow through: `Ready` → `In Progress` → `Done` (or `Needs Human` if the worker gets stuck and needs manual intervention).
 
 ---
 
