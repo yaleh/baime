@@ -2,7 +2,7 @@
 
 **BAIME (Bootstrapped AI Methodology Engineering)** — A systematic methodology development framework for Claude Code.
 
-baime provides 19 validated skills and 6 specialized agents that help teams develop, validate, and scale AI-assisted software engineering methodologies using the Observe-Codify-Automate (OCA) cycle.
+baime provides 22 validated skills and 4 specialized agents that help teams develop, validate, and scale AI-assisted software engineering methodologies using the Observe-Codify-Automate (OCA) cycle.
 
 ---
 
@@ -28,23 +28,22 @@ Restart Claude Code after installation.
 
 ## What's Included
 
-### 6 Agents
+### 4 Agents
 
 | Agent | Purpose |
 |-------|---------|
-| `stage-executor` | Execute project plan stages with formal validation and environment isolation |
-| `project-planner` | Create structured project plans with phases, stages, and acceptance criteria |
 | `iteration-executor` | Run iterative improvement cycles with convergence tracking |
 | `iteration-prompt-designer` | Design and refine prompts for iterative AI workflows |
 | `knowledge-extractor` | Extract and codify knowledge from project artifacts and session history |
 | `workflow-coach` | Coach users to optimize their Claude Code workflow (works standalone; optionally enriched by meta-cc) |
 
-### 19 Skills
+### 22 Skills
 
 | Skill | Purpose |
 |-------|---------|
 | `agent-prompt-evolution` | Evolve agent prompts through empirical validation |
 | `api-design` | Design APIs using systematic methodology |
+| `backlog-setup` | Initialize a Backlog.md project with all columns required by the BAIME workflow |
 | `baseline-quality-assessment` | Establish quality baselines for projects |
 | `build-quality-gates` | Define and enforce build quality checkpoints |
 | `ci-cd-optimization` | Optimize CI/CD pipelines using BAIME |
@@ -52,14 +51,16 @@ Restart Claude Code after installation.
 | `cross-cutting-concerns` | Implement cross-cutting concerns consistently |
 | `dependency-health` | Monitor and improve dependency health |
 | `documentation-management` | Maintain living documentation systematically |
-| `error-recovery` | Build robust error recovery patterns |
+| `feature-developer` | Execute the full feature development lifecycle from proposal to implementation |
+| `feature-to-backlog` | Convert a feature description into a backlog task with TDD implementation plan |
 | `knowledge-transfer` | Transfer knowledge between sessions and team members |
+| `loop-backlog` | Autonomous L0 worker that executes Ready tasks from the Backlog.md queue in isolated worktrees |
 | `methodology-bootstrapping` | Bootstrap new methodologies using the BAIME framework (includes Prompt Refinement methodology) |
 | `next-step-generation` | Generate ready-to-use next-step prompts from conversation context |
 | `observability-instrumentation` | Add observability to systems systematically |
 | `rapid-convergence` | Accelerate methodology convergence |
-| `retrospective-validation` | Validate outcomes with structured retrospectives |
 | `subagent-prompt-construction` | Construct effective prompts for Claude Code subagents |
+| `task-to-backlog` | Convert a non-development task into a backlog task with a phase-based execution plan |
 | `technical-debt-management` | Manage and reduce technical debt systematically |
 | `testing-strategy` | Develop comprehensive testing strategies |
 
