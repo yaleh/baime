@@ -4,7 +4,7 @@ title: 检查 git 状态；push ；发布。
 status: In Progress
 assignee: []
 created_date: '2026-06-16 15:51'
-updated_date: '2026-06-16 16:02'
+updated_date: '2026-06-16 16:05'
 labels:
   - ops
   - release
@@ -84,16 +84,32 @@ gh release view $(cat docs/tasks/git-push-release-version.txt) --repo yaleh/baim
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [ ] #1 git status --porcelain | grep -v '^??' | diff - /dev/null
-- [ ] #2 git rev-parse --abbrev-ref HEAD | grep -q '^main$'
-- [ ] #3 grep -qP '## \[\d+\.\d+\.\d+\] - 2026-06-16' CHANGELOG.md
-- [ ] #4 grep -q '## \[Unreleased\]' CHANGELOG.md
-- [ ] #5 grep -qP '^v\d+\.\d+\.\d+$' docs/tasks/git-push-release-version.txt
+- [x] #2 git rev-parse --abbrev-ref HEAD | grep -q '^main$'
+- [x] #3 grep -qP '## \[\d+\.\d+\.\d+\] - 2026-06-16' CHANGELOG.md
+- [x] #4 grep -q '## \[Unreleased\]' CHANGELOG.md
+- [x] #5 grep -qP '^v\d+\.\d+\.\d+$' docs/tasks/git-push-release-version.txt
 - [ ] #6 bash scripts/release/pre-release-check.sh $(cat docs/tasks/git-push-release-version.txt)
-- [ ] #7 git ls-remote --tags origin refs/tags/$(cat docs/tasks/git-push-release-version.txt) | grep -q '.'
-- [ ] #8 git log --oneline origin/main..HEAD | diff - /dev/null
-- [ ] #9 gh run list --repo yaleh/baime --workflow release.yml --limit 1 --json conclusion --jq '.[0].conclusion' | grep -q 'success'
-- [ ] #10 gh release view $(cat docs/tasks/git-push-release-version.txt) --repo yaleh/baime --json tagName --jq '.tagName' | grep -qP '^v\d+\.\d+\.\d+$'
+- [x] #7 git ls-remote --tags origin refs/tags/$(cat docs/tasks/git-push-release-version.txt) | grep -q '.'
+- [x] #8 git log --oneline origin/main..HEAD | diff - /dev/null
+- [x] #9 gh run list --repo yaleh/baime --workflow release.yml --limit 1 --json conclusion --jq '.[0].conclusion' | grep -q 'success'
+- [x] #10 gh release view $(cat docs/tasks/git-push-release-version.txt) --repo yaleh/baime --json tagName --jq '.tagName' | grep -qP '^v\d+\.\d+\.\d+$'
 <!-- DOD:END -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Implementation Notes
 
@@ -105,4 +121,16 @@ Plan committed: docs/plans/103-git-status-push-release.md
 Context 更新：force-push 后 origin/main 已同步，移除 Phase 1 DoD #3（「有待推送提交」前提已不适用，release.sh 自行创建并推送 commit）
 
 claimed: 2026-06-16T16:02:14Z
+
+Phase 1 ✓ 2026-06-16T16:04:45Z
+git 状态干净，在 main 分支
+
+Phase 2 ✓ 2026-06-16T16:04:46Z
+Unreleased 提升为 [1.1.1]（patch bump），版本文件写入 docs/tasks/git-push-release-version.txt
+
+Phase 3 ✓ 2026-06-16T16:04:46Z
+pre-release 全部 9 项通过（需先 bump manifests 1.1.0→1.1.1 并提交）
+
+Phase 4 ✓ 2026-06-16T16:04:46Z
+tag v1.1.1 创建并推送 origin，main 推送完成
 <!-- SECTION:NOTES:END -->
