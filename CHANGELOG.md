@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-16
+
 ### Changed
 - `loop-backlog`: Idle poll interval reduced from 270s to 120s for faster task pickup
 - `loop-backlog`: Execution records now include structured phase checkpoints (via `--append-notes`),
