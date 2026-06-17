@@ -182,9 +182,8 @@ if [ ! -f "$DAEMON_SCRIPT" ]; then
  * Pure Node.js stdlib — no npm dependencies required.
  */
 
-import fs from 'fs';
-import path from 'path';
-import process from 'process';
+const fs = require('fs');
+const path = require('path');
 
 function parseArgs(argv) {
   const args = {
@@ -288,6 +287,7 @@ BACKLOG_DIR="${REPO_ROOT}/backlog"
 PID_FILE="${BACKLOG_DIR}/.daemon.pid"
 STOP_FILE="${BACKLOG_DIR}/.loop-stop"
 TASKS_DIR="${BACKLOG_DIR}/tasks"
+DAEMON_LOG="${BACKLOG_DIR}/.daemon.log"
 
 # Remove stale stop sentinel from a previous run
 rm -f "$STOP_FILE"
@@ -303,12 +303,14 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 if [ "$DAEMON_RUNNING" = "false" ]; then
-  node "${REPO_ROOT}/scripts/loop-backlog-daemon.js" \
+  nohup node "${REPO_ROOT}/scripts/loop-backlog-daemon.js" \
     --tasks-dir "$TASKS_DIR" \
     --pid-file  "$PID_FILE"  \
     --stop-file "$STOP_FILE" \
-    --interval  0.5 &
-  sleep 0.6
+    --interval  0.5 \
+    >> "$DAEMON_LOG" 2>/dev/null & disown
+  # Poll for PID file instead of fixed sleep (handles slow Node cold-starts)
+  for i in $(seq 1 25); do [ -f "$PID_FILE" ] && break; sleep 0.2; done
   DPID=$(cat "$PID_FILE" 2>/dev/null || true)
   echo "daemonBootstrap: started daemon (pid ${DPID:-unknown})"
 fi
@@ -344,6 +346,15 @@ TASK_ID=$(backlog task list --status "Ready" --plain | grep -oP 'TASK-\d+' | hea
 ```
 
 If empty and no stop sentinel: use Monitor (persistent) to wait for the next `task-ready` event.
+The daemon writes `task-ready:TASK-N` lines to `$DAEMON_LOG`; Monitor tails that file:
+
+```bash
+# Foreground tail — Monitor reads its stdout as the event stream.
+# No background subshell, no --pid, no pipeline.
+Monitor(persistent=true, command="tail -f \"$DAEMON_LOG\"")
+```
+
+Any output line matching `task-ready:TASK-*` is the wake-up signal; re-enter `workerLoop()`.
 
 ```bash
 backlog task edit "$TASK_ID" --status "In Progress" \
@@ -580,8 +591,9 @@ The `daemonBootstrap` section will restart the daemon automatically on the next
 `/loop-backlog` invocation. The PID file (`backlog/.daemon.pid`) is managed
 by the daemon itself and removed on exit.
 
-Use `Monitor(persistent=true)` to wait for task-ready events. The Monitor runs for the
-lifetime of the session — no re-arming on timeout needed. The daemon subprocess exits
-only when `backlog/.loop-stop` is written (or the parent process dies).
+Use `Monitor(persistent=true, command="tail -f \"$DAEMON_LOG\"")` to wait for task-ready
+events. The daemon appends `task-ready:TASK-N` lines to `backlog/.daemon.log`; `tail -f`
+runs in the foreground so Monitor receives each line as an event immediately.
+The daemon subprocess exits only when `backlog/.loop-stop` is written (or the parent process dies).
 
 To stop the Monitor from outside the skill, call `TaskStop <monitor-task-id>`.

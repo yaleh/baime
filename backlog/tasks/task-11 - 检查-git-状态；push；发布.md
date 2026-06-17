@@ -1,9 +1,10 @@
 ---
 id: TASK-11
 title: 检查 git 状态；push；发布
-status: Ready
+status: In Progress
 assignee: []
 created_date: '2026-06-17 14:51'
+updated_date: '2026-06-17 14:52'
 labels: []
 dependencies: []
 ordinal: 2000
@@ -79,3 +80,9 @@ gh release view "v<VERSION>" --repo "$REPO"
 ## Acceptance Gate
 - [ ] `gh release view v<VERSION> --repo $(git -C $(git rev-parse --show-toplevel) remote get-url origin | sed 's/.*github.com[:/]//' | sed 's/\.git$//') --json tagName --jq '.tagName' | grep -q 'v<VERSION>'`
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-06-17T14:52:08Z
+<!-- SECTION:NOTES:END -->
