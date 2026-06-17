@@ -1,7 +1,7 @@
 ---
 name: loop-backlog
-description: "Autonomous L0 Worker for the backlog.md task queue. Each task runs in an isolated git worktree, then merges back to master on success. Polls for Ready tasks, executes by description, commits if changes exist, then self-reschedules via ScheduleWakeup. Invoke /loop-backlog once to start the worker loop; it keeps running until stopped."
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, ScheduleWakeup
+description: "Autonomous L0 Worker for the backlog.md task queue. Each task runs in an isolated git worktree, then merges back to master on success. Starts an event-driven daemon that emits task-ready events; uses Monitor to react instantly. Invoke /loop-backlog once to start the worker loop; it keeps running until the .backlog/.loop-stop sentinel is written."
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Monitor
 ---
 
 λ() → workerLoop()
@@ -30,19 +30,29 @@ detectLang() =
   | exists("pyproject.toml") ∨ exists("setup.py") → Python
   | otherwise              → Unknown
 
-data Outcome = Done CommitHash | NeedsHuman Reason | Idle
+data Outcome = Done CommitHash | NeedsHuman Reason | Idle | Stopped
 
 workerLoop :: () → Outcome
 workerLoop() = {
   cfg:    loadConfig(),
+  _:      ensureDaemonScript(),
+  _:      daemonBootstrap(),
   _:      reap(inProgressTasks()),
   task:   claim(),
 
+  if (stopSentinel()):
+    return: Stopped,
+
   if (empty(task)):
-    return: schedule(120, "queue empty") >> Idle,
+    -- No task yet; block until daemon emits a task-ready line (or timeout)
+    event: Monitor(timeout=600),
+    if (event matches "task-ready:TASK-*"):
+      return: workerLoop(),      -- re-enter to claim the announced task
+    if (timeout ∨ stopSentinel()):
+      return: Stopped,
+    return: Idle,
 
   result: withWorktree(task, cfg, execute),
-  _:      schedule(delayFor(result), summarise(task, result)),
   return: result
 }
 
@@ -98,11 +108,6 @@ merge(T, hash) =
   | mergeNoFF(T.branch) succeeds → markDone(T, hash); removeWorktree(T); Done(hash)
   | otherwise                    → markNeedsHuman(T, "merge conflict"); NeedsHuman("merge conflict")
 
-delayFor :: Outcome → Seconds
-delayFor(Done _)       = 120
-delayFor(NeedsHuman _) = 270
-delayFor(Idle)         = 120
-
 ## Implementation
 
 ### loadConfig
@@ -134,6 +139,181 @@ fi
 [ "$CFG_SYMLINKS" = "none" ] && CFG_SYMLINKS=""
 ```
 
+### ensureDaemonScript
+
+Write the daemon script to `scripts/loop-backlog-daemon.py` if it does not already exist.
+This section embeds the canonical daemon source so the skill is self-contained.
+
+```bash
+DAEMON_SCRIPT="${REPO_ROOT}/scripts/loop-backlog-daemon.py"
+
+if [ ! -f "$DAEMON_SCRIPT" ]; then
+  mkdir -p "${REPO_ROOT}/scripts"
+  cat > "$DAEMON_SCRIPT" << 'DAEMON_EOF'
+#!/usr/bin/env python3
+"""
+loop-backlog-daemon: polls backlog tasks dir and emits task-ready events to stdout.
+
+Emits one line per Ready transition: "task-ready:TASK-N"
+Stops when parent process dies or stop-sentinel file appears.
+"""
+
+import argparse
+import atexit
+import os
+import sys
+import time
+
+
+def parse_task_id(filename):
+    base = os.path.splitext(os.path.basename(filename))[0]
+    upper = base.upper()
+    for part in upper.split():
+        if part.startswith("TASK-") and part[5:].isdigit():
+            return "TASK-" + part[5:]
+    return None
+
+
+def is_ready(filepath):
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                stripped = line.strip().lower()
+                if stripped == "status: ready" or stripped.startswith("status: ready"):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def scan_ready_ids(tasks_dir):
+    ready = set()
+    try:
+        entries = os.listdir(tasks_dir)
+    except OSError:
+        return ready
+    for entry in entries:
+        if not entry.endswith(".md"):
+            continue
+        task_id = parse_task_id(entry)
+        if task_id is None:
+            continue
+        fpath = os.path.join(tasks_dir, entry)
+        if is_ready(fpath):
+            ready.add(task_id)
+    return ready
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Poll backlog tasks directory and emit task-ready events."
+    )
+    parser.add_argument(
+        "--tasks-dir",
+        default=".backlog/tasks",
+        help="Directory containing task markdown files (default: .backlog/tasks)",
+    )
+    parser.add_argument(
+        "--pid-file",
+        default=".backlog/.daemon.pid",
+        help="Path to write the daemon PID (default: .backlog/.daemon.pid)",
+    )
+    parser.add_argument(
+        "--stop-file",
+        default=".backlog/.loop-stop",
+        help="Sentinel file whose presence causes daemon to exit (default: .backlog/.loop-stop)",
+    )
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=0.5,
+        help="Poll interval in seconds (default: 0.5)",
+    )
+    args = parser.parse_args()
+
+    pid_file = args.pid_file
+    pid_dir = os.path.dirname(pid_file)
+    if pid_dir:
+        os.makedirs(pid_dir, exist_ok=True)
+    with open(pid_file, "w") as f:
+        f.write(str(os.getpid()))
+
+    def remove_pid():
+        try:
+            os.remove(pid_file)
+        except OSError:
+            pass
+
+    atexit.register(remove_pid)
+
+    parent_pid = os.getppid()
+    notified = set()
+
+    while True:
+        if os.path.exists(args.stop_file):
+            break
+
+        try:
+            os.kill(parent_pid, 0)
+        except OSError:
+            break
+
+        ready_ids = scan_ready_ids(args.tasks_dir)
+
+        no_longer_ready = notified - ready_ids
+        notified -= no_longer_ready
+
+        for task_id in sorted(ready_ids - notified):
+            sys.stdout.write("task-ready:{}\n".format(task_id))
+            sys.stdout.flush()
+            notified.add(task_id)
+
+        time.sleep(args.interval)
+
+
+if __name__ == "__main__":
+    main()
+DAEMON_EOF
+  echo "ensureDaemonScript: wrote $DAEMON_SCRIPT"
+fi
+```
+
+### daemonBootstrap
+
+Start the task-watcher daemon if not already running. The daemon polls `.backlog/tasks/`
+and writes `task-ready:TASK-N` lines to stdout, which Monitor picks up as events.
+
+```bash
+BACKLOG_DIR="${REPO_ROOT}/.backlog"
+PID_FILE="${BACKLOG_DIR}/.daemon.pid"
+STOP_FILE="${BACKLOG_DIR}/.loop-stop"
+TASKS_DIR="${BACKLOG_DIR}/tasks"
+
+# Remove stale stop sentinel from a previous run
+rm -f "$STOP_FILE"
+
+# Start daemon only if not already running
+DAEMON_RUNNING=false
+if [ -f "$PID_FILE" ]; then
+  DPID=$(cat "$PID_FILE" 2>/dev/null || true)
+  if [ -n "$DPID" ] && kill -0 "$DPID" 2>/dev/null; then
+    DAEMON_RUNNING=true
+    echo "daemonBootstrap: daemon already running (pid $DPID)"
+  fi
+fi
+
+if [ "$DAEMON_RUNNING" = "false" ]; then
+  python3 "${REPO_ROOT}/scripts/loop-backlog-daemon.py" \
+    --tasks-dir "$TASKS_DIR" \
+    --pid-file  "$PID_FILE"  \
+    --stop-file "$STOP_FILE" \
+    --interval  0.5 &
+  sleep 0.6
+  DPID=$(cat "$PID_FILE" 2>/dev/null || true)
+  echo "daemonBootstrap: started daemon (pid ${DPID:-unknown})"
+fi
+```
+
 ### reap
 
 ```bash
@@ -163,7 +343,7 @@ backlog task list --status "In Progress" --plain \
 TASK_ID=$(backlog task list --status "Ready" --plain | grep -oP 'TASK-\d+' | head -1)
 ```
 
-If empty: set `QUEUE_EMPTY=true` and skip to **Scheduling**.
+If empty and no stop sentinel: use Monitor to wait for the next `task-ready` event.
 
 ```bash
 backlog task edit "$TASK_ID" --status "In Progress" \
@@ -345,20 +525,29 @@ echo "Task moved to Needs Human. Worktree preserved at $WORKTREE"
 WORK_DONE=false
 ```
 
-## Scheduling
+## Shutdown
 
-Always the last action of every invocation. Never skip.
+To stop the worker loop, write the stop sentinel:
 
-| Outcome    | delaySeconds | reason                                |
-|------------|-------------|---------------------------------------|
-| Done       | 120         | task completed, check for next item   |
-| NeedsHuman | 270         | escalated, poll at normal cadence     |
-| Idle       | 120         | queue empty, check for new tasks      |
-
+```bash
+touch "${REPO_ROOT}/.backlog/.loop-stop"
 ```
-ScheduleWakeup(
-  delaySeconds = <from table>,
-  reason       = "<one sentence: what happened this iteration>",
-  prompt       = "/loop-backlog"
-)
+
+The daemon (`loop-backlog-daemon.py`) detects `.backlog/.loop-stop` and exits.
+The skill also checks for this file at the top of each iteration and returns `Stopped`
+without re-entering Monitor.
+
+To restart after a shutdown:
+
+```bash
+rm -f "${REPO_ROOT}/.backlog/.loop-stop"
+# then invoke /loop-backlog
 ```
+
+The `daemonBootstrap` section will restart the daemon automatically on the next
+`/loop-backlog` invocation. The PID file (`.backlog/.daemon.pid`) is managed
+by the daemon itself and removed on exit.
+
+Use `Monitor(timeout=600)` to wait for the next event. On timeout (10 minutes with no
+activity), verify daemon liveness: if the PID file is gone, re-run `daemonBootstrap`,
+then re-enter `Monitor`. If the stop sentinel is present, exit.
