@@ -211,7 +211,7 @@ Spawn Task agent:
 > 4. Update task:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --description "$(cat $TMPDIR/ttb-plan.md)" \
+>      --planSet "$(cat $TMPDIR/ttb-plan.md)" \
 >      --status "Plan Review"
 >    ```
 
@@ -255,8 +255,11 @@ Each iteration — spawn Task agent:
 >    echo "APPROVED" > $TMPDIR/ttb-plan-verdict.txt
 >    ```
 >
-> 3b. ANY fail: fix `$TMPDIR/ttb-plan.md`, update task description,
->    write `NEEDS_REVISION` to verdict file.
+> 3b. ANY fail: fix `$TMPDIR/ttb-plan.md`, update task plan:
+>    ```bash
+>    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ttb-plan.md)"
+>    ```
+>    Write `NEEDS_REVISION` to verdict file.
 
 After each agent run, read `$TMPDIR/ttb-plan-verdict.txt`:
 - `APPROVED` → proceed to Phase 4

@@ -231,7 +231,7 @@ If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 > 3. Update task:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --description "$(cat $TMPDIR/ftb-proposal.md)" \
+>      --planSet "$(cat $TMPDIR/ftb-proposal.md)" \
 >      --status "Proposal Review"
 >    ```
 >
@@ -274,7 +274,11 @@ Each iteration — spawn Task agent:
 >    ```
 >
 > 3b. ANY fail: fix the failing sections in `$TMPDIR/ftb-proposal.md` directly,
->    update task description with revised draft, write `NEEDS_REVISION` to verdict file.
+>    update task plan with revised draft:
+>    ```bash
+>    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-proposal.md)"
+>    ```
+>    Write `NEEDS_REVISION` to verdict file.
 
 After each agent run, read `$TMPDIR/ftb-proposal-verdict.txt`:
 - `APPROVED` → proceed to Phase 3
@@ -350,7 +354,7 @@ Spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL`, `CFG_DOC_PATH` as literal
 > 4. Update task:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --description "$(cat $TMPDIR/ftb-plan.md)" \
+>      --planSet "$(cat $TMPDIR/ftb-plan.md)" \
 >      --status "Plan Review"
 >    ```
 
@@ -392,7 +396,11 @@ Each iteration — spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as lite
 >    ```
 >
 > 3b. ANY fail: fix `$TMPDIR/ftb-plan.md` (and `$TMPDIR/ftb-proposal.md` if needed),
->    update task description, write `NEEDS_REVISION` to verdict file.
+>    update task plan:
+>    ```bash
+>    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-plan.md)"
+>    ```
+>    Write `NEEDS_REVISION` to verdict file.
 
 After each agent run, read `$TMPDIR/ftb-plan-verdict.txt`:
 - `APPROVED` → proceed to Phase 5
