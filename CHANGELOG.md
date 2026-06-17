@@ -6,16 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Changed
-- `loop-backlog`: worker is now event-driven — uses a persistent daemon (`scripts/loop-backlog-daemon.py`) watching `backlog/tasks/` and Monitor instead of polling every 120 s via ScheduleWakeup; triggers instantly when a task becomes Ready
+- `loop-backlog`: worker is now event-driven — uses a persistent daemon (`scripts/loop-backlog-daemon.js`) watching `backlog/tasks/` and Monitor instead of polling every 120 s via ScheduleWakeup; triggers instantly when a task becomes Ready
 - `loop-backlog`: Monitor runs in persistent mode (no 10-minute re-arm cycle); stops only when `backlog/.loop-stop` sentinel is written or `TaskStop` is called
 - `README.md`: updated Step 3 description to reflect event-driven model and document `touch backlog/.loop-stop` stop instruction; fixed validation output count (4 agents, 22 skills)
+- `scripts/loop-backlog-daemon.py`: downgraded to legacy fallback; canonical implementation is now the Node.js version
 
 ### Fixed
 - `loop-backlog`: daemon tasks-dir corrected from `.backlog/tasks` to `backlog/tasks` (daemon was watching an empty directory, causing Monitor to never fire)
 
 ### Added
-- `scripts/loop-backlog-daemon.py`: Python stdlib daemon that polls `backlog/tasks/`, emits `task-ready:TASK-N` per Ready transition, stops on `.loop-stop` sentinel or parent-process death
-- `scripts/test-loop-backlog-daemon.sh`: 6 tests covering PID file, event emission, debounce, re-emit after reset, sentinel stop, and PID cleanup
+- `scripts/loop-backlog-daemon.js`: Node.js stdlib daemon (canonical) — zero npm deps, pure `fs`/`path`/`process`; replaces Python version as default
+- `scripts/loop-backlog-daemon.py`: Python stdlib daemon (legacy fallback) — use only if Node.js is unavailable
+- `scripts/test-loop-backlog-daemon.sh`: 6 tests for Python daemon (PID file, event emission, debounce, re-emit after reset, sentinel stop, PID cleanup)
+- `scripts/test-loop-backlog-daemon-js.sh`: 6 tests for Node.js daemon (same coverage)
 
 ## [1.1.3] - 2026-06-17
 

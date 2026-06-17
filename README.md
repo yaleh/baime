@@ -131,7 +131,7 @@ Invoke once to start the event-driven worker loop:
 /loop-backlog
 ```
 
-The worker claims `Ready` tasks, executes them in isolated git worktrees, verifies DoD shell commands (with auto-retry), commits and merges changes back to `main`, and marks tasks `Done`. It uses an event-driven daemon (`scripts/loop-backlog-daemon.py`) that watches `backlog/tasks/` and triggers instantly when a task becomes `Ready` — no polling delay.
+The worker claims `Ready` tasks, executes them in isolated git worktrees, verifies DoD shell commands (with auto-retry), commits and merges changes back to `main`, and marks tasks `Done`. It uses an event-driven daemon (`scripts/loop-backlog-daemon.js`) that watches `backlog/tasks/` and triggers instantly when a task becomes `Ready` — no polling delay.
 
 To stop the worker:
 
