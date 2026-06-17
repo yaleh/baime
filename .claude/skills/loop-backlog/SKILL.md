@@ -284,7 +284,7 @@ Start the task-watcher daemon if not already running. The daemon polls `.backlog
 and writes `task-ready:TASK-N` lines to stdout, which Monitor picks up as events.
 
 ```bash
-BACKLOG_DIR="${REPO_ROOT}/.backlog"
+BACKLOG_DIR="${REPO_ROOT}/backlog"
 PID_FILE="${BACKLOG_DIR}/.daemon.pid"
 STOP_FILE="${BACKLOG_DIR}/.loop-stop"
 TASKS_DIR="${BACKLOG_DIR}/tasks"
