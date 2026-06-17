@@ -7,7 +7,9 @@
 
 ## Recent Commits
 
-```
+13f9c60 fix(loop-backlog): correct daemon tasks-dir from .backlog/tasks to backlog/tasks
+67c1634 merge: 检查本项目最近一天的变更，确认文档是否已同步更新 (TASK-6)
+ea05195 docs: add doc-sync check report for recent changes (TASK-6)
 22a11ef feat: add task to check recent changes and document synchronization
 41ef5c9 fix(loop-backlog): switch Monitor to persistent mode to avoid 10-min re-arm cycle
 5961d76 docs(check-recent-changes-doc-sync): add task plan
@@ -18,7 +20,32 @@ d6fcdce chore: release v1.1.3
 2a50f54 docs: update CHANGELOG for v1.1.3
 756584b docs: add guide for exposing local web services using Cloudflare Tunnel and Access
 8bb05fc chore: release v1.1.2
-```
+2d7db72 chore(backlog): track TASK-3 and TASK-4 completion
+a79a4f3 merge: 使用 meta-cc 检查本项目历史，更新 backlog+loop 使用文档 (TASK-4)
+c32b78f 使用 meta-cc 检查本项目历史，更新 backlog+loop 使用文档 (TASK-4)
+3df4c25 docs(update-backlog-loop-docs): add task plan
+7b03cca chore(backlog): update TASK-3 progress notes
+e6dd597 chore: bump manifests to v1.1.1
+3670ec6 chore(backlog): track task-2 and task-3 files
+57d9f34 merge: 检查 git 状态；push ；发布。 (TASK-3)
+cfc8bae 检查 git 状态；push ；发布。 (TASK-3)
+3d46555 docs(git-status-push-release): add task plan
+9c8f588 merge: 用 meta-cc 检查最近变更，审查并更新项目文档 (TASK-2)
+7152fd7 用 meta-cc 检查最近变更，审查并更新项目文档 (TASK-2)
+d064988 docs(meta-cc-doc-audit): add task plan
+fe3a978 fix(task-1): update status to Done and mark DoD items as complete
+c42a371 feat(loop-backlog): add execution log to task records; reduce idle poll to 120s
+2484b78 chore(backlog): update TASK-1 progress and DoD checks
+6300d26 chore: initialize backlog project
+015612e docs(git-status-push-release): add task plan
+cabe97c fix: backlog-setup use --defaults --agent-instructions none for init
+94155d1 fix: backlog-setup replace statuses authoritatively instead of merging
+da492e7 fix: backlog-setup use direct config edit instead of backlog column add
+431799e chore: release v1.1.0
+18416f9 feat: add project-local backlog/loop skills and CLAUDE.md
+79bf9b6 feat: add 5 backlog/loop skills to plugin and update counts
+53f4f9b refactor: normalize plugin.json format, skill names, and install scripts
+c467915 docs(backlog-loop): add proposal and plan
 
 ---
 
@@ -44,7 +71,8 @@ d6fcdce chore: release v1.1.3
 | A | docs/plans/105-loop-backlog-daemon-monitor-event-driven.md |
 | A | docs/plans/106-check-recent-changes-doc-sync.md |
 | A | docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md |
-| A | docs/guides/cloudflare-tunnel.md（via CHANGELOG v1.1.3） |
+| A | docs/guides/cloudflare-tunnel.md |
+| A | docs/tasks/check-recent-changes-doc-sync-output.md |
 | M | CHANGELOG.md |
 | M | README.md |
 
@@ -57,84 +85,57 @@ d6fcdce chore: release v1.1.3
 | M | plugin/.claude-plugin/plugin.json |
 | A | backlog/config.yml |
 | A | .claude/skills/loop-backlog/SKILL.md |
-| A | plugin/skills/loop-backlog/SKILL.md |
+| M | plugin/skills/loop-backlog/SKILL.md |
 
 ---
 
 ## Sync Status
 
-### 1. loop-backlog SKILL.md 变更 → CHANGELOG
+### 1. loop-backlog SKILL.md 变更 → CHANGELOG [OK]
+CHANGELOG v1.1.1 已记录 loop-backlog idle poll 间隔及执行记录格式变更。
 
-- 检查：`grep -q "loop-backlog" CHANGELOG.md`
-- 结果：[OK] — CHANGELOG 中 v1.1.1 节已记录 loop-backlog idle poll 间隔、执行记录格式等变更
+### 2. 新增脚本 loop-backlog-daemon.py → README [PARTIAL]
+README 有 `## Backlog + Loop Workflow` 章节，但未提及 daemon 脚本或停止方式（`.loop-stop` / `TaskStop`）。
 
-### 2. 新增脚本 (loop-backlog-daemon.py 等) → README / docs
+### 3. 版本号 plugin.json vs CHANGELOG [OK]
+plugin.json 版本 1.1.3，CHANGELOG 最新正式版 [1.1.3] - 2026-06-17，一致。
 
-- 检查：README 是否提及 daemon 脚本
-- 结果：[PARTIAL] — README 中有 `## Backlog + Loop Workflow` 章节介绍 loop-backlog 工作流，但未专门提及 `loop-backlog-daemon.py` 或其停止方式（`.loop-stop` sentinel）
+### 4. TASK-5 计划和提案文档 [OK]
+- docs/plans/105-loop-backlog-daemon-monitor-event-driven.md ✓
+- docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md ✓
 
-### 3. 版本号 plugin.json vs CHANGELOG
+### 5. Monitor persistent 变更 → CHANGELOG [MISSING]
+fix(loop-backlog): Monitor persistent mode 及 daemon tasks-dir 路径修正尚未出现在 CHANGELOG [Unreleased] 节。
 
-- 检查：`grep '"version"' plugin/.claude-plugin/plugin.json` vs CHANGELOG 头部
-- 结果：[OK] — plugin.json 版本 1.1.3，CHANGELOG 最新正式版 [1.1.3] - 2026-06-17，一致
-
-### 4. TASK-5 对应计划和提案文档
-
-- 检查：`test -f docs/plans/105-loop-backlog-daemon-monitor-event-driven.md`
-- 结果：[OK] — `docs/plans/105-loop-backlog-daemon-monitor-event-driven.md` 存在
-- 检查：`test -f docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md`
-- 结果：[OK] — `docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md` 存在
-
-### 5. Monitor persistent 变更 (41ef5c9) → CHANGELOG
-
-- 检查：CHANGELOG 是否记录了 Monitor persistent 模式切换
-- 结果：[MISSING] — 41ef5c9（`fix(loop-backlog): switch Monitor to persistent mode`）尚未在 CHANGELOG 中记录，当前 [Unreleased] 节为空
-
-### 6. 新增 Cloudflare Tunnel 指南 → docs/guides/
-
-- 检查：`test -f docs/guides/cloudflare-tunnel.md`
-- 结果：[OK] — 已在 CHANGELOG v1.1.3 中记录，文件存在
+### 6. Cloudflare Tunnel 指南 [OK]
+docs/guides/cloudflare-tunnel.md 存在，已在 CHANGELOG v1.1.3 中记录。
 
 ---
 
 ## Gaps
 
-1. **CHANGELOG [Unreleased] 节为空**：`fix(loop-backlog): Monitor persistent mode`（41ef5c9）和 `feat: TASK-6 doc-sync check`（22a11ef）均未记录在 [Unreleased] 或任何版本节中。
-
-2. **README 未提及 daemon 脚本**：`scripts/loop-backlog-daemon.py` 是 loop-backlog 工作流的新核心组件，但 README 的 `## Backlog + Loop Workflow` 章节仍按旧的 ScheduleWakeup 模型描述，未提及：
-   - 停止 worker 的方式（`touch .backlog/.loop-stop` 或 `TaskStop <id>`）
-   - daemon 脚本的存在
+1. **CHANGELOG [Unreleased] 节为空**：Monitor persistent 切换（41ef5c9）、daemon 路径修正（13f9c60）均未记录。
+2. **README 未提及 daemon 脚本**：停止 worker 的方式（`touch backlog/.loop-stop`）未说明。
 
 ---
 
 ## Recommendations
 
 ### R1：补充 CHANGELOG [Unreleased] 节
-
 **目标文件：** `CHANGELOG.md`
-
-建议在 `## [Unreleased]` 下补充：
 
 ```markdown
 ## [Unreleased]
 
-### Changed
-- `loop-backlog`: Monitor now runs in persistent mode — no more 10-min re-arm cycle; stops only when `.backlog/.loop-stop` sentinel is written or `TaskStop` is called
-- `loop-backlog`: Fixed daemon tasks-dir path from `.backlog/tasks` to `backlog/tasks`
+### Fixed
+- `loop-backlog`: daemon tasks-dir corrected from `.backlog/tasks` to `backlog/tasks`
+- `loop-backlog`: Monitor now runs in persistent mode — no re-arm on timeout
 ```
 
-### R2：更新 README Backlog + Loop Workflow 章节
-
-**目标文件：** `README.md`，`## Backlog + Loop Workflow` → Step 3
-
-建议在 Step 3（Run the Autonomous Worker）补充：
+### R2：更新 README Step 3
+**目标文件：** `README.md`，`## Backlog + Loop Workflow` → Step 3，补充：
 
 ```markdown
-The worker starts a background daemon (`scripts/loop-backlog-daemon.py`) that watches
-`backlog/tasks/` for Ready tasks and emits events instantly — no polling delay.
-
 To stop the worker:
-```bash
-touch .backlog/.loop-stop
-```
+    touch backlog/.loop-stop
 ```
