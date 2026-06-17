@@ -7,6 +7,14 @@
 
 ## Recent Commits
 
+```
+f398eac docs: update CHANGELOG and README to reference Node.js daemon as canonical
+9167ea5 merge: 将 loop-backlog-daemon 从 Python 改写为 Node.js (TASK-7)
+486f568 feat: rewrite loop-backlog-daemon as Node.js; keep Python as legacy (TASK-7)
+3584795 docs(rewrite-loop-backlog-daemon-nodejs): add task plan
+4359dfc docs: update README and CHANGELOG for event-driven loop-backlog
+6384f52 merge: 检查本项目最近一天的变更，确认文档是否已同步更新 (TASK-6)
+cb5a5af docs: add doc-sync check report for recent changes (TASK-6)
 13f9c60 fix(loop-backlog): correct daemon tasks-dir from .backlog/tasks to backlog/tasks
 67c1634 merge: 检查本项目最近一天的变更，确认文档是否已同步更新 (TASK-6)
 ea05195 docs: add doc-sync check report for recent changes (TASK-6)
@@ -17,46 +25,20 @@ ea05195 docs: add doc-sync check report for recent changes (TASK-6)
 072518e feat: loop-backlog daemon + Monitor replaces ScheduleWakeup (TASK-5)
 1f5f1b5 docs(loop-backlog-daemon-monitor-event-driven): add proposal and plan
 d6fcdce chore: release v1.1.3
-2a50f54 docs: update CHANGELOG for v1.1.3
-756584b docs: add guide for exposing local web services using Cloudflare Tunnel and Access
-8bb05fc chore: release v1.1.2
-2d7db72 chore(backlog): track TASK-3 and TASK-4 completion
-a79a4f3 merge: 使用 meta-cc 检查本项目历史，更新 backlog+loop 使用文档 (TASK-4)
-c32b78f 使用 meta-cc 检查本项目历史，更新 backlog+loop 使用文档 (TASK-4)
-3df4c25 docs(update-backlog-loop-docs): add task plan
-7b03cca chore(backlog): update TASK-3 progress notes
-e6dd597 chore: bump manifests to v1.1.1
-3670ec6 chore(backlog): track task-2 and task-3 files
-57d9f34 merge: 检查 git 状态；push ；发布。 (TASK-3)
-cfc8bae 检查 git 状态；push ；发布。 (TASK-3)
-3d46555 docs(git-status-push-release): add task plan
-9c8f588 merge: 用 meta-cc 检查最近变更，审查并更新项目文档 (TASK-2)
-7152fd7 用 meta-cc 检查最近变更，审查并更新项目文档 (TASK-2)
-d064988 docs(meta-cc-doc-audit): add task plan
-fe3a978 fix(task-1): update status to Done and mark DoD items as complete
-c42a371 feat(loop-backlog): add execution log to task records; reduce idle poll to 120s
-2484b78 chore(backlog): update TASK-1 progress and DoD checks
-6300d26 chore: initialize backlog project
-015612e docs(git-status-push-release): add task plan
-cabe97c fix: backlog-setup use --defaults --agent-instructions none for init
-94155d1 fix: backlog-setup replace statuses authoritatively instead of merging
-da492e7 fix: backlog-setup use direct config edit instead of backlog column add
-431799e chore: release v1.1.0
-18416f9 feat: add project-local backlog/loop skills and CLAUDE.md
-79bf9b6 feat: add 5 backlog/loop skills to plugin and update counts
-53f4f9b refactor: normalize plugin.json format, skill names, and install scripts
-c467915 docs(backlog-loop): add proposal and plan
+```
 
 ---
 
 ## Changed Files
 
-### Scripts（新增/修改）
+### Scripts
 
-| 状态 | 文件 |
-|------|------|
-| A | scripts/loop-backlog-daemon.py |
-| A | scripts/test-loop-backlog-daemon.sh |
+| Status | File |
+|--------|------|
+| A | scripts/loop-backlog-daemon.js — Node.js canonical daemon |
+| M | scripts/loop-backlog-daemon.py — downgraded to legacy fallback |
+| A | scripts/test-loop-backlog-daemon-js.sh — 6 tests for JS daemon |
+| A | scripts/test-loop-backlog-daemon.sh — 6 tests for Python daemon |
 | A | scripts/test-loop-backlog-skill-bootstrap.sh |
 | A | scripts/test-loop-backlog-skill-monitor.sh |
 | A | scripts/test-loop-backlog-skill-template.sh |
@@ -64,78 +46,104 @@ c467915 docs(backlog-loop): add proposal and plan
 | M | scripts/install/install.sh |
 | M | scripts/install/uninstall.sh |
 
-### Docs（新增/修改）
+### Docs
 
-| 状态 | 文件 |
-|------|------|
-| A | docs/plans/105-loop-backlog-daemon-monitor-event-driven.md |
-| A | docs/plans/106-check-recent-changes-doc-sync.md |
-| A | docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md |
-| A | docs/guides/cloudflare-tunnel.md |
-| A | docs/tasks/check-recent-changes-doc-sync-output.md |
+| Status | File |
+|--------|------|
+| A | docs/plans/105-loop-backlog-daemon-monitor-event-driven.md (TASK-5) |
+| A | docs/plans/106-check-recent-changes-doc-sync.md (TASK-6) |
+| A | docs/plans/107-rewrite-loop-backlog-daemon-nodejs.md (TASK-7) |
+| A | docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md (TASK-5) |
+| A | docs/tasks/check-recent-changes-doc-sync-output.md (TASK-6 output) |
+| A | docs/tasks/git-push-release-version.txt |
+| A | docs/tasks/meta-cc-doc-audit-changes.md |
+| A | docs/tasks/meta-cc-doc-audit-gaps.md |
 | M | CHANGELOG.md |
 | M | README.md |
 
-### Config（新增/修改）
+### Config / Plugin
 
-| 状态 | 文件 |
-|------|------|
+| Status | File |
+|--------|------|
 | A | CLAUDE.md |
-| M | .claude-plugin/marketplace.json |
-| M | plugin/.claude-plugin/plugin.json |
-| A | backlog/config.yml |
-| A | .claude/skills/loop-backlog/SKILL.md |
+| M | plugin/.claude-plugin/plugin.json — version 1.1.3 |
 | M | plugin/skills/loop-backlog/SKILL.md |
+| A | plugin/skills/backlog-setup/SKILL.md |
+| A | plugin/skills/feature-to-backlog/SKILL.md |
+| A | plugin/skills/feature-developer/SKILL.md |
+| A | plugin/skills/task-to-backlog/SKILL.md |
+| M | .claude/skills/loop-backlog/SKILL.md |
+| A | backlog/config.yml |
+| A | backlog/tasks/task-5..task-6 |
 
 ---
 
 ## Sync Status
 
-### 1. loop-backlog SKILL.md 变更 → CHANGELOG [OK]
-CHANGELOG v1.1.1 已记录 loop-backlog idle poll 间隔及执行记录格式变更。
+### 1. loop-backlog event-driven daemon (TASK-5) — CHANGELOG [OK]
+CHANGELOG [Unreleased] documents the event-driven model, Monitor persistent mode,
+daemon tasks-dir bugfix, Node.js rewrite, and legacy Python fallback.
 
-### 2. 新增脚本 loop-backlog-daemon.py → README [PARTIAL]
-README 有 `## Backlog + Loop Workflow` 章节，但未提及 daemon 脚本或停止方式（`.loop-stop` / `TaskStop`）。
+### 2. loop-backlog-daemon.js (TASK-7 Node.js rewrite) — README [OK]
+README updated: references `scripts/loop-backlog-daemon.js` as canonical daemon.
+Stop instruction (`touch backlog/.loop-stop`) is present in the README.
 
-### 3. 版本号 plugin.json vs CHANGELOG [OK]
-plugin.json 版本 1.1.3，CHANGELOG 最新正式版 [1.1.3] - 2026-06-17，一致。
+### 3. Plugin version vs CHANGELOG [OK]
+plugin.json version 1.1.3 matches CHANGELOG `## [1.1.3] - 2026-06-17`.
+Post-1.1.3 changes (event-driven daemon, Node.js rewrite) are in [Unreleased].
 
-### 4. TASK-5 计划和提案文档 [OK]
-- docs/plans/105-loop-backlog-daemon-monitor-event-driven.md ✓
-- docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md ✓
+### 4. TASK-5 plan and proposal docs [OK]
+- docs/plans/105-loop-backlog-daemon-monitor-event-driven.md — exists
+- docs/proposals/proposal-loop-backlog-daemon-monitor-event-driven.md — exists
 
-### 5. Monitor persistent 变更 → CHANGELOG [MISSING]
-fix(loop-backlog): Monitor persistent mode 及 daemon tasks-dir 路径修正尚未出现在 CHANGELOG [Unreleased] 节。
+### 5. TASK-7 plan doc [OK] / proposal doc [MISSING]
+- docs/plans/107-rewrite-loop-backlog-daemon-nodejs.md — exists
+- docs/proposals/proposal-rewrite-loop-backlog-daemon-nodejs.md — does NOT exist
 
-### 6. Cloudflare Tunnel 指南 [OK]
-docs/guides/cloudflare-tunnel.md 存在，已在 CHANGELOG v1.1.3 中记录。
+### 6. Skill test scripts (3 new files) [PARTIAL]
+scripts/test-loop-backlog-skill-bootstrap.sh, test-loop-backlog-skill-monitor.sh,
+test-loop-backlog-skill-template.sh added to repo but not mentioned in CHANGELOG
+or README.
+
+### 7. Cloudflare Tunnel guide [OK]
+docs/guides/cloudflare-tunnel.md exists and is documented in CHANGELOG v1.1.3.
 
 ---
 
 ## Gaps
 
-1. **CHANGELOG [Unreleased] 节为空**：Monitor persistent 切换（41ef5c9）、daemon 路径修正（13f9c60）均未记录。
-2. **README 未提及 daemon 脚本**：停止 worker 的方式（`touch backlog/.loop-stop`）未说明。
+1. **Missing TASK-7 proposal doc**: `docs/proposals/proposal-rewrite-loop-backlog-daemon-nodejs.md`
+   does not exist. A plan doc (`docs/plans/107-rewrite-loop-backlog-daemon-nodejs.md`) was
+   created but no corresponding proposal document.
+
+2. **Undocumented skill test scripts**: Three test scripts added to `scripts/`:
+   `test-loop-backlog-skill-bootstrap.sh`, `test-loop-backlog-skill-monitor.sh`,
+   `test-loop-backlog-skill-template.sh` — not mentioned in CHANGELOG or README.
+
+3. **[Unreleased] not yet tagged**: Significant changes (event-driven daemon,
+   Node.js rewrite, multiple bugfixes) accumulated in [Unreleased] but no
+   release tag yet. A v1.1.4 release should be cut.
 
 ---
 
 ## Recommendations
 
-### R1：补充 CHANGELOG [Unreleased] 节
-**目标文件：** `CHANGELOG.md`
+### R1: Create missing TASK-7 proposal doc (low priority)
+**Target**: `docs/proposals/proposal-rewrite-loop-backlog-daemon-nodejs.md`
+Brief rationale document explaining why Node.js was chosen over Python
+for the canonical daemon implementation.
 
-```markdown
-## [Unreleased]
+### R2: Document skill test scripts in CHANGELOG
+**Target**: `CHANGELOG.md` [Unreleased] Added section
+Add entries for `test-loop-backlog-skill-bootstrap.sh`,
+`test-loop-backlog-skill-monitor.sh`, `test-loop-backlog-skill-template.sh`.
 
-### Fixed
-- `loop-backlog`: daemon tasks-dir corrected from `.backlog/tasks` to `backlog/tasks`
-- `loop-backlog`: Monitor now runs in persistent mode — no re-arm on timeout
-```
+### R3: Cut release v1.1.4
+**Target**: `plugin/.claude-plugin/plugin.json`, `CHANGELOG.md`
+Move [Unreleased] entries to `## [1.1.4]` with today's date.
+Run the release process to tag `v1.1.4`.
 
-### R2：更新 README Step 3
-**目标文件：** `README.md`，`## Backlog + Loop Workflow` → Step 3，补充：
-
-```markdown
-To stop the worker:
-    touch backlog/.loop-stop
-```
+### Overall Assessment
+Documentation sync is in good shape. All major features are covered in CHANGELOG
+and README. The gaps are minor: one missing proposal doc (TASK-7) and three
+undocumented test scripts. No critical documentation gaps found.
