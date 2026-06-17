@@ -156,8 +156,13 @@ Spawn a Task agent with the following prompt (substitute literal values for all
 > Decide whether the template is still valid for its stated purpose.
 > Consider:
 > - Do the Phase steps and DoD commands still match the current project structure?
-> - Have any referenced files, scripts, or tools been renamed or removed?
-> - Do the git changes suggest the workflow has fundamentally changed?
+> - Have any scripts or tools that the template **directly invokes** (e.g. in Phase bash
+>   blocks or DoD commands) been renamed or removed? Check only what the executor runs,
+>   not what those scripts do internally.
+> - Do the git changes suggest the overall workflow has fundamentally changed?
+>
+> **Important**: do NOT check files that are only mentioned in descriptive text, or files
+> that a script modifies internally. Only the script/tool entry points matter.
 >
 > Your output MUST begin with exactly one of:
 > - `FRESH` — template is still valid; no changes required
