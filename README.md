@@ -125,13 +125,19 @@ backlog task edit TASK-1 --status "Ready"
 
 ### 3. Run the Autonomous Worker
 
-Invoke once to start the self-rescheduling worker loop:
+Invoke once to start the event-driven worker loop:
 
 ```
 /loop-backlog
 ```
 
-The worker claims `Ready` tasks, executes them in isolated git worktrees, verifies DoD shell commands (with auto-retry), commits and merges changes back to `main`, marks tasks `Done`, and reschedules itself every 120 seconds.
+The worker claims `Ready` tasks, executes them in isolated git worktrees, verifies DoD shell commands (with auto-retry), commits and merges changes back to `main`, and marks tasks `Done`. It uses an event-driven daemon (`scripts/loop-backlog-daemon.py`) that watches `backlog/tasks/` and triggers instantly when a task becomes `Ready` — no polling delay.
+
+To stop the worker:
+
+```bash
+touch backlog/.loop-stop
+```
 
 ### 4. Monitor Progress
 
@@ -170,7 +176,7 @@ pip install pyyaml
 bash scripts/validate-plugin.sh
 ```
 
-Expected output: 6 agents, 19 skills, all YAML frontmatter checks passed.
+Expected output: 4 agents, 22 skills, all YAML frontmatter checks passed.
 
 ---
 
