@@ -44,12 +44,23 @@ Plan :: {
   acceptance  : [ShellCmd]  -- final gate; at least one item required
 }
 
+-- Input: topic is either a task ID (e.g. TASK-12, task-12) or a free-form description.
+-- Task ID → resolve existing task; use its description as the plan draft (skip re-draft).
+-- Description → create a new task, then draft a plan from scratch.
+
+resolveOrCreate :: Topic → (Task, SkipDraft)
+resolveOrCreate(T) =
+  | isTaskId(T) → (lookupTask(T), True)   -- reuse existing description as plan draft
+  | otherwise   → (createTask(T), False)  -- draft from scratch
+
 -- Workflow: single draft + single review loop (softer than feature-to-backlog)
 taskToBacklog :: Topic → BacklogTask
 taskToBacklog(T) = {
-  cfg:  loadConfig(),
-  task: createTask(T),
-  plan: reviewLoop(task, draftPlan(task, T), 4),
+  cfg:               loadConfig(),
+  (task, skipDraft): resolveOrCreate(T),
+  plan: if skipDraft
+    then reviewLoop(task, task.description, 4)  -- existing description IS the plan draft
+    else reviewLoop(task, draftPlan(task, T), 4)
   _:    finalise(task, plan, cfg),
   return: task   -- status: Backlog
 }
@@ -114,20 +125,36 @@ If `<topic>` is empty: print usage and stop.
 
 ---
 
-### Phase 1: createTask
+### Phase 1: resolveOrCreate
+
+Detect whether `<topic>` is an existing task ID or a new description:
 
 ```bash
-backlog task create "$TITLE" \
-  --status "Plan Draft" \
-  --description "<topic>" \
-  --plain
+if echo "<topic>" | grep -qiP '^task-\d+$'; then
+  # Existing task path — resolve and extract description as initial plan draft
+  TASK_ID=$(echo "<topic>" | tr '[:lower:]' '[:upper:]')
+  backlog task view "$TASK_ID" --plain > $TMPDIR/ttb-existing-task.txt
+  echo "$TASK_ID" > $TMPDIR/ttb-task-id.txt
+  # Extract description block into ttb-plan.md (between the two separator lines)
+  awk '/^Description:/{found=1;next} found && /^-{10,}/{if(!sep){sep=1;next};exit} found && sep{print}' \
+    $TMPDIR/ttb-existing-task.txt > $TMPDIR/ttb-plan.md
+  echo "skip" > $TMPDIR/ttb-draft-mode.txt
+else
+  # New topic path — create task
+  backlog task create "$TITLE" \
+    --status "Plan Draft" \
+    --description "<topic>" \
+    --plain
+  # Extract task ID from output line `Task TASK-N`. Write to $TMPDIR/ttb-task-id.txt.
+  echo "draft" > $TMPDIR/ttb-draft-mode.txt
+fi
 ```
-
-Extract task ID from output line `Task TASK-N`. Write to `$TMPDIR/ttb-task-id.txt`.
 
 ---
 
 ### Phase 2: draftPlan
+
+If `$TMPDIR/ttb-draft-mode.txt` contains `skip`: `$TMPDIR/ttb-plan.md` already holds the task's existing description — skip this phase and proceed directly to Phase 3.
 
 Spawn Task agent:
 

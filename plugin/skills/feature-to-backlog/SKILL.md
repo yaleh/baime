@@ -58,16 +58,40 @@ Plan :: {
   acceptance  : [ShellCmd]       -- acceptance[0] is cfg.testAll
 }
 
+-- Input: topic is either a task ID (e.g. TASK-12, task-12) or a free-form description.
+-- Task ID → resolve existing task; resume from its current status using its description as draft.
+-- Description → create a new task and run the full proposal → plan workflow.
+
+EntryPoint = ProposalLoop | PlanLoop
+  -- ProposalLoop : enter proposal reviewLoop (new task, or Proposal Draft/Review status)
+  -- PlanLoop     : skip proposal; enter plan reviewLoop (Plan Draft or Plan Review status)
+
+resolveOrCreate :: Topic → (Task, EntryPoint)
+resolveOrCreate(T) =
+  | isTaskId(T) → (lookupTask(T), fromStatus(lookupTask(T).status))
+  | otherwise   → (createTask(T), ProposalLoop)
+
+fromStatus :: Status → EntryPoint
+fromStatus("Plan Draft")  = PlanLoop
+fromStatus("Plan Review") = PlanLoop
+fromStatus(_)             = ProposalLoop  -- Proposal Draft/Review or other
+
 -- Workflow
 
 featureToBacklog :: Topic → BacklogTask
 featureToBacklog(T) = {
-  cfg:      loadConfig(),
-  task:     createTask(T),
-  proposal: reviewLoop(task, draftProposal(task, T), 8),
-  plan:     reviewLoop(task, draftPlan(task, proposal, cfg), 8),
-  _:        finalise(task, proposal, plan, cfg),
-  return:   task  -- status: Backlog
+  cfg:            loadConfig(),
+  (task, entry):  resolveOrCreate(T),
+  -- ProposalLoop: use existing description as proposal draft (skips fresh draft if task ID given)
+  -- PlanLoop: skip proposal stage entirely
+  proposal: case entry of
+    ProposalLoop → reviewLoop(task, task.description, 8)
+    PlanLoop     → task.description  -- not used; plan stage reads task.description directly
+  plan: case entry of
+    ProposalLoop → reviewLoop(task, draftPlan(task, proposal, cfg), 8)
+    PlanLoop     → reviewLoop(task, task.description, 8)  -- description IS the plan draft
+  _:    finalise(task, proposal, plan, cfg),
+  return: task  -- status: Backlog
 }
 
 reviewLoop :: (Task, Doc, MaxRounds) → ApprovedDoc
@@ -146,20 +170,39 @@ If `<topic>` is empty: print usage and stop.
 
 ---
 
-### Phase 1: createTask + draftProposal
+### Phase 1: resolveOrCreate + maybe draftProposal
 
-**1a. createTask** (orchestrator runs directly):
+**1a. resolveOrCreate** (orchestrator runs directly):
 
 ```bash
-backlog task create "$TITLE" \
-  --status "Proposal Draft" \
-  --description "<topic>" \
-  --plain
+if echo "<topic>" | grep -qiP '^task-\d+$'; then
+  # Existing task path — resolve and extract description as initial draft
+  TASK_ID=$(echo "<topic>" | tr '[:lower:]' '[:upper:]')
+  backlog task view "$TASK_ID" --plain > $TMPDIR/ftb-existing-task.txt
+  echo "$TASK_ID" > $TMPDIR/ftb-task-id.txt
+  # Extract description block into ftb-proposal.md (reused as proposal or plan draft)
+  awk '/^Description:/{found=1;next} found && /^-{10,}/{if(!sep){sep=1;next};exit} found && sep{print}' \
+    $TMPDIR/ftb-existing-task.txt > $TMPDIR/ftb-proposal.md
+  # Determine entry point from status
+  TASK_STATUS=$(grep -oP '(?<=Status: .)[ \w]+' $TMPDIR/ftb-existing-task.txt | head -1 | xargs)
+  case "$TASK_STATUS" in
+    "Plan Draft"|"Plan Review") echo "PlanLoop"     > $TMPDIR/ftb-entry-point.txt ;;
+    *)                          echo "ProposalLoop" > $TMPDIR/ftb-entry-point.txt ;;
+  esac
+else
+  # New topic path — create task
+  backlog task create "$TITLE" \
+    --status "Proposal Draft" \
+    --description "<topic>" \
+    --plain
+  # Extract task ID from output line `Task TASK-N`. Write to $TMPDIR/ftb-task-id.txt.
+  echo "ProposalLoop" > $TMPDIR/ftb-entry-point.txt
+fi
 ```
 
-Extract task ID from output line `Task TASK-N`. Write to `$TMPDIR/ftb-task-id.txt`.
+If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2–3; proceed directly to Phase 4 using `$TMPDIR/ftb-proposal.md` as the plan draft (rename it to `$TMPDIR/ftb-plan.md`).
 
-**1b. draftProposal** — spawn Task agent:
+**1b. draftProposal** — spawn Task agent (only when entry point is `ProposalLoop` AND topic is a new description; skip if existing task ID was given — its description is already in `$TMPDIR/ftb-proposal.md`):
 
 > Draft a technical proposal and update the backlog task.
 >
@@ -240,6 +283,8 @@ After each agent run, read `$TMPDIR/ftb-proposal-verdict.txt`:
 ---
 
 ### Phase 3: draftPlan
+
+If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: `$TMPDIR/ftb-plan.md` already holds the task's existing description as the plan draft — skip this phase and proceed directly to Phase 4.
 
 ```bash
 backlog task edit $TASK_ID \
