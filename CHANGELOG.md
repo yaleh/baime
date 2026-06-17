@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-06-17
+
+### Added
+- `.gitignore`: added backlog daemon log and PID files (`backlog/.daemon.log`, `backlog/.daemon.pid`) to prevent accidental commits of runtime artifacts
+
 ## [1.2.1] - 2026-06-17
 
 ### Added
