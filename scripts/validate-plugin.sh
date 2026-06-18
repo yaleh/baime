@@ -231,6 +231,226 @@ if [ -f "$NSG" ]; then
     fi
 fi
 
+# ── Unit Tests ────────────────────────────────────────────────────────────────
+
+echo ""
+echo "=== Unit Tests ==="
+
+run_skill_unit_tests() {
+  local test_dir="$REPO_ROOT/scripts"
+  for test_file in "$test_dir"/*.test.js "$test_dir"/*.test.sh; do
+    [ -f "$test_file" ] || continue
+    local name
+    name="$(basename "$test_file")"
+    if [[ "$test_file" == *.test.js ]]; then
+      if node "$test_file" >/dev/null 2>&1; then
+        pass "unit test: $name"
+      else
+        fail "unit test: $name"
+      fi
+    elif [[ "$test_file" == *.test.sh ]]; then
+      if bash "$test_file" >/dev/null 2>&1; then
+        pass "unit test: $name"
+      else
+        fail "unit test: $name"
+      fi
+    fi
+  done
+}
+
+run_skill_unit_tests
+
+# ── Contract Tests ────────────────────────────────────────────────────────────
+
+echo ""
+echo "=== Contract Tests ==="
+
+validate_contracts() {
+  local skill_file="$1"
+  python3 - "$skill_file" <<'EOF'
+import sys, re, subprocess, tempfile, os
+
+filepath = sys.argv[1]
+with open(filepath, 'r') as f:
+    content = f.read()
+
+# Extract YAML frontmatter
+match = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL)
+if not match:
+    sys.exit(0)
+
+frontmatter_text = match.group(1)
+body_text = match.group(2)
+
+# Try to parse contracts field using yaml
+contracts = None
+try:
+    import yaml
+    parsed = yaml.safe_load(frontmatter_text)
+    if isinstance(parsed, dict):
+        contracts = parsed.get('contracts')
+except Exception:
+    pass
+
+if not contracts:
+    sys.exit(0)
+
+skill_name = filepath
+errors = 0
+
+# Write a temp file for self-targeting (body only, excluding frontmatter)
+tmp_body = tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False)
+tmp_body.write(body_text)
+tmp_body.close()
+
+try:
+    for rule in contracts:
+        if 'grep' in rule:
+            pattern = rule['grep']
+            target = rule.get('target', 'self')
+            target_file = tmp_body.name if target == 'self' else target
+            result = subprocess.run(['grep', '-q', pattern, target_file], capture_output=True)
+            if result.returncode == 0:
+                print(f"  PASS: contract grep '{pattern}' in {skill_name}")
+            else:
+                print(f"  FAIL: contract grep '{pattern}' not found in {skill_name}")
+                errors += 1
+        elif 'not-grep' in rule:
+            pattern = rule['not-grep']
+            target = rule.get('target', 'self')
+            target_file = tmp_body.name if target == 'self' else target
+            result = subprocess.run(['grep', '-q', pattern, target_file], capture_output=True)
+            if result.returncode != 0:
+                print(f"  PASS: contract not-grep '{pattern}' absent in {skill_name}")
+            else:
+                print(f"  FAIL: contract not-grep '{pattern}' found in {skill_name}")
+                errors += 1
+finally:
+    os.unlink(tmp_body.name)
+
+sys.exit(errors)
+EOF
+}
+
+for skill_dir in "$SKILLS_DIR"/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+    if ! validate_contracts "$skill_file"; then
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+# ── Layer 0: Internal Consistency ─────────────────────────────────────────────
+
+echo ""
+echo "=== Layer 0: Internal Consistency ==="
+
+validate_skill_internals() {
+  local skill_file="$1"
+  python3 - "$skill_file" <<'EOF'
+import sys, re
+
+filepath = sys.argv[1]
+skill_name = filepath.split('/')[-2] if '/' in filepath else filepath
+
+with open(filepath, 'r') as f:
+    content = f.read()
+
+# Strip frontmatter
+fm_match = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL)
+if not fm_match:
+    sys.exit(0)
+
+frontmatter_text = fm_match.group(1)
+body = fm_match.group(2)
+
+errors = 0
+
+# Parse frontmatter fields
+meta = {}
+try:
+    import yaml
+    parsed = yaml.safe_load(frontmatter_text)
+    if isinstance(parsed, dict):
+        meta = parsed
+except Exception:
+    pass
+
+# Regex fallback for allowed-tools and daemon-version
+if 'allowed-tools' not in meta:
+    m = re.search(r'^allowed-tools:\s*(.+)$', frontmatter_text, re.MULTILINE)
+    if m:
+        meta['allowed-tools'] = m.group(1).strip()
+
+if 'daemon-version' not in meta:
+    m = re.search(r'^daemon-version:\s*(.+)$', frontmatter_text, re.MULTILINE)
+    if m:
+        meta['daemon-version'] = m.group(1).strip()
+
+# ── Sub-check 1: Function coverage ───────────────────────────────────────────
+# Only when ## Implementation section exists
+impl_match = re.search(r'^## Implementation\s*\n(.*?)(?=^## |\Z)', body, re.MULTILINE | re.DOTALL)
+if impl_match:
+    spec_match = re.search(r'^## Spec\s*\n(.*?)(?=^## |\Z)', body, re.MULTILINE | re.DOTALL)
+    spec_text = spec_match.group(1) if spec_match else ''
+    impl_text = impl_match.group(1)
+
+    # Extract funcName( references from Spec
+    spec_refs = set()
+    for m in re.finditer(r'\b([a-z][a-zA-Z0-9]+)\(', spec_text):
+        spec_refs.add(m.group(1))
+
+    # Extract bare ### funcName headings from Implementation
+    impl_headings = set()
+    for m in re.finditer(r'^###\s+([a-zA-Z][a-zA-Z0-9]+)\s*$', impl_text, re.MULTILINE):
+        impl_headings.add(m.group(1))
+
+    # FAIL for impl headings not referenced anywhere in Spec
+    undocumented = impl_headings - spec_refs
+    for h in sorted(undocumented):
+        print(f"  FAIL: [{skill_name}] impl heading '### {h}' has no Spec reference")
+        errors += 1
+
+# ── Sub-check 2: allowed-tools completeness (WARNING only) ───────────────────
+known_tools = ['Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Monitor',
+               'Agent', 'Task', 'WebFetch', 'WebSearch']
+
+declared_str = meta.get('allowed-tools', '')
+declared = set(t.strip() for t in declared_str.split(',') if t.strip())
+
+used_tools = set()
+for tool in known_tools:
+    if re.search(r'\b' + re.escape(tool) + r'\(', body):
+        used_tools.add(tool)
+
+undeclared = used_tools - declared
+for tool in sorted(undeclared):
+    print(f"  WARNING: [{skill_name}] tool '{tool}(' used in body but not in allowed-tools")
+
+# ── Sub-check 3: daemon-version consistency ───────────────────────────────────
+if 'daemon-version' in meta:
+    fm_version = str(meta['daemon-version']).strip()
+    # Find version comments in body like: // daemon-version: v3 or # daemon-version: v3
+    body_versions = re.findall(r'(?://|#)\s*daemon-version:\s*(\S+)', body)
+    for bv in body_versions:
+        if bv != fm_version:
+            print(f"  FAIL: [{skill_name}] daemon-version mismatch: frontmatter={fm_version} body={bv}")
+            errors += 1
+
+sys.exit(errors)
+EOF
+}
+
+for skill_dir in "$SKILLS_DIR"/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+    if ! validate_skill_internals "$skill_file"; then
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
