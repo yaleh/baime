@@ -3,6 +3,13 @@ name: task-to-backlog
 description: "Converts a non-development task (analysis, research, documentation, experiment, survey) into a backlog task. Single draft + review loop produces a phase-based execution plan with shell-verifiable DoD. No TDD structure required. Ends with the plan written into the task planSet and the task in Backlog status with native DoD items."
 argument-hint: [task-description]
 allowed-tools: Read, Glob, Grep, Bash, Agent
+contracts:
+  - grep: "reviewLoop"
+    target: self
+  - grep: "non-development"
+    target: self
+  - grep: "Backlog"
+    target: self
 ---
 
 λ(topic) → taskToBacklog(topic)

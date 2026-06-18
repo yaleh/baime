@@ -3,6 +3,13 @@ name: task-from-template
 description: "Creates a Ready-status backlog task from a pre-approved template, bypassing the full review cycle. Performs a single LLM freshness check against recent git changes; if FRESH creates the task immediately, if STALE explains why and prompts the user to regenerate via task-to-backlog."
 argument-hint: <template-slug>
 allowed-tools: Read, Glob, Grep, Bash, Agent
+contracts:
+  - grep: "FRESH"
+    target: self
+  - grep: "STALE"
+    target: self
+  - grep: "templates"
+    target: self
 ---
 
 λ(slug) → taskFromTemplate(slug)

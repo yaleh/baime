@@ -3,6 +3,15 @@ name: feature-to-backlog
 description: "Converts a feature description into a single backlog task with TDD implementation plan, moving through Proposal → Plan → Backlog. Two iterative review loops (each converges on APPROVED, soft limit 8 rounds). Ends with the proposal and plan written into the task planSet and the task in Backlog status with native DoD items. No branch creation, no PRs."
 argument-hint: [feature-topic-or-description]
 allowed-tools: Read, Glob, Grep, Bash, Agent
+contracts:
+  - grep: "proposalLoop"
+    target: self
+  - grep: "planLoop"
+    target: self
+  - grep: "APPROVED"
+    target: self
+  - not-grep: "git worktree add"
+    target: self
 ---
 
 λ(topic) → featureToBacklog(topic)
