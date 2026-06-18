@@ -87,6 +87,7 @@ workerLoop() = {
     sig: results[t],
     _:   deleteSignalFile("backlog/.agent-done-" + t.id),
     if (sig == "done"):
+      verifyDod(t),
       merge(t, t.branch)
     else:
       escalate(t, stripPrefix("needs-human: ", sig))
@@ -800,6 +801,10 @@ fi
 
 ### merge
 
+> **Precondition:** merge is only reached after workerLoop's independent DoD verification has passed.
+> The workerLoop serial merge loop runs `verifyDodInWorkerLoop` before calling `git merge`; a
+> failing DoD command redirects control to escalation instead.
+
 ```bash
 cd "$REPO_ROOT"
 if git merge --no-ff "$BRANCH" -m "merge: ${TITLE} (${TASK_ID})"; then
@@ -901,6 +906,33 @@ for TASK_ID in $CLAIMED_TASK_IDS; do
   TASK_VIEW=$(backlog task view "$TASK_ID" --plain)
   TITLE=$(echo "$TASK_VIEW" | grep -oP '(?<=Task TASK-\d+ - ).+' | head -1)
 
+  # pre-merge DoD verification (independent of agent signal)
+  if [ "$SIGNAL_CONTENT" = "done" ] && [ -d "$WORKTREE" ]; then
+    PRE_MERGE_DOD_PASS=true
+    PRE_MERGE_FAIL_MSG=""
+    DOD_N=0
+    while IFS= read -r DOD_CMD; do
+      DOD_CMD=$(echo "$DOD_CMD" | sed 's/^- \[.\] #[0-9]* //')
+      cd "$WORKTREE"
+      DOD_OUT=$(eval "$DOD_CMD" 2>&1)
+      DOD_EXIT=$?
+      cd "$REPO_ROOT"
+      if [ $DOD_EXIT -ne 0 ]; then
+        PRE_MERGE_DOD_PASS=false
+        PRE_MERGE_FAIL_MSG="workerLoop DoD #${DOD_N} failed: ${DOD_CMD}\n$(echo "$DOD_OUT" | head -5)"
+        backlog task edit "$TASK_ID" --append-notes "workerLoop pre-merge DoD #${DOD_N} FAIL: ${DOD_CMD}"
+        break
+      fi
+      DOD_N=$((DOD_N + 1))
+    done < <(backlog task view "$TASK_ID" --plain | grep -oP '^- \[.\] #\d+ .+')
+
+    if [ "$PRE_MERGE_DOD_PASS" = "true" ]; then
+      backlog task edit "$TASK_ID" --append-notes "workerLoop DoD verified: all ${DOD_N} commands passed"
+    else
+      SIGNAL_CONTENT="needs-human: ${PRE_MERGE_FAIL_MSG}"
+    fi
+  fi
+
   cd "$REPO_ROOT"
   if [ "$SIGNAL_CONTENT" = "done" ]; then
     # Standard merge path (same as existing merge section)
@@ -924,6 +956,20 @@ To continue: answer in Implementation Notes, then set status → Ready."
   fi
 done
 ```
+
+### verifyDodInWorkerLoop
+
+Independent DoD verification executed by the workerLoop serial merge loop before each `git merge`.
+This is distinct from the agent's own `verifyDod` loop: it re-runs every DoD command from the
+worktree as a second, independent check. If any command fails, the merge is skipped and the task
+is escalated with a `needs-human: workerLoop DoD` signal.
+
+Key properties:
+- Runs in the worktree (`cd "$WORKTREE"`) so paths resolve correctly.
+- Only runs when the agent signalled `"done"` and the worktree directory still exists.
+- On failure, overwrites `SIGNAL_CONTENT` with `"needs-human: workerLoop DoD #N failed: …"`,
+  causing the standard escalation branch below to fire.
+- On success, appends `"workerLoop DoD verified: all N commands passed"` to the task notes.
 
 ### Failure path (Stuck)
 
