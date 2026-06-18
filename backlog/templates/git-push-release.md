@@ -1,7 +1,7 @@
 ---
 slug: git-push-release
 title: 检查 git 状态；push；发布
-last-used: 2026-06-17
+last-used: 2026-06-18
 applicable-when: Local main has unpushed commits and a CHANGELOG entry for the next version exists
 ---
 
