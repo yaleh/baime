@@ -22,5 +22,10 @@ jobs:
       - name: Install PyYAML
         run: pip install pyyaml
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Run plugin validation
         run: bash scripts/validate-plugin.sh
