@@ -3,6 +3,7 @@ set -e
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ERRORS=0
+WARNINGS=0
 
 # ── Helper functions ─────────────────────────────────────────────────────────
 
@@ -565,11 +566,60 @@ else
   fail "skill-lint.sh not found at $LINT_SCRIPT"
 fi
 
+# ── Layer 0: Contract Density Check ──────────────────────────────────────────
+
+echo ""
+echo "=== Layer 0: Contract Density Check ==="
+
+set +e
+python3 - "$SKILLS_DIR" <<'PYEOF'
+import sys, os, re
+
+LINE_THRESHOLD = 500
+CONTRACT_THRESHOLD = 3
+
+skills_dir = sys.argv[1]
+warnings = 0
+
+for entry in sorted(os.listdir(skills_dir)):
+    skill_file = os.path.join(skills_dir, entry, 'SKILL.md')
+    if not os.path.isfile(skill_file):
+        continue
+    with open(skill_file) as f:
+        content = f.read()
+    lines = content.count('\n')
+    # Count contracts entries: lines starting with "  - " under contracts: block
+    # Find contracts: key and count list items
+    contract_count = 0
+    in_contracts = False
+    for line in content.split('\n'):
+        if re.match(r'^contracts:\s*$', line):
+            in_contracts = True
+            continue
+        if in_contracts:
+            if re.match(r'^\s{2}-', line):
+                contract_count += 1
+            elif line.strip() and not re.match(r'^\s', line):
+                in_contracts = False
+    if lines > LINE_THRESHOLD and contract_count < CONTRACT_THRESHOLD:
+        print(f"  WARNING: contracts density low: {entry} ({lines} lines, {contract_count} contracts, recommend ≥{CONTRACT_THRESHOLD})")
+        warnings += 1
+
+if warnings == 0:
+    print(f"  PASS: all large skills (>{LINE_THRESHOLD} lines) have ≥{CONTRACT_THRESHOLD} contracts")
+sys.exit(warnings)
+PYEOF
+
+DENSITY_WARNINGS=$?
+set -e
+WARNINGS=$((WARNINGS + DENSITY_WARNINGS))
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
 echo "=== Summary ==="
 echo "Agents: $AGENT_COUNT, Skills: $SKILL_COUNT"
+echo "Errors: $ERRORS, Warnings: $WARNINGS"
 if [ "$ERRORS" -eq 0 ]; then
     echo ""
     echo "ALL CHECKS PASSED"
