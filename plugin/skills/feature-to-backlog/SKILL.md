@@ -15,26 +15,16 @@ Config :: {
   docPath  : String    -- root for proposals/ and plans/ subdirectories
 }
 
-loadConfig :: () → Config
+loadConfig :: () → Config  -- see spec-stdlib § loadConfig
 loadConfig() =
   | fromClaudeMd()   -- explicit: "## L0 Config" section in CLAUDE.md
   | autoDetect()     -- implicit: probe package.json, go.mod, Cargo.toml, etc.
 
 autoDetect :: () → Config
-autoDetect() = case detectLang() of
-  | Node    → { testCmd: "npm test -- --run", testAll: "npm test",            docPath: "docs" }
-  | Go      → { testCmd: "go test ./...",     testAll: "go test ./...",        docPath: "docs" }
-  | Rust    → { testCmd: "cargo test",        testAll: "cargo test --workspace", docPath: "docs" }
-  | Python  → { testCmd: "pytest -k",         testAll: "pytest",               docPath: "docs" }
-  | _       → { testCmd: "make test",         testAll: "make test",            docPath: "docs" }
+autoDetect() = -- see spec-stdlib § loadConfig
 
-detectLang :: () → Lang
-detectLang() =
-  | exists("package.json")                           → Node
-  | exists("go.mod")                                 → Go
-  | exists("Cargo.toml")                             → Rust
-  | exists("pyproject.toml") ∨ exists("setup.py")   → Python
-  | otherwise                                        → Unknown
+detectLang :: () → Lang  -- see spec-stdlib § detectLang
+-- see spec-stdlib § detectLang
 
 -- Core document types
 
@@ -93,13 +83,8 @@ featureToBacklog(T) = {
   return: task  -- status: Backlog
 }
 
-reviewLoop :: (Task, Doc, MaxRounds) → ApprovedDoc
-reviewLoop(_, doc, 0) = escalate(doc)   -- not converged; move to Needs Human
-reviewLoop(T, doc, n) = {
-  verdict: review(T, doc),
-  if (verdict == APPROVED): return doc,
-  return: reviewLoop(T, revise(doc, verdict.fixes), n - 1)
-}
+reviewLoop :: (Task, Doc, MaxRounds) → ApprovedDoc  -- see spec-stdlib § reviewLoop
+reviewLoop task doc = reviewLoopStdlib task doc maxRounds  -- MaxRounds = 8
 
 -- Plan review invariants (all must hold for APPROVED)
 

@@ -30,24 +30,17 @@ Config :: {
   maxParallel : Int      -- max concurrent background agents (default 2)
 }
 
-loadConfig :: () → Config
+loadConfig :: () → Config  -- see spec-stdlib § loadConfig
 loadConfig() =
   | fromClaudeMd()   -- explicit: "## L0 Config" section in CLAUDE.md
                      -- reads: worktree-symlinks, max-parallel (default 2)
   | autoDetect()     -- implicit: probe package.json, go.mod, Cargo.toml, etc.
 
 autoDetect :: () → Config
-autoDetect() = case detectLang() of
-  | Node    → { symlinks: ["node_modules"] }
-  | _       → { symlinks: [] }
+autoDetect() = -- see spec-stdlib § loadConfig
 
-detectLang :: () → Lang
-detectLang() =
-  | exists("package.json") → Node
-  | exists("go.mod")       → Go
-  | exists("Cargo.toml")   → Rust
-  | exists("pyproject.toml") ∨ exists("setup.py") → Python
-  | otherwise              → Unknown
+detectLang :: () → Lang  -- see spec-stdlib § detectLang
+-- see spec-stdlib § detectLang
 
 data Outcome = Done CommitHash | NeedsHuman Reason | Idle | Stopped
 

@@ -13,15 +13,13 @@ Config :: {
   docPath : String   -- root directory for plan docs and task outputs
 }
 
-loadConfig :: () → Config
+loadConfig :: () → Config  -- see spec-stdlib § loadConfig
 loadConfig() =
   | fromClaudeMd()   -- explicit: "## L0 Config" section in CLAUDE.md
   | autoDetect()     -- implicit: use "docs" if it exists, otherwise "."
 
 autoDetect :: () → Config
-autoDetect() =
-  | exists("docs/") → { docPath: "docs" }
-  | otherwise       → { docPath: "." }
+autoDetect() = -- see spec-stdlib § loadConfig
 
 -- Non-development task types this skill handles (non-exhaustive)
 TaskType = Analysis | Documentation | Research | Experiment | Survey | Setup
@@ -65,13 +63,8 @@ taskToBacklog(T) = {
   return: task   -- status: Backlog
 }
 
-reviewLoop :: (Task, Plan, MaxRounds) → ApprovedPlan
-reviewLoop(_, plan, 0) = escalate(plan)   -- not converged; move to Needs Human
-reviewLoop(T, plan, n) = {
-  verdict: review(T, plan),
-  if (verdict == APPROVED): return plan,
-  return: reviewLoop(T, revise(plan, verdict.fixes), n - 1)
-}
+reviewLoop :: (Task, Plan, MaxRounds) → ApprovedPlan  -- see spec-stdlib § reviewLoop
+reviewLoop task plan = reviewLoopStdlib task plan maxRounds  -- MaxRounds = 4
 
 -- Review invariants (all must hold for APPROVED)
 reviewPlan :: Plan → Verdict
