@@ -1,7 +1,7 @@
 ---
 name: loop-backlog
 description: "Autonomous L0 Worker for the backlog.md task queue. Each task runs in an isolated git worktree, then merges back to master on success. Starts an event-driven daemon that emits task-ready events; uses Monitor to react instantly. Invoke /loop-backlog once to start the worker loop; it keeps running until the backlog/.loop-stop sentinel is written."
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Monitor
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Monitor, Agent
 ---
 
 λ() → workerLoop()
@@ -9,12 +9,14 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Monitor
 ## Spec
 
 Config :: {
-  symlinks : [Path]   -- dirs to symlink into worktree ([] = none)
+  symlinks    : [Path]   -- dirs to symlink into worktree ([] = none)
+  maxParallel : Int      -- max concurrent background agents (default 2)
 }
 
 loadConfig :: () → Config
 loadConfig() =
   | fromClaudeMd()   -- explicit: "## L0 Config" section in CLAUDE.md
+                     -- reads: worktree-symlinks, max-parallel (default 2)
   | autoDetect()     -- implicit: probe package.json, go.mod, Cargo.toml, etc.
 
 autoDetect :: () → Config
@@ -38,22 +40,37 @@ workerLoop() = {
   _:      ensureDaemonScript(),
   _:      daemonBootstrap(),
   _:      reap(inProgressTasks()),
-  task:   claim(),
+  tasks:  claimBatch(cfg.maxParallel),
 
   if (stopSentinel()):
     return: Stopped,
 
-  if (empty(task)):
+  if (empty(tasks)):
     -- No task yet; block persistently until daemon emits a task-ready line
-    -- Monitor(persistent=true) never times out — daemon runs until .loop-stop written
     event: Monitor(persistent=true),
     if (event matches "task-ready:TASK-*"):
-      return: workerLoop(),      -- re-enter to claim the announced task
+      return: workerLoop(),
     if (stopSentinel()):
       return: Stopped,
 
-  result: withWorktree(task, cfg, execute),
-  return: result
+  -- Parallel: create worktrees and spawn one background agent per task
+  worktrees: ∀t ∈ tasks: withWorktree(t, cfg),
+  _:         ∀(t, wt) ∈ zip(tasks, worktrees): spawnAgent(t, wt),
+
+  -- Wait for all agents to signal completion
+  results: waitForAgents(tasks),
+
+  -- Serial: merge each branch in order; read signal file to decide merge vs. escalate
+  ∀t ∈ tasks: {
+    sig: results[t],
+    _:   deleteSignalFile("backlog/.agent-done-" + t.id),
+    if (sig == "done"):
+      merge(t, t.branch)
+    else:
+      escalate(t, stripPrefix("needs-human: ", sig))
+  },
+
+  return: Done
 }
 
 reap :: [Task] → ()
@@ -64,15 +81,41 @@ reap(tasks) = ∀t ∈ tasks
     removeWorktree(t)
   }
 
-claim :: () → Maybe Task
-claim() = {
-  t: head(readyTasks()),
-  if (empty(t)): return Nothing,
-  atomically: {
+claimBatch :: Int → [Task]
+claimBatch(n) = {
+  tasks: take(n, readyTasks()),
+  if (empty(tasks)): return [],
+  ∀t ∈ tasks: atomically: {
     setStatus(t, "In Progress"),
     appendNote(t, "claimed: " + now())
   },
-  return: Just(t)
+  return: tasks        -- actual list; may be fewer than n if fewer Ready tasks exist
+}
+
+-- spawnAgent: launch a background agent for a single task in its worktree.
+-- The agent works only inside wt, commits if changed, then writes a signal file.
+-- Agent's allowed-tools explicitly excludes Agent to prevent recursive spawn.
+spawnAgent :: (Task, Worktree) → ()
+spawnAgent(T, wt) =
+  Agent(run_in_background=true, prompt=executePrompt(T, wt))
+
+-- waitForAgents: poll signal files until all agents in the batch have reported.
+-- Signal file path: backlog/.agent-done-TASK-N
+-- Content: "done" | "needs-human: <reason>"
+-- Polls every 5 seconds; no external dependencies beyond bash.
+waitForAgents :: [Task] → Map Task SignalContent
+waitForAgents(tasks) = {
+  remaining: tasks,
+  results:   {},
+  loop while (nonEmpty(remaining)): {
+    sleep(5),
+    ∀t ∈ remaining:
+      if (exists("backlog/.agent-done-" + t.id)):
+        content: read("backlog/.agent-done-" + t.id),
+        results[t]: content,
+        remaining:  remaining \ {t}
+  },
+  return: results
 }
 
 withWorktree :: Task → Config → (Task → a) → a
@@ -146,6 +189,8 @@ L0_SECTION=$(awk '/^## L0 Config/{found=1; next} found && /^## /{exit} found{pri
 parse_cfg() { echo "$L0_SECTION" | grep -oP "(?<=^$1:\s)\S.*" | head -1 | xargs; }
 
 CFG_SYMLINKS=$(parse_cfg "worktree-symlinks")
+CFG_MAX_PARALLEL=$(parse_cfg "max-parallel")
+CFG_MAX_PARALLEL=${CFG_MAX_PARALLEL:-2}
 
 # --- autoDetect fallback ---
 if [ -z "$L0_SECTION" ]; then
@@ -459,26 +504,113 @@ backlog task list --status "In Progress" --plain \
   done
 ```
 
-### claim
+### claimBatch
+
+Claim up to `CFG_MAX_PARALLEL` Ready tasks atomically. Returns the list of claimed task IDs
+in `CLAIMED_TASK_IDS` (space-separated). If fewer Ready tasks exist, claims only those.
 
 ```bash
-TASK_ID=$(backlog task list --status "Ready" --plain | grep -oP 'TASK-\d+' | head -1)
+CLAIMED_TASK_IDS=""
+CLAIM_COUNT=0
+while IFS= read -r CANDIDATE_ID; do
+  [ -z "$CANDIDATE_ID" ] && continue
+  [ "$CLAIM_COUNT" -ge "$CFG_MAX_PARALLEL" ] && break
+  backlog task edit "$CANDIDATE_ID" --status "In Progress" \
+    --append-notes "claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)" 2>/dev/null || continue
+  CLAIMED_TASK_IDS="${CLAIMED_TASK_IDS} ${CANDIDATE_ID}"
+  CLAIM_COUNT=$((CLAIM_COUNT + 1))
+done < <(backlog task list --status "Ready" --plain | grep -oP 'TASK-\d+')
+CLAIMED_TASK_IDS=$(echo "$CLAIMED_TASK_IDS" | xargs)  # trim whitespace
 ```
 
-If empty and no stop sentinel: use Monitor (persistent) to wait for the next `task-ready` event.
-The daemon writes `task-ready:TASK-N` lines to `$DAEMON_LOG`; Monitor tails that file:
+If `CLAIMED_TASK_IDS` is empty and no stop sentinel: use Monitor (persistent) to wait for
+the next `task-ready` event. The daemon writes `task-ready:TASK-N` lines to `$DAEMON_LOG`;
+Monitor tails that file:
 
 ```bash
 # Foreground tail — Monitor reads its stdout as the event stream.
-# No background subshell, no --pid, no pipeline.
 Monitor(persistent=true, command="tail -f \"$DAEMON_LOG\"")
 ```
 
 Any output line matching `task-ready:TASK-*` is the wake-up signal; re-enter `workerLoop()`.
 
+### waitForAgents
+
+Poll `backlog/.agent-done-TASK-N` signal files for every task in `CLAIMED_TASK_IDS`.
+Loops with `sleep 5` until all signal files are present.
+
 ```bash
-backlog task edit "$TASK_ID" --status "In Progress" \
-  --append-notes "claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+# $1: space-separated list of TASK-IDs to wait for
+waitForAgents() {
+  local REMAINING="$1"
+  local ALL_DONE=false
+  while [ "$ALL_DONE" = "false" ]; do
+    ALL_DONE=true
+    local STILL_WAITING=""
+    for TID in $REMAINING; do
+      SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TID}"
+      if [ ! -f "$SIGNAL_FILE" ]; then
+        ALL_DONE=false
+        STILL_WAITING="${STILL_WAITING} ${TID}"
+      fi
+    done
+    REMAINING=$(echo "$STILL_WAITING" | xargs)
+    if [ "$ALL_DONE" = "false" ]; then
+      echo "waitForAgents: still waiting for:${REMAINING}"
+      sleep 5
+    fi
+  done
+  echo "waitForAgents: all agents done"
+}
+```
+
+### executePrompt
+
+Build a self-contained prompt string for a background agent executing one task.
+The prompt must not depend on external bash variables at call time — all values
+are interpolated into the string before passing to the Agent tool.
+The agent's allowed-tools list explicitly excludes `Agent` to prevent recursive spawn.
+
+```bash
+# Usage: PROMPT=$(buildExecutePrompt "$TASK_ID" "$TASK_TITLE" "$TASK_DESC" "$WORKTREE" "$BRANCH" "$SIGNAL_FILE")
+buildExecutePrompt() {
+  local TID="$1"
+  local TTITLE="$2"
+  local TDESC="$3"
+  local TWT="$4"
+  local TBRANCH="$5"
+  local TSIGNAL="$6"
+
+  cat <<PROMPT_EOF
+You are a background task agent. Your only job is to execute the task described below.
+
+## Task
+ID: ${TID}
+Title: ${TTITLE}
+Branch: ${TBRANCH}
+Worktree: ${TWT}
+Signal file: ${TSIGNAL}
+
+## Description
+${TDESC}
+
+## Constraints
+- Work exclusively inside the worktree at: ${TWT}
+- Do NOT run git merge or git push
+- Do NOT spawn sub-agents (Agent tool is not available to you)
+- After all work is complete, run git add -A && git commit if there are changes
+- Write the signal file as the LAST action before exiting
+
+## Completing the task
+When done (success):
+  Write file ${TSIGNAL} with content: done
+
+If you cannot continue without human input (escalation):
+  Write file ${TSIGNAL} with content: needs-human: <one-line reason>
+
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+PROMPT_EOF
+}
 ```
 
 ### withWorktree
@@ -649,6 +781,87 @@ git branch -d ${BRANCH}
   echo "⚠️  Merge conflict: $TASK_ID — worktree preserved at $WORKTREE"
   WORK_DONE=false
 fi
+```
+
+### workerLoop (parallel)
+
+The top-level orchestration using claimBatch, background Agent spawning, and serial merge.
+
+```bash
+# After loadConfig, ensureDaemonScript, daemonBootstrap, and reap have run:
+
+# 1. Claim a batch of up to CFG_MAX_PARALLEL Ready tasks
+# (claimBatch sets CLAIMED_TASK_IDS)
+
+if [ -z "$CLAIMED_TASK_IDS" ]; then
+  # No ready tasks — block on daemon event
+  # Monitor(persistent=true, command="tail -f \"$DAEMON_LOG\"")
+  # On task-ready event: re-enter workerLoop
+  exit 0
+fi
+
+# 2. Create worktrees and spawn one background agent per task
+declare -A TASK_WORKTREES
+declare -A TASK_BRANCHES
+for TASK_ID in $CLAIMED_TASK_IDS; do
+  BRANCH="task/${TASK_ID}"
+  PROJECT_NAME=$(basename "$REPO_ROOT")
+  WORKTREE="${REPO_ROOT}/../${PROJECT_NAME}-${TASK_ID}"
+  git worktree add "$WORKTREE" -b "$BRANCH"
+  for SYM in $CFG_SYMLINKS; do
+    [ -e "${REPO_ROOT}/${SYM}" ] && ln -sf "${REPO_ROOT}/${SYM}" "${WORKTREE}/${SYM}"
+  done
+  TASK_WORKTREES[$TASK_ID]="$WORKTREE"
+  TASK_BRANCHES[$TASK_ID]="$BRANCH"
+
+  TASK_VIEW=$(backlog task view "$TASK_ID" --plain)
+  TASK_TITLE=$(echo "$TASK_VIEW" | grep -oP '(?<=Task TASK-\d+ - ).+' | head -1)
+  TASK_DESC=$(echo "$TASK_VIEW" | awk '/^Description:/,/^(Status|Assignee|Labels|Priority|Due|Created|Updated|Notes):/' | tail -n +2)
+  SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
+
+  AGENT_PROMPT=$(buildExecutePrompt \
+    "$TASK_ID" "$TASK_TITLE" "$TASK_DESC" "$WORKTREE" "$BRANCH" "$SIGNAL_FILE")
+
+  # Spawn background agent — run_in_background=true
+  Agent(run_in_background=true, prompt="$AGENT_PROMPT")
+done
+
+# 3. Wait for all agents to write their signal files
+waitForAgents "$CLAIMED_TASK_IDS"
+
+# 4. Serial merge: read signal, merge or escalate, delete signal file
+for TASK_ID in $CLAIMED_TASK_IDS; do
+  SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
+  SIGNAL_CONTENT=$(cat "$SIGNAL_FILE" 2>/dev/null || echo "needs-human: signal file missing")
+  rm -f "$SIGNAL_FILE"
+
+  BRANCH="${TASK_BRANCHES[$TASK_ID]}"
+  WORKTREE="${TASK_WORKTREES[$TASK_ID]}"
+  TASK_VIEW=$(backlog task view "$TASK_ID" --plain)
+  TITLE=$(echo "$TASK_VIEW" | grep -oP '(?<=Task TASK-\d+ - ).+' | head -1)
+
+  cd "$REPO_ROOT"
+  if [ "$SIGNAL_CONTENT" = "done" ]; then
+    # Standard merge path (same as existing merge section)
+    if git merge --no-ff "$BRANCH" -m "merge: ${TITLE} (${TASK_ID})"; then
+      backlog task edit "$TASK_ID" \
+        --status "Done" \
+        --append-notes "Completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      git worktree remove "$WORKTREE"
+      git branch -d "$BRANCH"
+    else
+      backlog task edit "$TASK_ID" \
+        --status "Needs Human" \
+        --append-notes "Merge conflict: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    fi
+  else
+    REASON=$(echo "$SIGNAL_CONTENT" | sed 's/^needs-human: //')
+    backlog task edit "$TASK_ID" \
+      --status "Needs Human" \
+      --append-notes "Escalated: ${REASON}
+To continue: answer in Implementation Notes, then set status → Ready."
+  fi
+done
 ```
 
 ### Failure path (Stuck)
