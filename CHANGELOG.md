@@ -5,6 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-18
+
+### Added
+- `loop-backlog`: parallel background agent execution — multiple tasks run concurrently in isolated git worktrees; main loop controls merge via `claimBatch` and signal protocol (TASK-21)
+- `feature-to-backlog` / `task-to-backlog`: support existing task ID as input to resume from an in-progress task rather than always creating a new one
+
+### Changed
+- `feature-to-backlog` / `task-to-backlog`: finalise phase now writes proposal + plan directly into the task's Implementation Plan field via `--planSet`, eliminating external docs/ file commits; task becomes the single authoritative source (TASK-24)
+- `backlog`: consolidated four draft/review columns (Proposal Draft, Proposal Review, Plan Draft, Plan Review) into two (Proposal, Plan); updated `backlog/config.yml`, `feature-to-backlog`, `task-to-backlog`, and `backlog-setup` accordingly (TASK-23)
+
+### Fixed
+- `loop-backlog`: eliminated daemon self-kill and stale-script bugs
+- `feature-to-backlog` / `task-to-backlog`: plan/proposal now correctly written to planSet while preserving original task description
+
 ## [1.2.2] - 2026-06-17
 
 ### Added
