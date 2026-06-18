@@ -291,6 +291,17 @@ Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
 >   "${DOD_ARGS[@]}"
 > ```
 >
+> **Step D — Run Layer 0-2 validation gate**:
+> ```bash
+> bash scripts/validate-plugin.sh
+> ```
+> If validation fails, fix any SKILL.md contracts or internals before proceeding.
+>
+> Add the validation DoD item to the task:
+> ```bash
+> backlog task edit <TASK_ID> --dod "bash scripts/validate-plugin.sh"
+> ```
+>
 > **Step E — Print completion**:
 > ```
 > ✅ Task <TASK_ID> is now in Backlog.

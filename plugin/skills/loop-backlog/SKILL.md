@@ -2,6 +2,23 @@
 name: loop-backlog
 description: "Autonomous L0 Worker for the backlog.md task queue. Each task runs in an isolated git worktree, then merges back to master on success. Starts an event-driven daemon that emits task-ready events; uses Monitor to react instantly. Invoke /loop-backlog once to start the worker loop; it keeps running until the backlog/.loop-stop sentinel is written."
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Monitor, Agent
+contracts:
+  - grep: "Monitor(persistent=true"
+    target: self
+  - not-grep: "schedule("
+    target: self
+  - grep: "loop-stop"
+    target: self
+  - grep: "## Shutdown"
+    target: self
+  - grep: "daemonBootstrap"
+    target: self
+  - not-grep: "ScheduleWakeup"
+    target: self
+  - grep: "loop-backlog-daemon"
+    target: self
+  - grep: ".daemon.pid"
+    target: self
 ---
 
 λ() → workerLoop()
@@ -34,10 +51,15 @@ detectLang() =
 
 data Outcome = Done CommitHash | NeedsHuman Reason | Idle | Stopped
 
+ensureDaemonTest :: () → ()
+-- Write scripts/loop-backlog-daemon.test.js if it doesn't exist or is outdated.
+-- Runs node on the test file to verify the daemon helpers are correct.
+
 workerLoop :: () → Outcome
 workerLoop() = {
   cfg:    loadConfig(),
   _:      ensureDaemonScript(),
+  _:      ensureDaemonTest(),
   _:      daemonBootstrap(),
   _:      reap(inProgressTasks()),
   tasks:  claimBatch(cfg.maxParallel),
