@@ -4,6 +4,15 @@ description: Achieve comprehensive baseline (V_meta ≥0.40) in iteration 0 to e
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
+## Spec
+
+contracts:
+  - reads code and metrics without modifying any source files
+  - produces a quality report with measurable V_meta baseline score
+  - reports on quantifiable metrics only (coverage, complexity, iteration count)
+
+λ(project: ProjectContext) → QualityBaseline
+
 # Baseline Quality Assessment
 
 **Invest in iteration 0 to save 40-50% total time.**

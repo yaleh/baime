@@ -4,6 +4,15 @@ description: Systematic methodology for standardizing cross-cutting concerns (er
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - changes are consistent across all affected files (no partial standardization)
+  - does not break existing tests; all tests pass after enforcement changes
+  - documents all touched components in a summary or changelog entry
+
+λ(codebase: CodebaseContext) → StandardizedConventions
+
 # Cross-Cutting Concerns
 
 **Transform inconsistent patterns into standardized, enforceable conventions with automated compliance.**

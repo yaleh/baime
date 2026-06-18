@@ -4,6 +4,15 @@ description: Systematic testing methodology for Go projects using TDD, coverage-
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - tests are deterministic and isolated; no shared mutable state between tests
+  - strategy covers unit, integration, and e2e layers as appropriate for the project
+  - existing passing tests are not removed or weakened
+
+λ(project: ProjectContext) → TestStrategy
+
 # Testing Strategy
 
 **Transform ad-hoc testing into systematic, coverage-driven strategy with 15x speedup.**

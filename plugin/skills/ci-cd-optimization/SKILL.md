@@ -4,6 +4,15 @@ description: Comprehensive CI/CD pipeline methodology with quality gates, releas
 allowed-tools: Read, Write, Edit, Bash
 ---
 
+## Spec
+
+contracts:
+  - modifies CI config files only; does not touch application source code
+  - preserves all existing pipeline stages; only adds or optimizes
+  - changes are reversible via git revert
+
+λ(pipeline: PipelineContext) → OptimizedPipeline
+
 # CI/CD Optimization
 
 **Transform manual releases into automated, quality-gated, observable pipelines.**

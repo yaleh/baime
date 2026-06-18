@@ -8,6 +8,13 @@ v_instance: 0.895
 transferability: 95%
 ---
 
+## Spec
+
+contracts:
+  - produces self-contained prompts that include all required context
+  - generated prompts have no external dependencies (no references to files that may not exist)
+  - output prompt length ≤ 150 lines
+
 λ(use_case, complexity) → subagent_prompt |
   ∧ require(need_orchestration(use_case) ∨ need_mcp_integration(use_case))
   ∧ complexity ∈ {simple, moderate, complex}

@@ -4,6 +4,15 @@ description: Systematic API design methodology with 6 validated patterns coverin
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - designs API from requirements without modifying existing production code
+  - produces OpenAPI/interface spec or structured design artifact
+  - non-destructive: existing code is only read, never modified during design phase
+
+λ(requirements: APIRequirements) → APIDesign
+
 # API Design
 
 **Systematic API design with validated patterns and automated quality enforcement.**

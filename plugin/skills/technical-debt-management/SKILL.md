@@ -4,6 +4,15 @@ description: Systematic technical debt quantification and management using SQALE
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - reads codebase to identify debt without modifying source files in the analysis phase
+  - refactoring changes are in bounded scope per iteration; no unbounded sprawl
+  - produces before/after SQALE comparison showing measurable debt reduction
+
+λ(codebase: CodebaseContext) → DebtPaydownPlan
+
 # Technical Debt Management
 
 **Transform subjective debt assessment into objective, data-driven paydown strategy with 4.5x speedup.**

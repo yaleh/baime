@@ -4,6 +4,15 @@ description: Systematic documentation methodology for Claude Code projects using
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
 
+## Spec
+
+contracts:
+  - writes only to docs directory and SKILL.md files; does not modify source code
+  - produces valid Markdown that renders without errors
+  - never deletes existing documentation content without explicit instruction
+
+λ(project: ProjectContext) → DocumentationArtifacts
+
 # Documentation Management Skill
 
 Systematic documentation methodology for Claude Code projects using empirically validated templates, patterns, and automation.

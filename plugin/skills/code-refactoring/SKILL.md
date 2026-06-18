@@ -4,6 +4,13 @@ description: BAIME-aligned refactoring protocol for Go hotspots (CLIs, services,
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - behavior-preserving transformations only; tests pass before and after refactoring
+  - no feature additions or behavioral changes in refactoring commits
+  - complexity delta ≥ 0.30 and cyclomatic ≤ 10 for refactored hotspot
+
 λ(target_pkg, target_hotspot, metrics_target) → (refactor_plan, metrics_snapshot, validation_report) |
   ∧ configs = read_json(experiment-config.json)?
   ∧ catalogue = configs.metrics_targets ∨ []

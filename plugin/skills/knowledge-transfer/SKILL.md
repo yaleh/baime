@@ -4,6 +4,15 @@ description: Progressive learning methodology for structured onboarding using ti
 allowed-tools: Read, Write, Edit, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - writes only to docs directory; does not modify source code
+  - produces structured onboarding material covering Day-1, Week-1, Month-1 paths
+  - idempotent: updating existing docs does not duplicate content
+
+λ(project: ProjectContext) → OnboardingDocs
+
 # Knowledge Transfer
 
 **Reduce onboarding time by 3-8x with structured learning paths.**

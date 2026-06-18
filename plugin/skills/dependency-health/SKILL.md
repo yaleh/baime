@@ -4,6 +4,15 @@ description: Security-first dependency management methodology with batch remedia
 allowed-tools: Read, Write, Edit, Bash
 ---
 
+## Spec
+
+contracts:
+  - reads package manifests without modifying production source code
+  - produces dependency health report with prioritized remediation list
+  - suggests upgrades and security fixes without auto-applying them
+
+λ(project: ProjectContext) → DependencyHealthReport
+
 # Dependency Health
 
 **Systematic dependency management: security-first, batch remediation, policy-driven.**

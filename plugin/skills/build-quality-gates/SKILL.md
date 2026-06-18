@@ -42,6 +42,15 @@ validation:
   roi: "400% (first month)"
 ---
 
+## Spec
+
+contracts:
+  - adds gate configuration files without removing existing quality gates
+  - gates are verifiable via shell commands (exit code 0 = pass, non-zero = fail)
+  - changes are committed incrementally with descriptive messages
+
+λ(project: ProjectContext) → QualityGateConfig
+
 # Build Quality Gates Implementation
 
 ## Overview & Scope

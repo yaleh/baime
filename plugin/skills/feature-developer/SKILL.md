@@ -5,6 +5,15 @@ argument-hint: [feature-topic-or-slug]
 allowed-tools: Read, Glob, Grep, Bash, Agent
 ---
 
+## Spec
+
+contracts:
+  - follows TDD: tests are written before implementation in each phase
+  - implements only what the approved plan specifies; no scope creep
+  - writes signal file on completion (done or needs-human)
+
+λ(input: FeatureDiscussion | ProposalDoc | PlanDoc) → ImplementedFeature
+
 ## Role: Orchestrator Only
 
 This skill is an **orchestrator**. It coordinates phases and evaluates outputs.

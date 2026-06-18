@@ -4,6 +4,15 @@ description: Achieve 3-4 iteration methodology convergence (vs standard 5-7) whe
 allowed-tools: Read, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - terminates within a bounded number of iterations (target 3-4, max 7)
+  - each iteration either makes measurable progress or escalates to human
+  - preserves all work artifacts between iterations; no data loss on retry
+
+λ(experiment: ExperimentContext) → ConvergenceResult
+
 # Rapid Convergence
 
 **Achieve methodology convergence in 3-4 iterations through structural optimization, not rushing.**

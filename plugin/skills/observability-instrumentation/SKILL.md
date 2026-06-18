@@ -4,6 +4,15 @@ description: Comprehensive observability methodology implementing three pillars 
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
+## Spec
+
+contracts:
+  - adds instrumentation without altering business logic or function behavior
+  - all instrumented code remains testable; instrumentation does not break existing tests
+  - follows existing logging conventions in the codebase
+
+λ(codebase: CodebaseContext) → InstrumentedCodebase
+
 # Observability Instrumentation
 
 **Implement three pillars of observability: logs, metrics, and traces.**
