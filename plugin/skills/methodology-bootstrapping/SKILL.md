@@ -2,6 +2,13 @@
 name: methodology-bootstrapping
 description: Apply Bootstrapped AI Methodology Engineering (BAIME) to develop project-specific methodologies through systematic Observe-Codify-Automate cycles with dual-layer value functions (instance quality + methodology quality). Use when creating testing strategies, CI/CD pipelines, error handling patterns, observability systems, or any reusable development methodology. Provides structured framework with convergence criteria, agent coordination, and empirical validation. Validated in 8 experiments with 100% success rate, 4.9 avg iterations, 10-50x speedup vs ad-hoc. Works for testing, CI/CD, error recovery, dependency management, documentation systems, knowledge transfer, technical debt, cross-cutting concerns.
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash
+contracts:
+  - grep: "Observe"
+    target: self
+  - grep: "convergence"
+    target: self
+  - grep: "OCA"
+    target: self
 ---
 
 # Methodology Bootstrapping
