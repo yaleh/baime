@@ -1,0 +1,15 @@
+{
+  "id": "tft-fresh-02",
+  "taskClass": "A",
+  "taskType": "binary-gate",
+  "templateMeta": {
+    "slug": "backlog-weekly-review",
+    "lastUsed": "2026-06-19",
+    "applicableWhen": "Run the weekly backlog grooming and prioritisation review"
+  },
+  "recentChanges": [
+    "c8a91d3 chore(templates): update last-used for backlog-weekly-review (TASK-35) (2026-06-19)"
+  ],
+  "answer": "FRESH",
+  "answerType": "exact"
+}

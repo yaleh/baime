@@ -1,0 +1,16 @@
+{
+  "id": "tft-fresh-01",
+  "taskClass": "A",
+  "taskType": "binary-gate",
+  "templateMeta": {
+    "slug": "ci-node-setup",
+    "lastUsed": "2026-06-17",
+    "applicableWhen": "Add Node.js setup step to a CI workflow"
+  },
+  "recentChanges": [
+    "a3f1b2c docs: fix typo in README.md (2026-06-18)",
+    "9e2d4f1 docs: update CHANGELOG entry for 1.3.0 (2026-06-17)"
+  ],
+  "answer": "FRESH",
+  "answerType": "exact"
+}

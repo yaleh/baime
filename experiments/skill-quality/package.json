@@ -7,7 +7,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.6.1",
     "tiktoken": "^1.0.21",
     "tsx": "^4.20.3",
     "vitest": "^3.2.4"

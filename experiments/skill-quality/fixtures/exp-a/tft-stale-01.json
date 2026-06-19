@@ -1,0 +1,17 @@
+{
+  "id": "tft-stale-01",
+  "taskClass": "A",
+  "taskType": "binary-gate",
+  "templateMeta": {
+    "slug": "ci-node-setup",
+    "lastUsed": "2026-06-10",
+    "applicableWhen": "Add Node.js setup step to a CI workflow"
+  },
+  "recentChanges": [
+    "f3a8b21 refactor(scripts): rename validate-plugin.sh to check-plugin.sh (2026-06-15)",
+    "9c7d4e2 ci: update workflow to call check-plugin.sh instead of validate-plugin.sh (2026-06-15)",
+    "b2e5f91 docs: update README CI section to reference check-plugin.sh (2026-06-16)"
+  ],
+  "answer": "STALE",
+  "answerType": "exact"
+}

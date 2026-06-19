@@ -1,0 +1,19 @@
+{
+  "id": "tft-fresh-03",
+  "taskClass": "A",
+  "taskType": "binary-gate",
+  "templateMeta": {
+    "slug": "dependency-audit",
+    "lastUsed": "2026-06-10",
+    "applicableWhen": "Run a dependency security and freshness audit for the project"
+  },
+  "recentChanges": [
+    "e747b5c feat(contracts): add Layer 1 contract assertions to 5 skills (2026-06-18)",
+    "b8a26d4 merge: refactor build-quality-gates (2026-06-17)",
+    "b63ebda merge: add contracts density warning to validate-plugin.sh (2026-06-16)",
+    "a385f27 refactor(build-quality-gates): shrink SKILL.md from 1879 to 228 lines (2026-06-15)",
+    "3d92f0e feat(loop-backlog): parallel background agent execution (2026-06-13)"
+  ],
+  "answer": "FRESH",
+  "answerType": "exact"
+}

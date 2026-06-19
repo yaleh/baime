@@ -1,0 +1,19 @@
+{
+  "id": "tft-fresh-05",
+  "taskClass": "A",
+  "taskType": "binary-gate",
+  "templateMeta": {
+    "slug": "onboarding-task",
+    "lastUsed": "2026-06-14",
+    "applicableWhen": "Onboard a new contributor to the BAIME methodology"
+  },
+  "recentChanges": [
+    "c116372 merge: add contract assertions to 5 skills (TASK-35) (2026-06-18)",
+    "e747b5c feat(contracts): add contract assertions to 5 skills (2026-06-18)",
+    "b8a26d4 merge: refactor build-quality-gates (2026-06-17)",
+    "b63ebda merge: add contracts density warning (2026-06-16)",
+    "a385f27 refactor(build-quality-gates): shrink SKILL.md (2026-06-15)"
+  ],
+  "answer": "FRESH",
+  "answerType": "exact"
+}

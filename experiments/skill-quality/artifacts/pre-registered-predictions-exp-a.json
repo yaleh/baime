@@ -1,0 +1,28 @@
+{
+  "frozen_at": "2026-06-19T00:00:00Z",
+  "experiment": "exp-a-p3-ablation",
+  "description": "Ablation study: does ## Implementation content (P3) degrade freshnessCheck decision accuracy on task-from-template?",
+  "hypotheses": {
+    "H-P3": {
+      "direction": "V0_V1_mean_f1 > V2_V3_mean_f1",
+      "test": "Friedman on per-fixture paired scores across 4 variants",
+      "threshold": "p < 0.05",
+      "verdict": "PENDING"
+    },
+    "H-null": {
+      "direction": "no significant difference across variants",
+      "verdict": "PENDING"
+    }
+  },
+  "variants": {
+    "V0": "frontmatter + lambda + Spec only (~75 lines)",
+    "V1": "V0 + Constraints (~85 lines)",
+    "V2": "full SKILL.md with Implementation (~249 lines)",
+    "V3": "V2 + 150-line P3 noise block inserted before Spec (~384 lines)"
+  },
+  "models": ["claude-haiku-4-5-20251001", "glm-4.5-flash"],
+  "k": 5,
+  "total_calls": 400,
+  "fixtures": 10,
+  "scoring": "exact match on FRESH/STALE, F1 averaged over k=5 runs"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "tft-stale-03",
+  "taskClass": "A",
+  "taskType": "binary-gate",
+  "templateMeta": {
+    "slug": "plugin-validation-task",
+    "lastUsed": "2026-06-08",
+    "applicableWhen": "Run a full plugin validation pass before publishing"
+  },
+  "recentChanges": [
+    "a1f9c23 feat: remove scripts/validate-plugin.sh (replaced by CI check) (2026-06-11)",
+    "b3e7d14 ci: add automated plugin validation in GitHub Actions (2026-06-11)",
+    "c5f2a87 docs: update CONTRIBUTING.md, remove manual validate-plugin.sh step (2026-06-12)"
+  ],
+  "answer": "STALE",
+  "answerType": "exact"
+}
