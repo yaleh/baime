@@ -614,6 +614,72 @@ DENSITY_WARNINGS=$?
 set -e
 WARNINGS=$((WARNINGS + DENSITY_WARNINGS))
 
+# ── Layer 0: Meta-lint — Quantitative Claims ─────────────────────────────────
+
+echo ""
+echo "=== Layer 0: Meta-lint (Quantitative Claims) ==="
+
+set +e
+python3 - "$SKILLS_DIR" <<'PYEOF'
+import sys, os, re
+
+PATTERNS = [
+    r'\d+[x\xd7]\s*(speedup|faster|reduction|improvement|boost)',
+    r'\d+%\s*(speedup|reduction|improvement|success|accuracy|equivalence|transferab)',
+    r'^transferability:\s*\d',
+    r'V_\w+\s*[=:]\s*0\.\d+',
+    r'\d+\s*min\b.*→',
+]
+EXEMPT_RE = re.compile(
+    r'(?i)(\*{0,2}evidence\*{0,2}:|\w+-evidence:|\[unvalidated\])',
+    re.IGNORECASE
+)
+
+skills_dir = sys.argv[1]
+warnings = 0
+
+for entry in sorted(os.listdir(skills_dir)):
+    skill_file = os.path.join(skills_dir, entry, 'SKILL.md')
+    if not os.path.isfile(skill_file):
+        continue
+    with open(skill_file) as f:
+        content = f.read()
+
+    fm_desc = ''
+    if content.startswith('---'):
+        parts = content.split('---', 2)
+        if len(parts) >= 3:
+            for line in parts[1].split('\n'):
+                if line.startswith('description:'):
+                    fm_desc = line
+            body_lines = parts[2].split('\n')[:200]
+        else:
+            body_lines = content.split('\n')[:200]
+    else:
+        body_lines = content.split('\n')[:200]
+
+    scan_lines = ([fm_desc] if fm_desc else []) + body_lines
+
+    for i, line in enumerate(scan_lines):
+        for pat in PATTERNS:
+            if re.search(pat, line, re.IGNORECASE):
+                context_start = max(0, i - 2)
+                context_end = min(len(scan_lines), i + 3)
+                context = '\n'.join(scan_lines[context_start:context_end])
+                if not EXEMPT_RE.search(context):
+                    print(f"  WARN: [{entry}] untagged quantitative claim: {line.strip()[:100]}")
+                    warnings += 1
+                break
+
+if warnings == 0:
+    print("  PASS: no untagged quantitative claims")
+sys.exit(warnings)
+PYEOF
+
+META_WARNINGS=$?
+set -e
+WARNINGS=$((WARNINGS + META_WARNINGS))
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
