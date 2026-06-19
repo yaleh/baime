@@ -14,8 +14,9 @@ description: Extracts converged BAIME experiments into Claude Code skill directo
   ∧ construct_conditional(skill_dir/reference/case-studies/ | meta_obj.compactness.weight ≥ 0.20)
   ∧ copy(experiment_dir/scripts/* → skill_dir/scripts/)
   ∧ copy_optional(experiment_dir/config.json → skill_dir/experiment-config.json)
-  ∧ SKILL.md = {frontmatter, λ-contract}
-  ∧ |lines(SKILL.md)| ≤ 40
+  ∧ SKILL.md = {frontmatter, λ-contract, implementation?}
+  ∧ |lines(spec_section(SKILL.md))| ≤ 40        -- Spec 节（frontmatter + λ-contract）≤ 40 行
+  ∧ implementation_section(SKILL.md) = retained  -- ## Implementation 保留执行规格型内容（见注释）
   ∧ forbid(SKILL.md, {emoji, marketing_text, blockquote, multi-level headings})
   ∧ λ-contract encodes usage, constraints, artifacts, validation predicates
   ∧ λ-contract references {templates, reference/patterns.md, examples} via predicates
@@ -87,10 +88,14 @@ generate_constraints(meta_obj, config) =
     constraints.case_studies_enabled = meta_obj.compactness.weight ≥ 0.20
 
   # Compactness constraints
+  # NOTE: SKILL_spec_max_lines 仅约束 ## Spec 节（frontmatter + λ-contract）。
+  # ## Implementation 节不受行数约束——执行规格型内容（当前步骤判断准则）须保留在
+  # SKILL.md 中以保障 LLM 决策准确率（Exp-A +16pp, Exp-D +20pp, 2026-06-19）。
+  # 无关背景内容（历史数据、案例描述）仍应推到 reference/*.md。
   if "compactness" ∈ meta_obj.components ∧ meta_obj.compactness.weight ≥ 0.15 then
     target = meta_obj.compactness.target →
     constraints.examples_max_lines = parse_number(target.value) →
-    constraints.SKILL_max_lines = min(40, target.value / 3) →
+    constraints.SKILL_spec_max_lines = min(40, target.value / 3) →  -- 仅约束 Spec 节
     constraints.enforce_compactness = meta_obj.compactness.weight ≥ 0.20
 
   # Integration constraints
@@ -338,7 +343,7 @@ config_schema = {
 output :: Execution → Artifacts
 output(exec) =
   skill_dir/{
-    SKILL.md | |SKILL.md| ≤ constraints.SKILL_max_lines,
+    SKILL.md | |spec_section(SKILL.md)| ≤ constraints.SKILL_spec_max_lines,
     README.md,
     templates/*.md,
     examples/*.md | ∀e: |e| ≤ constraints.examples_max_lines ∨ is_link(e),
@@ -379,6 +384,43 @@ output(exec) =
     skill_name: string,
     experiment_dir: path
   }
+
+## Implementation Content Policy
+
+-- 修订于 2026-06-19（依据 Exp-A/D 实验结果）
+-- 原约束"|lines(SKILL.md)| ≤ 40"已废除，原因：所有运行良好的 operator skill
+-- 均为 249-1032 行，且 ## Implementation 的执行规格内容对 LLM 准确率有实质贡献。
+
+implementation_content_policy :: SKILL.md → Bool
+implementation_content_policy(skill) =
+  -- Spec 节（frontmatter + λ-contract）：保持简洁，目标 ≤ 40 行
+  |spec_section(skill)| ≤ 40 ∧
+  -- Implementation 节：按内容类型区分处置，不施加行数约束
+  ∀content ∈ implementation_section(skill):
+    if is_execution_spec(content) then
+      retain_in_skill_md(content)   -- 判断准则、步骤规格 → 留在 SKILL.md
+    else
+      move_to_reference(content)    -- 历史数据、案例描述 → reference/*.md
+
+is_execution_spec :: Content → Bool
+is_execution_spec(content) =
+  -- 执行规格型 P3：直接规定"当前步骤如何判断"的内容
+  -- 例：Step 4 中"Check only what the executor runs, not what those scripts do internally"
+  -- 若从 SKILL.md 删除该内容会导致 LLM 准确率下降，则为执行规格型
+  content.describes_judgment_criteria ∨
+  content.specifies_current_step_behavior ∨
+  content.defines_decision_boundary
+
+## Convergence Validation
+
+-- V_instance 门控须使用行为准确率，而非自评分（依据 BAIME OCA 过程改进，2026-06-19）
+-- 详见 docs/baime-oca-process-refinements.md §2
+convergence_gate :: ValidationReport → Bool
+convergence_gate(report) =
+  -- 同时报告两个准确率指标
+  report.accuracy.composite ≥ 0.85 ∧
+  report.accuracy.verdict_only ≥ 0.90 ∧  -- 若有 Layer 2.5 oracle
+  report.contracts_enforced_ratio ≥ 0.80  -- contracts_enforced / contracts_field
 
 ## Constraints
 
