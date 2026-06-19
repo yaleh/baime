@@ -1,89 +1,89 @@
 {
-  "generated": "2026-06-19T15:02:29.537Z",
-  "mode": "analytical",
-  "session_id": null,
+  "generated": "2026-06-19T15:30:00.000Z",
+  "mode": "live-trace",
+  "dry_run": true,
   "skill": "loop-backlog",
-  "k": 5,
+  "k": 1,
   "fixtures_count": 6,
   "per_fixture": [
     {
       "id": "lb-claim-before-spawn-01",
       "skill": "loop-backlog",
       "protocol_point": "A Ready task is picked from backlog and the agent begins processing it",
-      "passes": 5,
+      "passes": 1,
       "failures": 0,
-      "compliance_rate": 1,
+      "compliance_rate": null,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "Fully compliant across all k runs"
+      "notes": "dry-run: no claude call made"
     },
     {
       "id": "lb-done-after-merge-01",
       "skill": "loop-backlog",
       "protocol_point": "loop-backlog has successfully merged the task branch into main",
-      "passes": 5,
+      "passes": 1,
       "failures": 0,
-      "compliance_rate": 1,
+      "compliance_rate": null,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "Fully compliant across all k runs"
+      "notes": "dry-run: no claude call made"
     },
     {
       "id": "lb-needs-human-on-failure-01",
       "skill": "loop-backlog",
       "protocol_point": "git merge fails with a non-zero exit code during loop-backlog execution",
-      "passes": 5,
+      "passes": 1,
       "failures": 0,
-      "compliance_rate": 1,
+      "compliance_rate": null,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "Fully compliant across all k runs"
+      "notes": "dry-run: no claude call made"
     },
     {
       "id": "lb-no-direct-worktree-01",
       "skill": "loop-backlog",
       "protocol_point": "loop-backlog orchestrator is running and managing a task lifecycle",
-      "passes": 5,
+      "passes": 1,
       "failures": 0,
-      "compliance_rate": 1,
+      "compliance_rate": null,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "Fully compliant across all k runs"
+      "notes": "dry-run: no claude call made"
     },
     {
       "id": "lb-no-inline-impl-01",
       "skill": "loop-backlog",
       "protocol_point": "loop-backlog is executing a task that requires implementation work",
-      "passes": 5,
+      "passes": 1,
       "failures": 0,
-      "compliance_rate": 1,
+      "compliance_rate": null,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "Fully compliant across all k runs"
+      "notes": "dry-run: no claude call made"
     },
     {
       "id": "lb-signal-file-wait-01",
       "skill": "loop-backlog",
       "protocol_point": "A background agent has been spawned for TASK-XX and loop-backlog is waiting for completion",
-      "passes": 5,
+      "passes": 1,
       "failures": 0,
-      "compliance_rate": 1,
+      "compliance_rate": null,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "Fully compliant across all k runs"
+      "notes": "dry-run: no claude call made"
     }
   ],
-  "compliance_rate": 1,
-  "auto_ci_eligible": true,
+  "compliance_rate": null,
+  "auto_ci_eligible": false,
   "improvement_suggestions": null,
-  "trace_source": "Analytical trace derived from loop-backlog SKILL.md behavioral contracts and observed git history",
-  "git_context": "306853d merge: Exp-G 量化自评 V_instance 相对行为准确率的膨胀度 (TASK-45)\nc1b754f feat(exp-g): quantify self-eval V_instance vs behavioral accuracy inflation (TASK-45)\nae349dc merge: loop-backlog 行为合规强化 + TASK-47 Class D proposal\n9d29b08 fix(loop-backlog): add behavioral contracts and Critical Protocol section\n8626e97 chore: mark TASK-44 Done",
+  "trace_source": "claude -p --output-format stream-json",
+  "git_context": "Step 2 implementation: replace analytical stub with real claude -p infrastructure",
   "methodology_notes": [
     "Class D fixtures validate tool-invocation sequence compliance for the loop-backlog orchestration skill.",
     "required_sequence: tool calls must appear in ascending step order in the trace.",
     "forbidden_before_step_1: listed tool patterns must NOT appear before step 1 in the trace.",
-    "In live mode, traces are extracted via meta-cc query_tool_blocks MCP function.",
-    "In analytical mode, traces are constructed from the documented loop-backlog protocol invariants.",
-    "k=5 independent runs per fixture; compliance_rate = passes/k."
+    "In live-trace mode, traces are extracted via claude -p --output-format stream-json.",
+    "k=1 single run per fixture for end-to-end pipeline validation.",
+    "compliance_rate = passes/k per fixture."
   ]
 }

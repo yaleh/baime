@@ -6,22 +6,23 @@
  *
  * Approach:
  *   1. Load all Class D fixtures from fixtures/class-d/*.json
- *   2. For each fixture, extract the tool call trace using meta-cc query_tool_blocks
+ *   2. For each fixture, run claude -p --output-format stream-json to get a live trace
  *   3. Validate required_sequence ordering and forbidden_before_step_1 constraints
- *   4. Run k=5 analytical passes (using trace from actual loop-backlog session history)
+ *   4. Run k=1 live pass per fixture (single run to validate end-to-end pipeline)
  *   5. Compute per-fixture compliance_rate and overall compliance_rate
  *   6. Write results to artifacts/analysis/exp-class-d-results.json
  *
  * Usage:
- *   npx tsx scripts/run-class-d.ts [--k 5] [--session-id <id>]
+ *   npx tsx scripts/run-class-d.ts [--k 1] [--dry-run]
  *
- * If no session-id is provided, uses analytical mode from git history.
+ * --dry-run: Only prints the prompt, does not call claude.
  */
 
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const EXP_ROOT = join(__dirname, '..');
@@ -48,6 +49,7 @@ interface ClassDFixture {
   skill: string;
   trigger: string;
   context: Record<string, unknown>;
+  prompt_template: string;
   required_sequence: SequenceStep[];
   forbidden_before_step_1: ForbiddenEntry[];
   answer: string;
@@ -67,7 +69,7 @@ interface FixtureResult {
   protocol_point: string;
   passes: number;
   failures: number;
-  compliance_rate: number;
+  compliance_rate: number | null;
   required_sequence_violations: string[];
   forbidden_violations: string[];
   notes: string;
@@ -80,8 +82,12 @@ function getArg(flag: string, def: string): string {
   return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1]! : def;
 }
 
-const K = parseInt(getArg('--k', '5'), 10);
-const SESSION_ID = getArg('--session-id', '');
+function hasFlag(flag: string): boolean {
+  return process.argv.includes(flag);
+}
+
+const K = parseInt(getArg('--k', '1'), 10);
+const DRY_RUN = hasFlag('--dry-run');
 
 // ─── Load fixtures ────────────────────────────────────────────────────────────
 
@@ -96,97 +102,39 @@ async function loadClassDFixtures(dir: string): Promise<ClassDFixture[]> {
   return fixtures.filter(f => f.taskClass === 'D' && f.taskType === 'tool-invocation-compliance');
 }
 
-// ─── Tool block extraction via meta-cc query_tool_blocks ─────────────────────
-//
-// In a live session, this would call the meta-cc MCP server:
-//   mcp__plugin_meta-cc_meta-cc__query_tool_blocks({ session_id, tool_names: [...] })
-//
-// For analytical mode (no live session), we reconstruct the trace from:
-//   1. Git log messages referencing tool invocations in loop-backlog execution
-//   2. backlog/.agent-done-TASK-XX signal files to confirm sequencing
-//   3. Known loop-backlog SKILL.md behavioral contracts
+// ─── Live trace via claude -p --output-format stream-json ────────────────────
 
-async function extractToolTrace(
-  fixture: ClassDFixture,
-  sessionId: string,
-): Promise<ToolBlock[]> {
-  if (sessionId) {
-    // Live mode: would call query_tool_blocks MCP function
-    // mcp__plugin_meta-cc_meta-cc__query_tool_blocks({ session_id: sessionId, limit: 500 })
-    // Since we cannot call MCP tools from within a TypeScript runner directly,
-    // we fall back to analytical mode with a note.
-    console.log(`  [live mode] Session ${sessionId}: query_tool_blocks not available in TS runner; using analytical mode`);
+function runFixtureAndExtractTrace(fixture: ClassDFixture, testTaskId: string): ToolBlock[] {
+  const prompt = fixture.prompt_template
+    ? fixture.prompt_template.replaceAll('{task_id}', testTaskId)
+    : `You are testing loop-backlog compliance for fixture ${fixture.id}. Trigger: ${fixture.trigger}`;
+
+  if (DRY_RUN) {
+    console.log(`  [dry-run] Would call: claude -p "${prompt.slice(0, 80)}..." --output-format stream-json --max-turns 8`);
+    return [];
   }
 
-  // Analytical mode: derive trace from known loop-backlog protocol
-  // Based on observed execution in this session (git log + signal files)
-  return buildAnalyticalTrace(fixture);
+  const result = spawnSync(
+    'claude',
+    ['-p', prompt, '--output-format', 'stream-json', '--max-turns', '8'],
+    { encoding: 'utf-8', timeout: 120_000 },
+  );
+
+  if (result.status !== 0) {
+    console.warn(`  [warn] claude exited ${result.status} for ${fixture.id}`);
+  }
+
+  return parseToolBlocks(result.stdout ?? '');
 }
 
-/**
- * Build an analytical tool call trace based on the loop-backlog SKILL.md protocol.
- *
- * This reflects what a correctly-compliant loop-backlog execution looks like,
- * derived from:
- *   - The SKILL.md behavioral contracts (claim-before-spawn, signal-wait, etc.)
- *   - Observed git commits from loop-backlog runs (ae349dc, 9d29b08, a5cc398, etc.)
- *   - The .agent-done-TASK-XX signal file pattern
- */
-function buildAnalyticalTrace(fixture: ClassDFixture): ToolBlock[] {
-  const taskId = (fixture.context['task_id'] as string) ?? 'TASK-XX';
-
-  switch (fixture.id) {
-    case 'lb-claim-before-spawn-01':
-      // Compliant trace: claim → spawn
-      return [
-        { tool_name: 'Bash', tool_input: { command: `backlog task edit ${taskId} --status "In Progress"` }, position: 1 },
-        { tool_name: 'Bash', tool_input: { command: `claude -p "..." --run-in-background` }, position: 2 },
-      ];
-
-    case 'lb-no-inline-impl-01':
-      // Compliant trace: orchestrator only spawns, never edits source directly
-      return [
-        { tool_name: 'Bash', tool_input: { command: `backlog task edit ${taskId} --status "In Progress"` }, position: 1 },
-        { tool_name: 'Bash', tool_input: { command: `claude -p "implement feature" --run-in-background=true` }, position: 2 },
-      ];
-
-    case 'lb-signal-file-wait-01':
-      // Compliant trace: check signal file → then merge
-      return [
-        { tool_name: 'Bash', tool_input: { command: `claude -p "agent task"` }, position: 1 },
-        { tool_name: 'Bash', tool_input: { command: `test -f backlog/.agent-done-${taskId}` }, position: 2 },
-        { tool_name: 'Bash', tool_input: { command: `cat backlog/.agent-done-${taskId}` }, position: 3 },
-        { tool_name: 'Bash', tool_input: { command: `git merge task/${taskId}` }, position: 4 },
-      ];
-
-    case 'lb-done-after-merge-01':
-      // Compliant trace: merge → then set Done
-      return [
-        { tool_name: 'Bash', tool_input: { command: `git merge task/${taskId}` }, position: 1 },
-        { tool_name: 'Bash', tool_input: { command: `backlog task edit ${taskId} --status "Done"` }, position: 2 },
-      ];
-
-    case 'lb-needs-human-on-failure-01':
-      // Compliant trace: merge fails → set Needs Human (not Done)
-      return [
-        { tool_name: 'Bash', tool_input: { command: `git merge task/${taskId}` }, position: 1 },
-        { tool_name: 'Bash', tool_input: { command: `git merge --abort` }, position: 2 },
-        { tool_name: 'Bash', tool_input: { command: `backlog task edit ${taskId} --status "Needs Human"` }, position: 3 },
-      ];
-
-    case 'lb-no-direct-worktree-01':
-      // Compliant trace: orchestrator never calls EnterWorktree directly
-      return [
-        { tool_name: 'Bash', tool_input: { command: `backlog task edit ${taskId} --status "In Progress"` }, position: 1 },
-        { tool_name: 'Bash', tool_input: { command: `claude -p "..." --run-in-background=true` }, position: 2 },
-        { tool_name: 'Bash', tool_input: { command: `test -f backlog/.agent-done-${taskId}` }, position: 3 },
-        { tool_name: 'Bash', tool_input: { command: `git merge task/${taskId}` }, position: 4 },
-        { tool_name: 'Bash', tool_input: { command: `backlog task edit ${taskId} --status "Done"` }, position: 5 },
-      ];
-
-    default:
-      return [];
-  }
+function parseToolBlocks(streamOutput: string): ToolBlock[] {
+  return streamOutput
+    .split('\n')
+    .filter(Boolean)
+    .flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } })
+    .filter((e): e is { type: 'tool_use'; name: string; input: Record<string, unknown> } =>
+      e.type === 'tool_use')
+    .map((e, i) => ({ tool_name: e.name, tool_input: e.input, position: i }));
 }
 
 // ─── Compliance checking ──────────────────────────────────────────────────────
@@ -269,68 +217,100 @@ async function main() {
 
   console.log('Class D: Tool-Invocation Compliance Runner');
   console.log(`Fixtures: ${fixturesDir}`);
-  console.log(`k=${K}  session=${SESSION_ID || '(analytical mode)'}`);
+  console.log(`k=${K}  mode=${DRY_RUN ? 'dry-run' : 'live-trace'}`);
   console.log('');
 
   const fixtures = await loadClassDFixtures(fixturesDir);
   console.log(`Loaded ${fixtures.length} Class D fixtures\n`);
 
+  // setup: create a live test task for use as {task_id} in prompts
+  let testTaskId = 'TASK-TEST';
+  if (!DRY_RUN) {
+    const testTaskOut = execSync(
+      'backlog task create "Class D live test task" --status "Ready" --plain',
+      { encoding: 'utf-8' },
+    );
+    testTaskId = testTaskOut.match(/TASK-\d+/)?.[0] ?? 'TASK-TEST';
+    console.log(`Test task: ${testTaskId}`);
+  }
+
   const per_fixture: FixtureResult[] = [];
   let totalPasses = 0;
   let totalRuns = 0;
 
-  for (const fixture of fixtures) {
-    console.log(`  Running fixture: ${fixture.id}`);
-    let passes = 0;
-    let failures = 0;
-    let lastViolationsSeq: string[] = [];
-    let lastViolationsForbidden: string[] = [];
+  try {
+    for (const fixture of fixtures) {
+      console.log(`  Running fixture: ${fixture.id}`);
+      let passes = 0;
+      let failures = 0;
+      let lastViolationsSeq: string[] = [];
+      let lastViolationsForbidden: string[] = [];
 
-    for (let run = 0; run < K; run++) {
-      const trace = await extractToolTrace(fixture, SESSION_ID);
-      const result = checkCompliance(fixture, trace);
+      for (let run = 0; run < K; run++) {
+        const trace = runFixtureAndExtractTrace(fixture, testTaskId);
 
-      if (result.compliant) {
-        passes++;
-      } else {
-        failures++;
-        lastViolationsSeq = result.required_sequence_violations;
-        lastViolationsForbidden = result.forbidden_violations;
+        if (DRY_RUN) {
+          // In dry-run, skip compliance check — no actual trace available
+          passes++;
+        } else {
+          const result = checkCompliance(fixture, trace);
+
+          if (result.compliant) {
+            passes++;
+          } else {
+            failures++;
+            lastViolationsSeq = result.required_sequence_violations;
+            lastViolationsForbidden = result.forbidden_violations;
+          }
+        }
+      }
+
+      const compliance_rate = DRY_RUN ? null : passes / K;
+      const status = DRY_RUN ? '~' : (compliance_rate !== null && compliance_rate >= 0.9 ? '✓' : '✗');
+      console.log(`    ${status} compliance_rate=${compliance_rate === null ? 'dry-run' : compliance_rate.toFixed(2)} (${passes}/${K})`);
+
+      per_fixture.push({
+        id: fixture.id,
+        skill: fixture.skill,
+        protocol_point: fixture.trigger,
+        passes,
+        failures,
+        compliance_rate,
+        required_sequence_violations: lastViolationsSeq,
+        forbidden_violations: lastViolationsForbidden,
+        notes: DRY_RUN
+          ? 'dry-run: no claude call made'
+          : failures === 0
+            ? 'Fully compliant across all k runs'
+            : `${failures}/${K} runs violated protocol`,
+      });
+
+      if (!DRY_RUN) {
+        totalPasses += passes;
+        totalRuns += K;
       }
     }
-
-    const compliance_rate = passes / K;
-    const status = compliance_rate >= 0.9 ? '✓' : '✗';
-    console.log(`    ${status} compliance_rate=${compliance_rate.toFixed(2)} (${passes}/${K})`);
-
-    per_fixture.push({
-      id: fixture.id,
-      skill: fixture.skill,
-      protocol_point: fixture.trigger,
-      passes,
-      failures,
-      compliance_rate,
-      required_sequence_violations: lastViolationsSeq,
-      forbidden_violations: lastViolationsForbidden,
-      notes: failures === 0
-        ? 'Fully compliant across all k runs'
-        : `${failures}/${K} runs violated protocol`,
-    });
-
-    totalPasses += passes;
-    totalRuns += K;
+  } finally {
+    if (!DRY_RUN && testTaskId !== 'TASK-TEST') {
+      execSync(`backlog task edit ${testTaskId} --status "Done"`);
+      console.log(`Test task ${testTaskId} cleaned up`);
+    }
   }
 
-  const overall_compliance_rate = totalPasses / totalRuns;
-  const auto_ci_eligible = overall_compliance_rate >= 0.90;
+  const overall_compliance_rate = DRY_RUN ? null : (totalRuns > 0 ? totalPasses / totalRuns : 0);
+  const auto_ci_eligible = overall_compliance_rate !== null && overall_compliance_rate >= 0.90;
 
   console.log('');
-  console.log(`Overall compliance_rate: ${overall_compliance_rate.toFixed(3)}`);
-  console.log(auto_ci_eligible ? '✅ PASS — auto_ci_eligible: true' : '❌ FAIL — below 0.90 threshold');
+  if (DRY_RUN) {
+    console.log('Dry-run complete — no claude calls made');
+  } else {
+    console.log(`Overall compliance_rate: ${(overall_compliance_rate ?? 0).toFixed(3)}`);
+    console.log(auto_ci_eligible ? '✅ PASS — auto_ci_eligible: true' : '❌ FAIL — below 0.90 threshold');
+  }
 
   // Gather improvement suggestions for non-eligible fixtures
   const improvement_suggestions = per_fixture
-    .filter(r => r.compliance_rate < 0.90)
+    .filter(r => r.compliance_rate !== null && r.compliance_rate < 0.90)
     .map(r => ({
       fixture: r.id,
       compliance_rate: r.compliance_rate,
@@ -353,8 +333,8 @@ async function main() {
 
   const output = {
     generated: new Date().toISOString(),
-    mode: SESSION_ID ? 'live-trace' : 'analytical',
-    session_id: SESSION_ID || null,
+    mode: 'live-trace',
+    dry_run: DRY_RUN,
     skill: 'loop-backlog',
     k,
     fixtures_count: fixtures.length,
@@ -362,17 +342,15 @@ async function main() {
     compliance_rate: overall_compliance_rate,
     auto_ci_eligible,
     improvement_suggestions: improvement_suggestions.length > 0 ? improvement_suggestions : null,
-    trace_source: SESSION_ID
-      ? `meta-cc query_tool_blocks session=${SESSION_ID}`
-      : 'Analytical trace derived from loop-backlog SKILL.md behavioral contracts and observed git history',
+    trace_source: 'claude -p --output-format stream-json',
     git_context: gitContext,
     methodology_notes: [
       'Class D fixtures validate tool-invocation sequence compliance for the loop-backlog orchestration skill.',
       'required_sequence: tool calls must appear in ascending step order in the trace.',
       'forbidden_before_step_1: listed tool patterns must NOT appear before step 1 in the trace.',
-      'In live mode, traces are extracted via meta-cc query_tool_blocks MCP function.',
-      'In analytical mode, traces are constructed from the documented loop-backlog protocol invariants.',
-      'k=5 independent runs per fixture; compliance_rate = passes/k.',
+      'In live-trace mode, traces are extracted via claude -p --output-format stream-json.',
+      'k=1 single run per fixture for end-to-end pipeline validation.',
+      'compliance_rate = passes/k per fixture.',
     ],
   };
 
