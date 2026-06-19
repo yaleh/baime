@@ -1,0 +1,319 @@
+{
+  "generated_at": "2026-06-19T10:03:18.030485Z",
+  "scope": "Layer 2 contracts (grep/not-grep) in validate-plugin.sh",
+  "total_skills": 23,
+  "skills_with_contracts_frontmatter": 22,
+  "skills_with_enforced_contracts": 7,
+  "skills_with_coverage_gap": 16,
+  "total_contracts": 24,
+  "fp_rate": 0.0,
+  "fn_rate": 0.0,
+  "key_findings": [
+    "FP rate: 0.000 — all 24 structured assertions correctly PASS on valid skills",
+    "FN rate: 0.000 — all 24 assertions correctly FAIL when pattern is replaced/removed",
+    "Critical: 16/22 skills with contracts: frontmatter use non-structured format silently skipped by validator — zero enforcement",
+    "not-grep assertions catch patterns in HTML comments — FP risk if comments reference forbidden patterns",
+    "3 assertions use single common words (Observe, Backlog, templates) — over-broad but low FP risk in practice"
+  ],
+  "fragile_assertions": [
+    {
+      "skill": "api-design",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "baseline-quality-assessment",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "build-quality-gates",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "ci-cd-optimization",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "code-refactoring",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "cross-cutting-concerns",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "dependency-health",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "documentation-management",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "feature-developer",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "knowledge-transfer",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "next-step-generation",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "observability-instrumentation",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "rapid-convergence",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "subagent-prompt-construction",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "technical-debt-management",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "testing-strategy",
+      "assertion": "contracts:non-structured",
+      "issue": "COVERAGE_GAP",
+      "suggestion": "Convert to structured {grep: '...', target: 'self'} format for enforcement"
+    },
+    {
+      "skill": "feature-to-backlog",
+      "assertion": "not-grep:git worktree add",
+      "issue": "FP_RISK",
+      "suggestion": "not-grep catches pattern even in HTML comments; low probability FP"
+    },
+    {
+      "skill": "loop-backlog",
+      "assertion": "not-grep:schedule(",
+      "issue": "FP_RISK",
+      "suggestion": "Any prose mention triggers FAIL; currently low risk"
+    },
+    {
+      "skill": "loop-backlog",
+      "assertion": "not-grep:ScheduleWakeup",
+      "issue": "FP_RISK",
+      "suggestion": "Any mention triggers FAIL; low risk due to exact casing"
+    },
+    {
+      "skill": "task-to-backlog",
+      "assertion": "grep:Backlog",
+      "issue": "OVER_BROAD",
+      "suggestion": "Single common word — trivially satisfied by incidental mention"
+    },
+    {
+      "skill": "methodology-bootstrapping",
+      "assertion": "grep:Observe",
+      "issue": "OVER_BROAD",
+      "suggestion": "Common English word — overly broad"
+    }
+  ],
+  "per_skill": [
+    {
+      "skill": "agent-prompt-evolution",
+      "assertion_count": 3,
+      "fp_count": 0,
+      "fn_count": 0,
+      "assertions": [
+        {
+          "pattern": "grep:specialization",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:evolution",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:reusab",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        }
+      ]
+    },
+    {
+      "skill": "feature-to-backlog",
+      "assertion_count": 4,
+      "fp_count": 0,
+      "fn_count": 0,
+      "assertions": [
+        {
+          "pattern": "grep:proposalLoop",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:planLoop",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:APPROVED",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "not-grep:git worktree add",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        }
+      ]
+    },
+    {
+      "skill": "loop-backlog",
+      "assertion_count": 8,
+      "fp_count": 0,
+      "fn_count": 0,
+      "assertions": [
+        {
+          "pattern": "grep:Monitor(persistent=true",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "not-grep:schedule(",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:loop-stop",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:## Shutdown",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:daemonBootstrap",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "not-grep:ScheduleWakeup",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:loop-backlog-daemon",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:.daemon.pid",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        }
+      ]
+    },
+    {
+      "skill": "methodology-bootstrapping",
+      "assertion_count": 3,
+      "fp_count": 0,
+      "fn_count": 0,
+      "assertions": [
+        {
+          "pattern": "grep:Observe",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:convergence",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:OCA",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        }
+      ]
+    },
+    {
+      "skill": "task-from-template",
+      "assertion_count": 3,
+      "fp_count": 0,
+      "fn_count": 0,
+      "assertions": [
+        {
+          "pattern": "grep:FRESH",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:STALE",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:templates",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        }
+      ]
+    },
+    {
+      "skill": "task-to-backlog",
+      "assertion_count": 3,
+      "fp_count": 0,
+      "fn_count": 0,
+      "assertions": [
+        {
+          "pattern": "grep:reviewLoop",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:non-development",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        },
+        {
+          "pattern": "grep:Backlog",
+          "result": "PASS",
+          "annotation": "TRUE_PASS"
+        }
+      ]
+    }
+  ],
+  "implications_for_task_33": "Line-count threshold is orthogonal to assertion quality; both are valid independently.",
+  "implications_for_task_35": "16 coverage-gap skills need structured contracts (not plain strings) for actual enforcement. New contracts should use specific function/keyword patterns.",
+  "implications_for_layer_2_5": "Layer 2.5 is not needed to fix current FP/FN (both 0). It IS needed to handle the 16 prose-only contracts that cannot be mechanically validated."
+}
