@@ -22,6 +22,19 @@ function normalizeStr(s: unknown): string {
   return s.trim().toLowerCase();
 }
 
+// Token-level Jaccard similarity for fuzzy invariant notation matching.
+// Splits on non-alphanumeric/underscore, filters short tokens.
+function tokenJaccard(a: string, b: string): number {
+  const tokenize = (s: string) =>
+    new Set(s.toLowerCase().split(/[^a-z0-9_]+/).filter(t => t.length > 2));
+  const ta = tokenize(a);
+  const tb = tokenize(b);
+  let intersection = 0;
+  for (const t of ta) if (tb.has(t)) intersection++;
+  const union = new Set([...ta, ...tb]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
 export interface PartialGroundTruth {
   verdict: string;
   items: string[];
@@ -55,11 +68,17 @@ export function scoreResponse(
     const gt = groundTruth as PartialGroundTruth;
     const ans = answer as { verdict?: string; items?: string[] };
     const n = gt.items.length;
-    let score = 0;
-    if (normalizeStr(ans.verdict) === normalizeStr(gt.verdict)) score += 0.5;
-    if (n > 0 && Array.isArray(ans.items)) {
-      const hitItems = gt.items.filter(item =>
-        ans.items!.some(a => normalizeStr(a) === normalizeStr(item)),
+    const verdictMatch = normalizeStr(ans.verdict) === normalizeStr(gt.verdict);
+
+    // APPROVED with empty items: verdict match alone = full score
+    if (n === 0) return verdictMatch ? 1 : 0;
+
+    let score = verdictMatch ? 0.5 : 0;
+    if (Array.isArray(ans.items)) {
+      const hitItems = gt.items.filter(gtItem =>
+        ans.items!.some(
+          a => normalizeStr(a) === normalizeStr(gtItem) || tokenJaccard(a, gtItem) >= 0.3,
+        ),
       );
       score += (hitItems.length / n) * 0.5;
     }
