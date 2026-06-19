@@ -1,0 +1,187 @@
+{
+  "generated": "2026-06-19T11:41:30.221Z",
+  "exp_a_reference": {
+    "accuracy": 0.92,
+    "prompt": "P-full (V2)",
+    "model": "haiku"
+  },
+  "exp_b_class_a_reference": {
+    "accuracy": 0.7,
+    "prompt": "P-spec (specSection)",
+    "model": "haiku"
+  },
+  "p_spec_accuracy": 0.7,
+  "p_full_accuracy": 0.9,
+  "delta_pp": 0.2,
+  "per_fixture": {
+    "P-spec": [
+      {
+        "fixtureId": "tft-fresh-01",
+        "groundTruth": "FRESH",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-fresh-02",
+        "groundTruth": "FRESH",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-fresh-03",
+        "groundTruth": "FRESH",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-fresh-04",
+        "groundTruth": "FRESH",
+        "meanScore": 0,
+        "allCorrect": false
+      },
+      {
+        "fixtureId": "tft-fresh-05",
+        "groundTruth": "FRESH",
+        "meanScore": 0,
+        "allCorrect": false
+      },
+      {
+        "fixtureId": "tft-stale-01",
+        "groundTruth": "STALE",
+        "meanScore": 0,
+        "allCorrect": false
+      },
+      {
+        "fixtureId": "tft-stale-02",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-stale-03",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-stale-04",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-stale-05",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      }
+    ],
+    "P-full": [
+      {
+        "fixtureId": "tft-fresh-01",
+        "groundTruth": "FRESH",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-fresh-02",
+        "groundTruth": "FRESH",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-fresh-03",
+        "groundTruth": "FRESH",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-fresh-04",
+        "groundTruth": "FRESH",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-fresh-05",
+        "groundTruth": "FRESH",
+        "meanScore": 0.6,
+        "allCorrect": false
+      },
+      {
+        "fixtureId": "tft-stale-01",
+        "groundTruth": "STALE",
+        "meanScore": 0.4,
+        "allCorrect": false
+      },
+      {
+        "fixtureId": "tft-stale-02",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-stale-03",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-stale-04",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      },
+      {
+        "fixtureId": "tft-stale-05",
+        "groundTruth": "STALE",
+        "meanScore": 1,
+        "allCorrect": true
+      }
+    ]
+  },
+  "all_model_accuracy": {
+    "P-spec": {
+      "claude-haiku-4-5-20251001": 0.7,
+      "glm-4_5-flash": 0.6599999999999999
+    },
+    "P-full": {
+      "claude-haiku-4-5-20251001": 0.9,
+      "glm-4_5-flash": 0.7
+    }
+  },
+  "p_full_errors": [
+    "tft-fresh-05",
+    "tft-stale-01"
+  ],
+  "annotations": {
+    "tft-fresh-05": {
+      "difficulty": "AMBIGUOUS",
+      "reason": "Feature change present but outside template domain; boundary is not obvious"
+    },
+    "tft-stale-01": {
+      "difficulty": "MODEL_ERROR",
+      "reason": "Ground truth is clear; model made an obvious reasoning error"
+    }
+  },
+  "difficulty_distribution": {
+    "AMBIGUOUS": 1,
+    "MODEL_ERROR": 1
+  },
+  "hypotheses": {
+    "H-prompt": {
+      "description": "P-full accuracy ≥ P-spec + 15pp",
+      "verdict": "CONFIRMED",
+      "delta_observed": 0.20000000000000007,
+      "threshold_delta": 0.15
+    },
+    "H-fixture": {
+      "description": "P-full accuracy < P-spec + 5pp",
+      "verdict": "REFUTED",
+      "delta_observed": 0.20000000000000007,
+      "threshold_delta": 0.05
+    }
+  },
+  "layer_2_5_recommendation": "auto-CI",
+  "confidence": "high",
+  "interpretation": "Gap is mainly prompt construction (+20pp with P-full). Use P-full (complete SKILL.md) for Layer 2.5 Class A."
+}
