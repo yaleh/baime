@@ -16,6 +16,8 @@ lifecycle_execution(M, ctx, A) = sequential_phases(
   data_collection: read(capability) → gather_domain_data ∧ identify_patterns,
   strategy_formation: read(capability) → analyze_problems ∧ prioritize_objectives ∧ assess_agents,
   work_execution: read(capability) → evaluate_sufficiency(A) → decide_evolution → coordinate_agents → produce_outputs,
+  -- hard_verdict: when oracle available, invoke run-quantitative-experiment skill
+  --   to produce CONFIRMED/NULL/REJECTED instead of soft V_instance.
   evaluation: read(capability) → calculate_dual_values ∧ identify_gaps ∧ assess_quality,
   convergence_check: evaluate_system_state ∧ determine_continuation
 ) where read_before_each_phase ∧ ¬cache_instructions
