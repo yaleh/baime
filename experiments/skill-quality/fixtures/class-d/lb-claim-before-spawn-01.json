@@ -4,6 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "A Ready task is picked from backlog and the agent begins processing it",
+  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). Process the task using loop-backlog protocol. Available tools: Bash, Agent.",
   "context": {
     "description": "loop-backlog picks TASK-XX (status=Ready) and must set it In Progress before spawning a background agent",
     "protocol_ref": "loop-backlog SKILL.md §Claim-Before-Spawn invariant",

@@ -4,6 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "loop-backlog orchestrator is running and managing a task lifecycle",
+  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). You must orchestrate the work without entering a worktree yourself. Available tools: Bash, Agent.",
   "context": {
     "description": "The main loop-backlog orchestrator agent must never call EnterWorktree directly. Worktree entry is exclusively performed by the spawned sub-agent. The orchestrator only calls git worktree commands for setup/teardown via Bash.",
     "protocol_ref": "loop-backlog SKILL.md §No-Direct-Worktree-Entry invariant",

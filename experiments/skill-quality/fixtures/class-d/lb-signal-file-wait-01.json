@@ -4,6 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "A background agent has been spawned for TASK-XX and loop-backlog is waiting for completion",
+  "prompt_template": "You are the loop-backlog orchestrator. A background agent has been spawned for {task_id}. You are now at the waiting-for-completion stage. Continue the loop-backlog protocol.",
   "context": {
     "description": "loop-backlog must wait for the .agent-done-TASK-XX signal file to appear before proceeding to merge. It must not call git merge before the signal file is confirmed present.",
     "protocol_ref": "loop-backlog SKILL.md §Signal-File-Wait invariant",

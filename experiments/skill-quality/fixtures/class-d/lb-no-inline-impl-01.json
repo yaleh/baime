@@ -4,6 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "loop-backlog is executing a task that requires implementation work",
+  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). The task requires implementation work. Available tools: Bash, Agent. Coordinate the work without doing implementation yourself.",
   "context": {
     "description": "The main loop-backlog orchestrator agent must not perform implementation work (e.g. Write, Edit on source files) directly in the main context; all implementation must be delegated to a spawned sub-agent",
     "protocol_ref": "loop-backlog SKILL.md §No-Inline-Implementation invariant",

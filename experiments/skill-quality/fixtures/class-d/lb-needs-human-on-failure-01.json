@@ -4,6 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "git merge fails with a non-zero exit code during loop-backlog execution",
+  "prompt_template": "You are the loop-backlog orchestrator. The git merge for {task_id} has failed with a non-zero exit code. Handle this failure according to loop-backlog protocol.",
   "context": {
     "description": "When git merge fails, loop-backlog must set the task status to Needs Human (not Done, not Back to Ready). It must abort the merge cleanly and not leave the repo in a dirty merge state.",
     "protocol_ref": "loop-backlog SKILL.md §Merge-Failure-Escalation invariant",

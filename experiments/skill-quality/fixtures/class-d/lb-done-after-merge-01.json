@@ -4,6 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "loop-backlog has successfully merged the task branch into main",
+  "prompt_template": "You are the loop-backlog orchestrator. The background agent for {task_id} has completed. The signal file exists. Proceed with the merge-and-close steps of loop-backlog protocol.",
   "context": {
     "description": "After a successful git merge, loop-backlog must set the task status to Done. The Done status must NOT be set before the merge completes successfully.",
     "protocol_ref": "loop-backlog SKILL.md §Done-After-Merge invariant",
