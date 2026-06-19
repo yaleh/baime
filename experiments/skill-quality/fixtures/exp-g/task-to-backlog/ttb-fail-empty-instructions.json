@@ -1,0 +1,26 @@
+{
+  "id": "ttb-fail-empty-instructions",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [
+        {
+          "title": "Do the research",
+          "instructions": "",
+          "dod": ["test -f docs/research.md"]
+        }
+      ],
+      "constraints": [],
+      "acceptance": ["test -f docs/research.md"]
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "NEEDS_REVISION",
+    "failing_invariants": ["empty(phase.instructions)"]
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "The phase has empty instructions (''), which violates ¬empty(phase.instructions). The dod and acceptance are valid shell commands. Clear single-invariant violation."
+}

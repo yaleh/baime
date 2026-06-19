@@ -1,0 +1,41 @@
+{
+  "generated": "2026-06-19T14:54:25.844Z",
+  "mode": "prior-data",
+  "model": "claude-haiku-4-5-20251001",
+  "k": 5,
+  "task-from-template": {
+    "self_eval_accuracy": 0.9,
+    "behavioral_composite": 0.92,
+    "behavioral_verdict_only": 0.92,
+    "inflation": -0.02,
+    "source": "Exp-A (V2, full SKILL.md, Haiku, k=5) [prior-data mode]",
+    "notes": "V2 variant (full SKILL.md inline) Haiku = 0.92. Exp-D P-full = 0.90. Exp-F variant-a = 0.98. Using Exp-A V2 as canonical P-full measurement."
+  },
+  "loop-backlog": {
+    "self_eval_accuracy": 0.85,
+    "behavioral_composite": 1,
+    "behavioral_verdict_only": 1,
+    "inflation": -0.15,
+    "source": "Exp-B (Class C verifyDod, Haiku, k=5) [prior-data mode]",
+    "notes": "Class C Haiku = 1.0, Sonnet = 1.0. Verified with full specSection injection (equivalent to P-full for this fixture type)."
+  },
+  "task-to-backlog": {
+    "self_eval_accuracy": 0.88,
+    "behavioral_composite": 0.875,
+    "behavioral_verdict_only": 1,
+    "inflation": 0.005,
+    "source": "Exp-E (Class B reviewPlan CLEAR, fixed scorer, Haiku, k=5) + corrected for fixed scorer [prior-data mode]",
+    "notes": "Exp-E Haiku verdict-only=1.0 (all verdicts correct on CLEAR fixtures). Old composite=0.667 used broken scorer (n=0 capped at 0.5, strict notation). Fixed scorer (n=0→1.0, token Jaccard≥0.3): 2 APPROVED fixtures → 1.0 each; 6 NEEDS_REVISION fixtures with 1 invariant each → 0.5 + 0.5×(Jaccard match) ≈ 0.75-1.0. Conservative estimate: composite = 0.875 (assumes ~75% token Jaccard hit rate on NEEDS_REVISION)."
+  },
+  "hypothesis": "INCONCLUSIVE",
+  "inflation_summary": {
+    "values": [
+      -0.02,
+      -0.15,
+      0.005
+    ],
+    "max": 0.005,
+    "mean": -0.055
+  },
+  "interpretation": "INCONCLUSIVE: inflation values -2.0pp, -15.0pp, 0.5pp. Recommend dual reporting: self-eval + behavioral accuracy both required in VALIDATION-REPORT."
+}

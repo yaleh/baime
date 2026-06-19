@@ -1,0 +1,36 @@
+{
+  "id": "ttb-approved-02",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [
+        {
+          "title": "Research competitor tools",
+          "instructions": "Search the web for top 5 alternatives to our CLI tool. Document each with name, URL, and key features. Save to docs/research/competitors.md.",
+          "dod": ["test -f docs/research/competitors.md", "grep -qc '##' docs/research/competitors.md | grep -qv '^0$'"]
+        },
+        {
+          "title": "Compare feature matrices",
+          "instructions": "Create a comparison table in docs/research/feature-matrix.md covering: authentication, output formats, plugin support.",
+          "dod": ["test -f docs/research/feature-matrix.md", "grep -q 'authentication' docs/research/feature-matrix.md"]
+        },
+        {
+          "title": "Draft recommendation",
+          "instructions": "Write a 1-page recommendation in docs/research/recommendation.md summarizing our competitive position and suggested improvements.",
+          "dod": ["test -f docs/research/recommendation.md", "test -s docs/research/recommendation.md"]
+        }
+      ],
+      "constraints": ["Focus on publicly available information only"],
+      "acceptance": ["test -f docs/research/recommendation.md"]
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "APPROVED",
+    "failing_invariants": []
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "All three phases have non-empty instructions and shell-verifiable dod commands. Acceptance has a valid shell command. No invariant violations. Clear APPROVED."
+}

@@ -1,0 +1,20 @@
+{
+  "id": "ttb-fail-empty-phases",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [],
+      "constraints": ["Document everything"],
+      "acceptance": ["test -f docs/report.md"]
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "NEEDS_REVISION",
+    "failing_invariants": ["empty(P.phases)"]
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "phases is empty, violating the invariant ¬empty(P.phases). This is an unambiguous NEEDS_REVISION case. The failing invariant is clearly empty(P.phases)."
+}

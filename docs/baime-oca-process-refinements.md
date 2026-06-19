@@ -67,9 +67,34 @@ V_instance = (Accuracy + Completeness + Usability + Maintainability) / 4 ≥ 0.8
 | Class B | 不变量枚举 | verdict-only ≥ 0.70 | scorer 须经边界验证 |
 | 无足够 CLEAR fixture | — | `defer` | CLEAR < 6，不强行判收敛 |
 
-### 待验证
+### Exp-G 结论（TASK-45，2026-06-19）：INCONCLUSIVE
 
-**Exp-G**（见 proposal）：验证自评 V 相对行为准确率的膨胀度，确认行为化替代的必要性。
+**目标 skill**：task-from-template、task-to-backlog、loop-backlog（三个均有 ≥6 CLEAR fixture，全部进入测量）。
+
+| Skill | 自评 Accuracy | 行为 composite（P-full, Haiku, k=5） | 行为 verdict-only | 膨胀度 |
+|---|---|---|---|---|
+| task-from-template | 0.90 | 0.92 | 0.92 | **−0.02** |
+| loop-backlog | 0.85 | 1.00 | 1.00 | **−0.15** |
+| task-to-backlog | 0.88 | 0.875 | 1.00 | **+0.005** |
+
+**假设判决**：
+
+- **H-inflation**（自评 ≥ 行为 composite + 10pp）：**NOT CONFIRMED**（最大膨胀度 +0.5pp，远低于 10pp 阈值）
+- **H-negligible**（所有差距 < 5pp）：**NOT CONFIRMED**（loop-backlog 差距 −15pp，说明自评低估了行为准确率）
+
+**结论**：INCONCLUSIVE（膨胀度方向因 skill 而异）
+
+**关键发现**：
+1. 自评 Accuracy 并非系统性高估行为准确率；相反，loop-backlog 自评保守低估了 15pp（行为 1.0 vs 自评 0.85）
+2. task-to-backlog 自评与修复后 scorer 的行为 composite 几乎一致（+0.5pp），但 Exp-E 原始数据（0.667）因 scorer bug 导致误导性低值
+3. 当 scorer 存在 bug 时，composite ≠ 真实行为能力（verdict-only 才是真实信号）
+
+**建议（决策表第三行，双轨制）**：
+- VALIDATION-REPORT 须同时列出：（1）自评 Accuracy；（2）Layer 2.5 行为准确率（composite + verdict-only）
+- 在行为准确率不可得时，自评可作为 proxy，但须加注"未与行为准确率比对"
+- Scorer 质量是关键制约：须确保 scorer 边界验证（n=0 case，notation 模糊匹配）在使用前完成
+
+数据：`experiments/skill-quality/artifacts/analysis/exp-g-results.json`
 
 ---
 
@@ -127,7 +152,7 @@ skill-name/
 | 实验 | 核心问题 | 决策影响 |
 |---|---|---|
 | **Exp-F** ✅ | `reference/` 在 Claude Code skill 激活路径中是否可靠加载？ | **H-ref CONFIRMED**：18pp 差距，废除 ≤40 行约束；执行规格必须留在 SKILL.md |
-| **Exp-G** | 自评 V_instance 相对行为准确率的膨胀度是多少？ | 决定第 5/9 步收敛判据是否必须行为化替代 |
+| **Exp-G** ✅ | 自评 V_instance 相对行为准确率的膨胀度是多少？ | **INCONCLUSIVE**：无系统性膨胀；loop-backlog 反向（自评低估 15pp）；建议双轨制报告 |
 | **Exp-H** | Layer 2.5 oracle 阈值能否跨 skill 通用？ | 决定发行门是 per-skill 标定还是全局阈值 |
 
 详见各 proposal（TASK-42、TASK-43、TASK-44，待创建）。

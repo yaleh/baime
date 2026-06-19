@@ -1,0 +1,26 @@
+{
+  "id": "ttb-fail-nl-dod",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [
+        {
+          "title": "Write analysis report",
+          "instructions": "Analyze the current state of CI pipeline and document findings in docs/ci-analysis.md.",
+          "dod": ["Verify the analysis document is complete and well-written"]
+        }
+      ],
+      "constraints": [],
+      "acceptance": ["test -f docs/ci-analysis.md"]
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "NEEDS_REVISION",
+    "failing_invariants": ["isShellCmd(phase.dod[0])"]
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "The dod item 'Verify the analysis document is complete and well-written' is natural language, not a shell command. This violates isShellCmd(cmd). Clear NEEDS_REVISION because the violation is unambiguous."
+}

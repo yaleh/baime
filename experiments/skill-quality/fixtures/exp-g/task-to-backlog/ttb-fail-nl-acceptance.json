@@ -1,0 +1,26 @@
+{
+  "id": "ttb-fail-nl-acceptance",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [
+        {
+          "title": "Write experiment report",
+          "instructions": "Summarize Exp-A through Exp-G results into a unified report at docs/experiments-summary.md.",
+          "dod": ["test -f docs/experiments-summary.md", "grep -q 'Exp-A' docs/experiments-summary.md"]
+        }
+      ],
+      "constraints": ["Report must be readable by non-technical stakeholders"],
+      "acceptance": ["Human reviewer confirms report quality meets standards"]
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "NEEDS_REVISION",
+    "failing_invariants": ["isShellCmd(P.acceptance[0])"]
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "The acceptance criterion 'Human reviewer confirms report quality meets standards' is not a shell command. This violates isShellCmd for acceptance. The phase itself is valid. Clear single-invariant violation."
+}

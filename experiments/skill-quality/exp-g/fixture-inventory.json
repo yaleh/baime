@@ -1,0 +1,26 @@
+{
+  "task-from-template": {
+    "fixture_dir": "fixtures/exp-a",
+    "fixture_type": "freshnessCheck (binary-gate)",
+    "clear_count": 10,
+    "total_count": 10,
+    "status": "run",
+    "notes": "All 10 exp-a fixtures reused (tft-fresh-01..05, tft-stale-01..05). Previously validated in Exp-A/D/F."
+  },
+  "loop-backlog": {
+    "fixture_dir": "fixtures/exp-b/class-c",
+    "fixture_type": "verifyDod (branch-selection)",
+    "clear_count": 6,
+    "total_count": 6,
+    "status": "run",
+    "notes": "All 6 Class C verifyDod fixtures reused (vdod-pass-01..02, vdod-retry-01..02, vdod-stuck-01..02). Validated in Exp-B."
+  },
+  "task-to-backlog": {
+    "fixture_dir": "fixtures/exp-g/task-to-backlog",
+    "fixture_type": "reviewPlan (invariant-check)",
+    "clear_count": 8,
+    "total_count": 8,
+    "status": "run",
+    "notes": "8 new fixtures constructed for Exp-G: 2 APPROVED cases, 6 NEEDS_REVISION cases (empty-phases, empty-dod, nl-dod, empty-instructions, nl-acceptance, empty-acceptance). All ground-truth-annotated by agent from spec analysis."
+  }
+}

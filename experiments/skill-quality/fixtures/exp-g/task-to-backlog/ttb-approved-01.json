@@ -1,0 +1,31 @@
+{
+  "id": "ttb-approved-01",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [
+        {
+          "title": "Survey existing documentation",
+          "instructions": "Read all files in docs/ directory and list their topics. Use Read and Glob tools.",
+          "dod": ["test -f docs/survey-results.md", "grep -q 'topics' docs/survey-results.md"]
+        },
+        {
+          "title": "Write summary report",
+          "instructions": "Create docs/summary.md with findings from Phase 1.",
+          "dod": ["test -f docs/summary.md", "test -s docs/summary.md"]
+        }
+      ],
+      "constraints": ["No code changes allowed"],
+      "acceptance": ["test -f docs/summary.md", "grep -q 'Summary' docs/summary.md"]
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "APPROVED",
+    "failing_invariants": []
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "Plan passes all reviewPlan invariants: phases non-empty (2 phases), each phase has non-empty instructions, non-empty dod, all dod commands are valid shell commands (test -f, grep -q). Acceptance non-empty and all shell commands. This is a clear APPROVED case."
+}

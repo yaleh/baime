@@ -1,0 +1,31 @@
+{
+  "id": "ttb-fail-empty-acceptance",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [
+        {
+          "title": "Audit dependency versions",
+          "instructions": "Check package.json for outdated dependencies. List findings in docs/dependency-audit.md.",
+          "dod": ["test -f docs/dependency-audit.md", "test -s docs/dependency-audit.md"]
+        },
+        {
+          "title": "Update recommendations",
+          "instructions": "For each outdated dependency, add an upgrade recommendation with rationale.",
+          "dod": ["grep -q 'recommendation' docs/dependency-audit.md"]
+        }
+      ],
+      "constraints": ["Only check direct dependencies"],
+      "acceptance": []
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "NEEDS_REVISION",
+    "failing_invariants": ["empty(P.acceptance)"]
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "acceptance is an empty array, violating ¬empty(P.acceptance). The two phases are valid with proper instructions and shell-command dods. Clear single-invariant violation."
+}

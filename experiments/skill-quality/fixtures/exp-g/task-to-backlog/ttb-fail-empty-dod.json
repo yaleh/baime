@@ -1,0 +1,26 @@
+{
+  "id": "ttb-fail-empty-dod",
+  "skill": "task-to-backlog",
+  "taskClass": "B",
+  "taskType": "invariant-check",
+  "input": {
+    "plan": {
+      "phases": [
+        {
+          "title": "Audit codebase",
+          "instructions": "Read all source files and identify technical debt items. List in docs/audit.md.",
+          "dod": []
+        }
+      ],
+      "constraints": [],
+      "acceptance": ["test -f docs/audit.md"]
+    }
+  },
+  "expected_verdict": "CLEAR",
+  "answer": {
+    "verdict": "NEEDS_REVISION",
+    "failing_invariants": ["empty(phase.dod)"]
+  },
+  "answerType": "partial",
+  "ground_truth_rationale": "The single phase has an empty dod array, violating ¬empty(phase.dod). The instructions are non-empty and valid, but the missing dod makes this a clear NEEDS_REVISION."
+}
