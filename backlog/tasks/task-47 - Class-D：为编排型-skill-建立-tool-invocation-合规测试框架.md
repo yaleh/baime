@@ -1,10 +1,10 @@
 ---
 id: TASK-47
 title: Class D：为编排型 skill 建立 tool-invocation 合规测试框架
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-06-19 15:00'
-updated_date: '2026-06-19 14:58'
+updated_date: '2026-06-19 15:04'
 labels:
   - experiment
   - skill-quality
@@ -217,6 +217,8 @@ Plan review iteration 1: NEEDS_REVISION — two fixes applied: (1) Phase 2 DoD g
 Plan review iteration 3: APPROVED
 
 claimed: 2026-06-19T14:58:58Z
+
+Completed: 2026-06-19T15:04:33Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
