@@ -19,6 +19,14 @@ contracts:
     target: self
   - grep: ".daemon.pid"
     target: self
+  - grep: "Agent(run_in_background=true"
+    target: self
+  - grep: "\"In Progress\""
+    target: self
+  - grep: ".agent-done-"
+    target: self
+  - grep: "executePrompt"
+    target: self
 ---
 
 λ() → workerLoop()
@@ -211,6 +219,38 @@ merge :: (Task, Maybe CommitHash) → Outcome
 merge(T, hash) =
   | mergeNoFF(T.branch) succeeds → markDone(T, hash); removeWorktree(T); Done(hash)
   | otherwise                    → markNeedsHuman(T, "merge conflict"); NeedsHuman("merge conflict")
+
+## Critical Protocol (MUST NOT deviate)
+
+When a `task-ready:TASK-XX` event arrives, the worker MUST execute these steps in order:
+
+**Step 1 — Claim (set In Progress BEFORE any other work):**
+```bash
+backlog task edit TASK-XX --status "In Progress" \
+  --append-notes "claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+```
+
+**Step 2 — Spawn implementation agent (NEVER do implementation inline):**
+```
+Agent(run_in_background=true, prompt=executePrompt(TASK-XX, worktree, branch, signal_file))
+```
+The `allowed-tools` passed to the agent explicitly excludes `Agent` to prevent recursive spawn.
+
+**Step 3 — Wait for signal file:**
+```bash
+# Poll until backlog/.agent-done-TASK-XX exists
+```
+
+**Step 4 — Merge and mark Done:**
+```bash
+git merge --no-ff <branch>
+backlog task edit TASK-XX --status "Done" \
+  --append-notes "Completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+```
+
+**Prohibited shortcut**: doing implementation directly in the worker agent (without `Agent(run_in_background=true, ...)`) violates Step 2 and causes Step 1 to be silently skipped in practice. The task will jump from `Ready` → `Done` without ever entering `In Progress`.
+
+---
 
 ## Implementation
 
