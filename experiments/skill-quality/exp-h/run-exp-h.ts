@@ -83,7 +83,9 @@ async function loadFixtures(dir: string): Promise<BaseFixture[]> {
 // ---------- Prompt builders ----------
 
 function buildPromptExact(skillContent: string, fixture: BaseFixture): string {
-  return [
+  const stateObj = (fixture as BaseFixture & { state?: unknown }).state;
+  const inputObj = (fixture as BaseFixture & { input?: unknown }).input;
+  const lines: string[] = [
     `You are executing a decision step in the ${fixture.skill} skill.`,
     '',
     '## SKILL.md (P-full injection)',
@@ -96,13 +98,21 @@ function buildPromptExact(skillContent: string, fixture: BaseFixture): string {
     '',
     '## Input',
     '```json',
-    JSON.stringify((fixture as BaseFixture & { input?: unknown }).input ?? {}, null, 2),
+    JSON.stringify(inputObj ?? {}, null, 2),
     '```',
-    '',
-    `Given the spec and input above, what is the result of ${fixture.decisionPoint}?`,
-    'Output ONLY valid JSON: {"answer": "<result>"}',
-    'Where <result> is one of the possible output values defined in the spec.',
-  ].join('\n');
+  ];
+  if (stateObj !== undefined) {
+    lines.push('');
+    lines.push('## Environment State');
+    lines.push('```json');
+    lines.push(JSON.stringify(stateObj, null, 2));
+    lines.push('```');
+  }
+  lines.push('');
+  lines.push(`Given the spec and input above, what is the result of ${fixture.decisionPoint}?`);
+  lines.push('Output ONLY valid JSON: {"answer": "<result>"}');
+  lines.push('Where <result> is one of the possible output values defined in the spec.');
+  return lines.join('\n');
 }
 
 function buildPromptSet(skillContent: string, fixture: BaseFixture): string {
@@ -358,15 +368,10 @@ async function analyze(
     for (const fixture of fixtures) {
       const resultPath = join(outDir, skill, fixture.id, 'result.json');
       if (!(await fileExists(resultPath))) {
-        // No LLM data: use spec-based analytical score
-        // (fallback for environments without API access)
-        perFixture.push({
-          fixtureId: fixture.id,
-          taskClass: fixture.taskClass,
-          composite: 0,
-          verdict_only: 0,
-        });
-        continue;
+        throw new Error(
+          `Missing result for ${skill}/${fixture.id} — run the LLM pass before analyzing. ` +
+          `(Provenance guard: analysis requires measured data, not estimated values.)`
+        );
       }
 
       const result = JSON.parse(await readFile(resultPath, 'utf-8')) as { responses: string[] };
@@ -443,6 +448,8 @@ async function analyze(
 
   const results = {
     generated: new Date().toISOString(),
+    data_source: 'measured',
+    data_source_note: `Real LLM calls: ${eligibleSkills.length} skills × fixtures × k=5. Run artifacts in artifacts/runs/exp-h/.`,
     model,
     reference_skills: refSkills,
     per_skill: Object.fromEntries(

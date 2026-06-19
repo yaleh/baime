@@ -4,13 +4,13 @@
   "taskClass": "C",
   "taskType": "branch-selection",
   "decisionPoint": "seedExamples",
-  "specSection": "seedExamples :: () → ()\nseedExamples() =\n  | ¬empty(backlog/docs/) ∨ ¬empty(backlog/decisions/) → skip\n  | otherwise → {\n      backlog document create <onboardingDocTitle> --type guide,\n      backlog decision create  <templateDecisionTitle> --status \"Accepted\"\n    }",
+  "specSection": "seedExamples :: () → ()\nseedExamples() =\n  | ¬empty(backlog/docs/) ∨ ¬empty(backlog/decisions/) → skip\n  | otherwise → {\n      backlog document create <onboardingDocTitle> --type guide,\n      backlog decision create  <templateDecisionTitle> --status \"Accepted\"\n    }\n\n-- Answer vocabulary: which branch fires given the Environment State below?\n--   \"skip\" — at least one of backlog/docs/ or backlog/decisions/ is non-empty\n--   \"seed\" — both are empty, run the create commands",
   "state": {
     "backlogDocsEmpty": true,
     "backlogDecisionsEmpty": true
   },
-  "ground_truth_rationale": "Both backlog/docs/ and backlog/decisions/ are empty. The condition ¬empty(backlog/docs/) ∨ ¬empty(backlog/decisions/) is false, so the 'otherwise' branch fires: seed the example document and decision.",
-  "answer": "SEED",
+  "ground_truth_rationale": "Both backlog/docs/ and backlog/decisions/ are empty (backlogDocsEmpty: true, backlogDecisionsEmpty: true). The condition ¬empty(backlog/docs/) ∨ ¬empty(backlog/decisions/) is false, so the 'otherwise' branch fires: seed examples.",
+  "answer": "seed",
   "answerType": "exact",
   "fixtureClass": "CLEAR"
 }

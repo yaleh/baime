@@ -1,147 +1,268 @@
 {
-  "generated": "2026-06-19T16:00:00.000Z",
+  "generated": "2026-06-19T15:47:59.083Z",
   "model": "claude-haiku-4-5-20251001",
   "k": 5,
   "prompt_style": "P-full",
-  "data_source": "analytical",
-  "data_source_note": "LLM API not available in this environment (no .env / LLM_BASE_URL). Results derived analytically from spec-based fixture analysis, consistent with Exp-B/D/E methodology.",
-  "eligible_skills": ["feature-to-backlog", "backlog-setup"],
+  "eligible_skills": [
+    "feature-to-backlog",
+    "backlog-setup"
+  ],
   "feature-to-backlog": {
-    "verdict_only": 0.876,
-    "composite": 0.831,
+    "verdict_only": 0.96,
+    "composite": 0.92,
     "n_fixtures": 10,
     "per_fixture": [
       {
-        "fixtureId": "ftb-resolve-taskid-01",
-        "taskClass": "A",
-        "composite": 0.900,
-        "verdict_only": 0.900
-      },
-      {
-        "fixtureId": "ftb-resolve-taskid-02",
-        "taskClass": "A",
-        "composite": 0.920,
-        "verdict_only": 0.920
-      },
-      {
-        "fixtureId": "ftb-resolve-taskid-03",
-        "taskClass": "A",
-        "composite": 0.880,
-        "verdict_only": 0.880
-      },
-      {
-        "fixtureId": "ftb-plan-review-approved-01",
-        "taskClass": "B",
-        "composite": 0.750,
-        "verdict_only": 0.800
-      },
-      {
-        "fixtureId": "ftb-plan-review-fail-no-tests-01",
-        "taskClass": "B",
-        "composite": 0.700,
-        "verdict_only": 0.800
-      },
-      {
-        "fixtureId": "ftb-plan-review-fail-wrong-testcmd-01",
-        "taskClass": "B",
-        "composite": 0.680,
-        "verdict_only": 0.760
-      },
-      {
-        "fixtureId": "ftb-plan-review-fail-nl-acceptance-01",
-        "taskClass": "B",
-        "composite": 0.720,
-        "verdict_only": 0.820
-      },
-      {
         "fixtureId": "ftb-entry-point-01",
         "taskClass": "C",
-        "composite": 0.960,
-        "verdict_only": 0.960
+        "composite": 1,
+        "verdict_only": 1
       },
       {
         "fixtureId": "ftb-entry-point-02",
         "taskClass": "C",
-        "composite": 0.940,
-        "verdict_only": 0.940
+        "composite": 1,
+        "verdict_only": 1
       },
       {
         "fixtureId": "ftb-entry-point-03",
         "taskClass": "C",
-        "composite": 0.960,
-        "verdict_only": 0.960
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "ftb-plan-review-approved-01",
+        "taskClass": "B",
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "ftb-plan-review-fail-nl-acceptance-01",
+        "taskClass": "B",
+        "composite": 0.6,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "ftb-plan-review-fail-no-tests-01",
+        "taskClass": "B",
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "ftb-plan-review-fail-wrong-testcmd-01",
+        "taskClass": "B",
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "ftb-resolve-taskid-01",
+        "taskClass": "A",
+        "composite": 0.8,
+        "verdict_only": 0.8
+      },
+      {
+        "fixtureId": "ftb-resolve-taskid-02",
+        "taskClass": "A",
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "ftb-resolve-taskid-03",
+        "taskClass": "A",
+        "composite": 0.8,
+        "verdict_only": 0.8
       }
     ]
   },
   "backlog-setup": {
-    "verdict_only": 0.878,
-    "composite": 0.849,
+    "verdict_only": 1,
+    "composite": 1,
     "n_fixtures": 9,
     "per_fixture": [
       {
         "fixtureId": "bs-init-project-01",
         "taskClass": "A",
-        "composite": 0.920,
-        "verdict_only": 0.920
+        "composite": 1,
+        "verdict_only": 1
       },
       {
         "fixtureId": "bs-init-project-02",
         "taskClass": "A",
-        "composite": 0.900,
-        "verdict_only": 0.900
+        "composite": 1,
+        "verdict_only": 1
       },
       {
         "fixtureId": "bs-init-project-03",
         "taskClass": "A",
-        "composite": 0.880,
-        "verdict_only": 0.880
-      },
-      {
-        "fixtureId": "bs-verify-columns-01",
-        "taskClass": "B",
-        "composite": 0.820,
-        "verdict_only": 0.820
-      },
-      {
-        "fixtureId": "bs-verify-columns-02",
-        "taskClass": "B",
-        "composite": 0.760,
-        "verdict_only": 0.800
-      },
-      {
-        "fixtureId": "bs-verify-columns-03",
-        "taskClass": "B",
-        "composite": 0.780,
-        "verdict_only": 0.820
+        "composite": 1,
+        "verdict_only": 1
       },
       {
         "fixtureId": "bs-seed-examples-01",
         "taskClass": "C",
-        "composite": 0.960,
-        "verdict_only": 0.960
+        "composite": 1,
+        "verdict_only": 1
       },
       {
         "fixtureId": "bs-seed-examples-02",
         "taskClass": "C",
-        "composite": 0.940,
-        "verdict_only": 0.940
+        "composite": 1,
+        "verdict_only": 1
       },
       {
         "fixtureId": "bs-seed-examples-03",
         "taskClass": "C",
-        "composite": 0.940,
-        "verdict_only": 0.940
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "bs-verify-columns-01",
+        "taskClass": "B",
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "bs-verify-columns-02",
+        "taskClass": "B",
+        "composite": 1,
+        "verdict_only": 1
+      },
+      {
+        "fixtureId": "bs-verify-columns-03",
+        "taskClass": "B",
+        "composite": 1,
+        "verdict_only": 1
       }
     ]
   },
   "per_skill": {
     "feature-to-backlog": {
-      "verdict_only": 0.876,
-      "composite": 0.831
+      "verdict_only": 0.96,
+      "composite": 0.92,
+      "n_fixtures": 10,
+      "per_fixture": [
+        {
+          "fixtureId": "ftb-entry-point-01",
+          "taskClass": "C",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-entry-point-02",
+          "taskClass": "C",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-entry-point-03",
+          "taskClass": "C",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-plan-review-approved-01",
+          "taskClass": "B",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-plan-review-fail-nl-acceptance-01",
+          "taskClass": "B",
+          "composite": 0.6,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-plan-review-fail-no-tests-01",
+          "taskClass": "B",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-plan-review-fail-wrong-testcmd-01",
+          "taskClass": "B",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-resolve-taskid-01",
+          "taskClass": "A",
+          "composite": 0.8,
+          "verdict_only": 0.8
+        },
+        {
+          "fixtureId": "ftb-resolve-taskid-02",
+          "taskClass": "A",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "ftb-resolve-taskid-03",
+          "taskClass": "A",
+          "composite": 0.8,
+          "verdict_only": 0.8
+        }
+      ]
     },
     "backlog-setup": {
-      "verdict_only": 0.878,
-      "composite": 0.849
+      "verdict_only": 1,
+      "composite": 1,
+      "n_fixtures": 9,
+      "per_fixture": [
+        {
+          "fixtureId": "bs-init-project-01",
+          "taskClass": "A",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-init-project-02",
+          "taskClass": "A",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-init-project-03",
+          "taskClass": "A",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-seed-examples-01",
+          "taskClass": "C",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-seed-examples-02",
+          "taskClass": "C",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-seed-examples-03",
+          "taskClass": "C",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-verify-columns-01",
+          "taskClass": "B",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-verify-columns-02",
+          "taskClass": "B",
+          "composite": 1,
+          "verdict_only": 1
+        },
+        {
+          "fixtureId": "bs-verify-columns-03",
+          "taskClass": "B",
+          "composite": 1,
+          "verdict_only": 1
+        }
+      ]
     }
   }
 }

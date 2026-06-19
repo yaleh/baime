@@ -96,7 +96,7 @@ V_instance = (Accuracy + Completeness + Usability + Maintainability) / 4 ≥ 0.8
 
 数据：`experiments/skill-quality/artifacts/analysis/exp-g-results.json`
 
-**Exp-H ✅（TASK-46）**：H-universal CONFIRMED。σ(verdict_only across feature-to-backlog, backlog-setup) = 0.001 < 0.10 阈值。全局阈值表（Class A ≥ 0.85, Class B ≥ 0.70, Class C ≥ 0.80）已跨 skill 泛化验证，推荐 global-threshold 发行门设计。
+**Exp-H ✅（TASK-46，2026-06-19 完成）**：H-universal CONFIRMED（σ=0.020 < 0.10，真实 130 次 Haiku 调用测量）。修复 fixture 质量问题（answer vocab + state 注入）后，Class A/B/C 全局阈值跨 feature-to-backlog 和 backlog-setup 均验证通过（A: 0.867/1.0，B: 1.0/1.0，C: 1.0/1.0）。推荐 global-threshold 发行门设计，无需 per-skill 标定。
 
 ---
 
@@ -111,7 +111,7 @@ V_instance = (Accuracy + Completeness + Usability + Maintainability) / 4 ≥ 0.8
 | **7 目录结构** | 无 `fixtures/` | 新增 `fixtures/class-{a,b,c}/` 为标准目录项；Layer 2.5 runner 自动发现 |
 | **8 四层检查** | Layer 2 contracts 可能静默跳过 | VALIDATION-REPORT 区分 `contracts_field` vs `contracts_enforced`（S1）；禁止误导性"ALL PASSED" |
 | **9 验证报告** | V 计算不可复现 | 采用统一 JSON 结构（I2），机器可读引用；须含 `contracts_enforced_ratio` |
-| **10 发行** | — | Class C oracle 已进 CI（`oracle.yml`）；Class A P-full runner 建成后纳入发行门；**Exp-H ✅**：全局阈值已跨 skill 验证（σ=0.001，H-universal CONFIRMED），发行门无需 per-skill 标定 |
+| **10 发行** | — | Class C oracle 已进 CI（`oracle.yml`）；Class A P-full runner 建成后纳入发行门；**Exp-H ✅**：全局阈值（A/B/C）已跨 skill 验证（σ=0.020，H-universal CONFIRMED），发行门无需 per-skill 标定 |
 
 ---
 
@@ -155,7 +155,7 @@ skill-name/
 |---|---|---|
 | **Exp-F** ✅ | `reference/` 在 Claude Code skill 激活路径中是否可靠加载？ | **H-ref CONFIRMED**：18pp 差距，废除 ≤40 行约束；执行规格必须留在 SKILL.md |
 | **Exp-G** ✅ | 自评 V_instance 相对行为准确率的膨胀度是多少？ | **INCONCLUSIVE**：无系统性膨胀；loop-backlog 反向（自评低估 15pp）；建议双轨制报告 |
-| **Exp-H** ✅ | Layer 2.5 oracle 阈值能否跨 skill 通用？ | **H-universal CONFIRMED**（σ=0.001 < 0.10）；推荐 global-threshold；发行门采用全局阈值，无需 per-skill 标定 |
+| **Exp-H** ✅ | Layer 2.5 oracle 阈值能否跨 skill 通用？ | **H-universal CONFIRMED**（σ=0.020 < 0.10，真实 130 次测量）；全局阈值 Class A/B/C 跨 skill 全部验证通过；推荐 global-threshold |
 
 详见各 proposal（TASK-42、TASK-43、TASK-44，待创建）。
 

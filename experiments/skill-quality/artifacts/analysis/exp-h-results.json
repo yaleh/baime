@@ -1,12 +1,12 @@
 {
-  "generated": "2026-06-19T16:00:00.000Z",
+  "generated": "2026-06-19T15:47:59.084Z",
+  "data_source": "measured",
+  "data_source_note": "Real LLM calls: 2 skills × fixtures × k=5. Run artifacts in artifacts/runs/exp-h/. Fixture fixes applied 2026-06-19: answer vocab annotations + state injection in buildPromptExact.",
   "model": "claude-haiku-4-5-20251001",
-  "data_source": "analytical",
-  "data_source_note": "Derived from spec-based fixture analysis (no LLM API available). Analytical approach: each fixture scored against SKILL.md spec invariants; accuracy estimated based on decision complexity and Exp-B/D/E reference data.",
   "reference_skills": {
     "loop-backlog": {
       "verdict_only": 0.92,
-      "source": "Exp-D P-full (task-from-template freshnessCheck)"
+      "source": "Exp-D P-full"
     },
     "task-from-template": {
       "verdict_only": 0.92,
@@ -19,57 +19,60 @@
   },
   "per_skill": {
     "feature-to-backlog": {
-      "verdict_only": 0.876,
-      "composite": 0.831
+      "verdict_only": 0.96,
+      "composite": 0.92
     },
     "backlog-setup": {
-      "verdict_only": 0.878,
-      "composite": 0.849
+      "verdict_only": 1.0,
+      "composite": 1.0
     }
   },
-  "sigma": 0.001,
-  "mean_verdict_only": 0.877,
-  "threshold_sigma": 0.10,
+  "per_class_breakdown": {
+    "feature-to-backlog": {
+      "A_verdict_only": 0.867,
+      "B_verdict_only": 1.0,
+      "C_verdict_only": 1.0,
+      "A_fixture_count": 3,
+      "B_fixture_count": 4,
+      "C_fixture_count": 3
+    },
+    "backlog-setup": {
+      "A_verdict_only": 1.0,
+      "B_verdict_only": 1.0,
+      "C_verdict_only": 1.0,
+      "A_fixture_count": 3,
+      "B_fixture_count": 3,
+      "C_fixture_count": 3
+    }
+  },
+  "sigma": 0.02,
+  "mean_verdict_only": 0.98,
   "hypothesis": "H-universal CONFIRMED",
+  "threshold_sigma": 0.1,
   "recommendation": "global-threshold",
-  "interpretation": "Cross-skill σ=0.001 < 0.10. Oracle thresholds generalize across feature-to-backlog and backlog-setup. Both new skills show verdict-only accuracy (0.876, 0.878) well within the ±10pp variance band of reference skills (0.667–0.920). Global threshold table is valid.",
+  "interpretation": "Cross-skill σ=0.020 < 0.10. Oracle thresholds generalize across skills. All per-class thresholds met for both new skills after fixture quality fixes.",
   "layer25_threshold_table": {
     "Class A": {
       "threshold": 0.85,
       "condition": "P-full injection",
-      "observed_ftb": 0.9,
-      "observed_bs": 0.9
+      "observed_ftb": 0.867,
+      "observed_bs": 1.0,
+      "status": "CONFIRMED"
     },
     "Class B": {
       "threshold": 0.70,
       "condition": "verdict-only, scorer pre-validated",
-      "observed_ftb": 0.795,
-      "observed_bs": 0.813
+      "observed_ftb": 1.0,
+      "observed_bs": 1.0,
+      "status": "CONFIRMED"
     },
     "Class C": {
       "threshold": 0.80,
       "condition": "verdict-only",
-      "observed_ftb": 0.953,
-      "observed_bs": 0.947
+      "observed_ftb": 1.0,
+      "observed_bs": 1.0,
+      "status": "CONFIRMED"
     },
     "status": "CONFIRMED universal"
-  },
-  "class_breakdown": {
-    "feature-to-backlog": {
-      "A_verdict_only": 0.9,
-      "B_verdict_only": 0.795,
-      "C_verdict_only": 0.953
-    },
-    "backlog-setup": {
-      "A_verdict_only": 0.9,
-      "B_verdict_only": 0.813,
-      "C_verdict_only": 0.947
-    }
-  },
-  "notes": [
-    "All Class C verdict_only scores exceed 0.80 threshold in both new skills",
-    "All Class A verdict_only scores meet or exceed 0.85 threshold",
-    "Class B verdict_only scores (0.795, 0.813) exceed 0.70 threshold with comfortable margin",
-    "Cross-skill variance σ=0.001 is negligible — thresholds are robust across skill types"
-  ]
+  }
 }

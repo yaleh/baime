@@ -4,13 +4,13 @@
   "taskClass": "A",
   "taskType": "binary-gate",
   "decisionPoint": "initProject",
-  "specSection": "initProject :: () → ()\ninitProject() =\n  | exists(\"backlog/\") → skip   -- already initialised\n  | otherwise          → backlog init <projectName> --defaults --agent-instructions none",
+  "specSection": "initProject :: () → ()\ninitProject() =\n  | exists(\"backlog/\") → skip   -- already initialised\n  | otherwise          → backlog init <projectName> --defaults --agent-instructions none\n\n-- Answer vocabulary: which branch fires given the Environment State below?\n--   \"skip\" — backlog/ already exists\n--   \"init\" — backlog/ does not exist, run backlog init",
   "state": {
     "backlogDirExists": false,
     "projectName": "my-project"
   },
-  "ground_truth_rationale": "backlog/ does not exist (fresh repo), so the 'otherwise' branch fires: run 'backlog init my-project --defaults --agent-instructions none'. Clear INIT case regardless of project name.",
-  "answer": "INIT",
+  "ground_truth_rationale": "backlog/ does not exist (backlogDirExists: false, fresh repo), so initProject takes the 'otherwise' branch: run 'backlog init my-project --defaults --agent-instructions none'. Clear INIT case.",
+  "answer": "init",
   "answerType": "exact",
   "fixtureClass": "CLEAR"
 }

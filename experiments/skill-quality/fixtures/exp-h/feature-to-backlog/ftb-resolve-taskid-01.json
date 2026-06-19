@@ -4,12 +4,12 @@
   "taskClass": "A",
   "taskType": "binary-gate",
   "decisionPoint": "resolveOrCreate",
-  "specSection": "resolveOrCreate :: Topic → (Task, EntryPoint)\nresolveOrCreate(T) =\n  | isTaskId(T) → (lookupTask(T), fromStatus(lookupTask(T).status))\n  | otherwise   → (createTask(T), ProposalLoop)",
+  "specSection": "resolveOrCreate :: Topic → (Task, EntryPoint)\nresolveOrCreate(T) =\n  | isTaskId(T) → (lookupTask(T), fromStatus(lookupTask(T).status))\n  | otherwise   → (createTask(T), ProposalLoop)\n\n-- Answer vocabulary: which branch fires?\n--   \"isTaskId\"  — topic is an existing task ID (matches ^task-\\d+$ pattern)\n--   \"otherwise\" — topic is a new feature description",
   "input": {
     "topic": "TASK-42"
   },
-  "ground_truth_rationale": "Topic matches pattern ^task-\\d+$ (case-insensitive), so resolveOrCreate takes the isTaskId branch: lookupTask('TASK-42'). This is a clear task ID — no ambiguity.",
-  "answer": "TASK_ID",
+  "ground_truth_rationale": "Topic matches pattern ^task-\\d+$ (case-insensitive), so resolveOrCreate takes the isTaskId branch. This is a clear task ID — no ambiguity.",
+  "answer": "isTaskId",
   "answerType": "exact",
   "fixtureClass": "CLEAR"
 }

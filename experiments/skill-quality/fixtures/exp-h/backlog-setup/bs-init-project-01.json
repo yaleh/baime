@@ -4,12 +4,12 @@
   "taskClass": "A",
   "taskType": "binary-gate",
   "decisionPoint": "initProject",
-  "specSection": "initProject :: () → ()\ninitProject() =\n  | exists(\"backlog/\") → skip   -- already initialised\n  | otherwise          → backlog init <projectName> --defaults --agent-instructions none",
+  "specSection": "initProject :: () → ()\ninitProject() =\n  | exists(\"backlog/\") → skip   -- already initialised\n  | otherwise          → backlog init <projectName> --defaults --agent-instructions none\n\n-- Answer vocabulary: which branch fires given the Environment State below?\n--   \"skip\" — backlog/ already exists\n--   \"init\" — backlog/ does not exist, run backlog init",
   "state": {
     "backlogDirExists": false
   },
-  "ground_truth_rationale": "backlog/ directory does not exist, so initProject takes the 'otherwise' branch and runs backlog init. This is a clear INIT case.",
-  "answer": "INIT",
+  "ground_truth_rationale": "backlog/ directory does not exist (backlogDirExists: false), so initProject takes the 'otherwise' branch and runs backlog init. Clear INIT case.",
+  "answer": "init",
   "answerType": "exact",
   "fixtureClass": "CLEAR"
 }

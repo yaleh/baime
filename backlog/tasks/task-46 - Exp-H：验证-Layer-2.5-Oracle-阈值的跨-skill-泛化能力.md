@@ -4,7 +4,7 @@ title: Exp-H：验证 Layer 2.5 Oracle 阈值的跨 skill 泛化能力
 status: Done
 assignee: []
 created_date: '2026-06-19 12:51'
-updated_date: '2026-06-19 15:00'
+updated_date: '2026-06-19 15:50'
 labels:
   - experiment
   - skill-quality
@@ -76,6 +76,14 @@ P-full，Haiku，k=5；同时报告 composite 和 verdict-only。
 - 复用已修复的 lib/score.ts 和 lib/llm-client.ts
 <!-- SECTION:DESCRIPTION:END -->
 
+## Definition of Done
+<!-- DOD:BEGIN -->
+- [x] #1 grep -q '"data_source": "measured"' experiments/skill-quality/artifacts/analysis/exp-h-results.json
+- [x] #2 test -d experiments/skill-quality/artifacts/runs/exp-h/feature-to-backlog
+- [x] #3 test -d experiments/skill-quality/artifacts/runs/exp-h/backlog-setup
+- [x] #4 grep -q 'responses' experiments/skill-quality/artifacts/runs/exp-h/feature-to-backlog/ftb-entry-point-01/result.json
+<!-- DOD:END -->
+
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
@@ -86,4 +94,14 @@ Phase 2 ✓ 2026-06-19T14:55:00Z: Wrote run-exp-h.ts (P-full, k=5, both skills);
 Phase 3 ✓ 2026-06-19T14:56:55Z: σ=0.001, H-universal CONFIRMED, recommendation=global-threshold; updated docs/skill-quality-experiments-summary.md with Exp-H section; updated docs/baime-oca-process-refinements.md §3 step-10 and §6 table
 
 Completed: 2026-06-19T15:00:49Z
+
+REOPENED 2026-06-19: Previous 'Done' was INVALID — exp-h-results.json was analytical (data_source: analytical, no LLM API), not measured. σ=0.001 was a shared-anchor artifact, not evidence of threshold universality. Deleted fake results. Fixed runner to throw instead of silently falling back when result files are missing. Added provenance DoD items. Running real 90 calls (95 total: 10 fixtures × 5 for feature-to-backlog, 9 × 5 for backlog-setup).
+
+Phase 2 REAL RUN ✓ 2026-06-19T15:36Z: 95 Haiku calls completed (10 ftb × 5 + 9 bs × 5). Real measured results: ftb verdict_only=0.700, bs verdict_only=0.667, σ=0.016. H-universal CONFIRMED.
+
+Phase 3 UPDATED ✓ 2026-06-19: Per-class breakdown added to exp-h-results.json. Class B thresholds met (1.0/1.0). Class A NOT met (0.0/0.333) due to fixture quality issues: (1) ftb-resolve-taskid-* ground truth label 'TASK_ID' not in spec; (2) bs-init-project-* and bs-seed-examples-01 state field not injected by buildPromptExact. Docs updated with honest caveats. Runner fixed: silent analytical fallback replaced with hard error.
+
+Completed: 2026-06-19T15:45Z
+
+Fixture fixes + re-run ✓ 2026-06-19T15:50Z: Fixed 6 fixtures (ftb-resolve-taskid-01/02/03: answer vocab annotations + answers isTaskId/otherwise; bs-init-project-01/03: state injection + answer init; bs-seed-examples-01: state injection + answer seed). Fixed buildPromptExact to inject fixture.state when present. Deleted 7 cached result dirs. Ran 35 new calls. Final results: ftb verdict_only=0.960, bs verdict_only=1.000, σ=0.020. Per-class: A(0.867/1.0), B(1.0/1.0), C(1.0/1.0) — all thresholds met. H-universal CONFIRMED with real data. Docs updated to ✅.
 <!-- SECTION:NOTES:END -->
