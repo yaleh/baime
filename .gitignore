@@ -1,3 +1,5 @@
 backlog/.daemon.log
 backlog/.daemon.pid
 .archguard/
+experiments/skill-quality/.env
+experiments/skill-quality/artifacts/runs/

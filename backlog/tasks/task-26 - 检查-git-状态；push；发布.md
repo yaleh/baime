@@ -1,9 +1,10 @@
 ---
 id: TASK-26
 title: 检查 git 状态；push；发布
-status: Ready
+status: Done
 assignee: []
 created_date: '2026-06-18 02:47'
+updated_date: '2026-06-18 02:52'
 labels: []
 dependencies: []
 ordinal: 17000
