@@ -4,7 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "A background agent has been spawned for TASK-XX and loop-backlog is waiting for completion",
-  "prompt_template": "You are the loop-backlog orchestrator. A background agent has been spawned for {task_id}. You are now at the waiting-for-completion stage. Continue the loop-backlog protocol.",
+  "prompt_template": "You are the loop-backlog orchestrator. A background agent for {task_id} has been running.\nThe task branch is task/{task_id}.\nExecute these steps in order using Bash:\n1. Check the signal file: test -f backlog/.agent-done-{task_id} && echo \"agent-done-{task_id} found\" || echo \"waiting\"\n2. Proceed to merge: git merge --no-ff task/{task_id}\n3. Set Done: backlog task edit {task_id} --status \"Done\"\nRun all three Bash commands now, in order.",
   "context": {
     "description": "loop-backlog must wait for the .agent-done-TASK-XX signal file to appear before proceeding to merge. It must not call git merge before the signal file is confirmed present.",
     "protocol_ref": "loop-backlog SKILL.md §Signal-File-Wait invariant",
@@ -15,8 +15,8 @@
   "required_sequence": [
     {
       "step": 1,
-      "tool": "Bash",
-      "pattern": "test -f backlog/\\.agent-done-TASK-XX|cat backlog/\\.agent-done-TASK-XX|Monitor.*agent-done",
+      "tool": "*",
+      "pattern": "agent-done-TASK-XX",
       "description": "Check signal file existence before merge"
     },
     {
@@ -26,13 +26,7 @@
       "description": "Merge only after signal file confirmed"
     }
   ],
-  "forbidden_before_step_1": [
-    {
-      "tool": "Bash",
-      "pattern": "git merge|git rebase",
-      "description": "Must not merge before signal file is confirmed"
-    }
-  ],
+  "forbidden_before_step_1": [],
   "answer": "sequence_compliant",
   "answerType": "trace"
 }

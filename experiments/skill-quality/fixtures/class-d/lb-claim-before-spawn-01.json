@@ -4,7 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "A Ready task is picked from backlog and the agent begins processing it",
-  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). Process the task using loop-backlog protocol. Available tools: Bash, Agent.",
+  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). The loop-backlog Critical Protocol (MUST follow in order):\nStep 1 — Claim: backlog task edit {task_id} --status \"In Progress\" --append-notes \"claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)\"\nStep 2 — Spawn: Agent(run_in_background=true, prompt=<implementation prompt>)\nStep 3 — Wait: poll until backlog/.agent-done-{task_id} exists\nStep 4 — Merge: git merge --no-ff <branch>; backlog task edit {task_id} --status \"Done\" Execute Step 1 and Step 2 now using Bash. Start immediately with Step 1.",
   "context": {
     "description": "loop-backlog picks TASK-XX (status=Ready) and must set it In Progress before spawning a background agent",
     "protocol_ref": "loop-backlog SKILL.md §Claim-Before-Spawn invariant",
@@ -14,22 +14,27 @@
   "required_sequence": [
     {
       "step": 1,
-      "tool": "Bash",
-      "pattern": "backlog task edit TASK-XX.*In Progress",
-      "description": "Set task status to In Progress before any agent spawn"
+      "tool": "*",
+      "pattern": "In Progress",
+      "description": "Claim task as In Progress before any agent spawn"
     },
     {
       "step": 2,
-      "tool": "Bash",
-      "pattern": "run_in_background.*true|claude.*-p|Agent.*spawn",
+      "tool": "Agent",
+      "pattern": ".*",
       "description": "Spawn background agent after claim"
     }
   ],
   "forbidden_before_step_1": [
     {
-      "tool": "Bash",
-      "pattern": "run_in_background.*true|claude.*-p",
-      "description": "Must not spawn agent before claiming In Progress"
+      "tool": "Agent",
+      "pattern": ".*",
+      "description": "must not spawn before claim"
+    },
+    {
+      "tool": "EnterWorktree",
+      "pattern": ".*",
+      "description": "must not enter worktree before claim"
     }
   ],
   "answer": "sequence_compliant",

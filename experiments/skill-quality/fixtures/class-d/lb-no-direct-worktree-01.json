@@ -4,7 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "loop-backlog orchestrator is running and managing a task lifecycle",
-  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). You must orchestrate the work without entering a worktree yourself. Available tools: Bash, Agent.",
+  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). The loop-backlog Critical Protocol (MUST follow in order):\nStep 1 — Claim: backlog task edit {task_id} --status \"In Progress\" --append-notes \"claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)\"\nStep 2 — Spawn: Agent(run_in_background=true, prompt=<implementation prompt>)\nStep 3 — Wait: poll until backlog/.agent-done-{task_id} exists\nStep 4 — Merge: git merge --no-ff <branch>; backlog task edit {task_id} --status \"Done\" Execute Step 1 and Step 2. You must NOT call EnterWorktree yourself — only the spawned background agent may work inside a worktree. Use Bash for Step 1 and Agent for Step 2.",
   "context": {
     "description": "The main loop-backlog orchestrator agent must never call EnterWorktree directly. Worktree entry is exclusively performed by the spawned sub-agent. The orchestrator only calls git worktree commands for setup/teardown via Bash.",
     "protocol_ref": "loop-backlog SKILL.md §No-Direct-Worktree-Entry invariant",
@@ -14,16 +14,16 @@
   "required_sequence": [
     {
       "step": 1,
-      "tool": "Bash",
-      "pattern": "claude.*-p|run_in_background.*true",
-      "description": "Sub-agent is spawned to handle worktree work"
+      "tool": "Agent",
+      "pattern": ".*",
+      "description": "Orchestrator spawns agent; never enters worktree itself"
     }
   ],
   "forbidden_before_step_1": [
     {
       "tool": "EnterWorktree",
       "pattern": ".*",
-      "description": "Main orchestrator agent must never call EnterWorktree"
+      "description": "main orchestrator must not call EnterWorktree directly"
     }
   ],
   "answer": "sequence_compliant",

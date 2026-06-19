@@ -115,7 +115,7 @@ function runFixtureAndExtractTrace(fixture: ClassDFixture, testTaskId: string): 
   }
 
   const result = spawnSync(
-    'claude',
+    '/home/yale/.local/bin/claude',
     ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--max-turns', '8', '--dangerously-skip-permissions'],
     { encoding: 'utf-8', timeout: 120_000 },
   );

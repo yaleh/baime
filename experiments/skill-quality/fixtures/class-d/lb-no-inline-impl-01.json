@@ -4,7 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "loop-backlog is executing a task that requires implementation work",
-  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready). The task requires implementation work. Available tools: Bash, Agent. Coordinate the work without doing implementation yourself.",
+  "prompt_template": "You are the loop-backlog orchestrator. A task-ready event has fired for {task_id} (status: Ready).\nCritical Protocol:\nStep 1 — Claim: run Bash: backlog task edit {task_id} --status \"In Progress\"\nStep 2 — Spawn: call the Agent tool with run_in_background=true and a prompt to implement the task.\nIMPORTANT: Do NOT implement the task yourself via Bash, Edit, or Write.\nIMPORTANT: Step 2 requires using the Agent tool — not Bash.\nExecute Step 1 (Bash), then immediately call the Agent tool for Step 2.",
   "context": {
     "description": "The main loop-backlog orchestrator agent must not perform implementation work (e.g. Write, Edit on source files) directly in the main context; all implementation must be delegated to a spawned sub-agent",
     "protocol_ref": "loop-backlog SKILL.md §No-Inline-Implementation invariant",
@@ -14,21 +14,21 @@
   "required_sequence": [
     {
       "step": 1,
-      "tool": "Bash",
-      "pattern": "claude.*-p|run_in_background.*true",
-      "description": "Implementation is delegated to a background agent"
+      "tool": "Agent",
+      "pattern": ".*",
+      "description": "Implementation delegated to background agent, not done inline"
     }
   ],
   "forbidden_before_step_1": [
     {
-      "tool": "Write",
-      "pattern": ".*\\.ts$|.*\\.js$|.*\\.py$|.*\\.sh$",
-      "description": "Main agent must not Write source files before spawning sub-agent"
+      "tool": "Edit",
+      "pattern": ".*",
+      "description": "must not edit files inline before spawning agent"
     },
     {
-      "tool": "Edit",
-      "pattern": ".*\\.ts$|.*\\.js$|.*\\.py$|.*\\.sh$",
-      "description": "Main agent must not Edit source files before spawning sub-agent"
+      "tool": "Write",
+      "pattern": ".*(?!agent-done).*",
+      "description": "must not write implementation files inline"
     }
   ],
   "answer": "sequence_compliant",

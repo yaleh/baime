@@ -1,10 +1,10 @@
 ---
 id: TASK-83
 title: 'Class D test: lb-claim-before-spawn-01'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-06-19 16:53'
-updated_date: '2026-06-19 16:54'
+updated_date: '2026-06-19 16:55'
 labels: []
 dependencies: []
 ordinal: 63000
@@ -15,4 +15,3 @@ ordinal: 63000
 <!-- SECTION:NOTES:BEGIN -->
 claimed: 2026-06-19T16:54:06Z
 <!-- SECTION:NOTES:END -->
-

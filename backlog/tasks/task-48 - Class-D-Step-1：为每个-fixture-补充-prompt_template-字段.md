@@ -1,10 +1,10 @@
 ---
 id: TASK-48
 title: Class D Step 1：为每个 fixture 补充 prompt_template 字段
-status: Backlog
+status: Done
 assignee: []
 created_date: '2026-06-19 15:12'
-updated_date: '2026-06-19 15:22'
+updated_date: '2026-06-19 16:07'
 labels:
   - class-d
   - fixture
@@ -15,7 +15,7 @@ references:
   - experiments/skill-quality/fixtures/class-d/
   - experiments/skill-quality/scripts/run-class-d.ts
 priority: high
-ordinal: 28000
+ordinal: 1000
 ---
 
 ## Description
@@ -187,6 +187,10 @@ print('All fixtures valid')
 
 <!-- SECTION:NOTES:BEGIN -->
 Plan review iteration 2: APPROVED
+
+claimed: 2026-06-19T16:04:32Z
+
+Completed: 2026-06-19T16:07:56Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-06-19T15:30:00.000Z",
+  "generated": "2026-06-19T17:01:01.054Z",
   "mode": "live-trace",
-  "dry_run": true,
+  "dry_run": false,
   "skill": "loop-backlog",
   "k": 1,
   "fixtures_count": 6,
@@ -12,10 +12,10 @@
       "protocol_point": "A Ready task is picked from backlog and the agent begins processing it",
       "passes": 1,
       "failures": 0,
-      "compliance_rate": null,
+      "compliance_rate": 1,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "dry-run: no claude call made"
+      "notes": "Fully compliant across all k runs"
     },
     {
       "id": "lb-done-after-merge-01",
@@ -23,10 +23,10 @@
       "protocol_point": "loop-backlog has successfully merged the task branch into main",
       "passes": 1,
       "failures": 0,
-      "compliance_rate": null,
+      "compliance_rate": 1,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "dry-run: no claude call made"
+      "notes": "Fully compliant across all k runs"
     },
     {
       "id": "lb-needs-human-on-failure-01",
@@ -34,10 +34,10 @@
       "protocol_point": "git merge fails with a non-zero exit code during loop-backlog execution",
       "passes": 1,
       "failures": 0,
-      "compliance_rate": null,
+      "compliance_rate": 1,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "dry-run: no claude call made"
+      "notes": "Fully compliant across all k runs"
     },
     {
       "id": "lb-no-direct-worktree-01",
@@ -45,10 +45,10 @@
       "protocol_point": "loop-backlog orchestrator is running and managing a task lifecycle",
       "passes": 1,
       "failures": 0,
-      "compliance_rate": null,
+      "compliance_rate": 1,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "dry-run: no claude call made"
+      "notes": "Fully compliant across all k runs"
     },
     {
       "id": "lb-no-inline-impl-01",
@@ -56,10 +56,10 @@
       "protocol_point": "loop-backlog is executing a task that requires implementation work",
       "passes": 1,
       "failures": 0,
-      "compliance_rate": null,
+      "compliance_rate": 1,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "dry-run: no claude call made"
+      "notes": "Fully compliant across all k runs"
     },
     {
       "id": "lb-signal-file-wait-01",
@@ -67,17 +67,17 @@
       "protocol_point": "A background agent has been spawned for TASK-XX and loop-backlog is waiting for completion",
       "passes": 1,
       "failures": 0,
-      "compliance_rate": null,
+      "compliance_rate": 1,
       "required_sequence_violations": [],
       "forbidden_violations": [],
-      "notes": "dry-run: no claude call made"
+      "notes": "Fully compliant across all k runs"
     }
   ],
-  "compliance_rate": null,
-  "auto_ci_eligible": false,
+  "compliance_rate": 1,
+  "auto_ci_eligible": true,
   "improvement_suggestions": null,
   "trace_source": "claude -p --output-format stream-json",
-  "git_context": "Step 2 implementation: replace analytical stub with real claude -p infrastructure",
+  "git_context": "bda185c merge: Class D test lb-claim-before-spawn-01 (TASK-83)\n9f29c19 chore(task-83): Class D test lb-claim-before-spawn-01 placeholder\n37625cd merge: Class D test lb-no-direct-worktree-01 (TASK-80)\nbf28ff1 chore(task-80): Class D test lb-no-direct-worktree-01 placeholder\nae60068 merge: Class D test placeholder (TASK-77)",
   "methodology_notes": [
     "Class D fixtures validate tool-invocation sequence compliance for the loop-backlog orchestration skill.",
     "required_sequence: tool calls must appear in ascending step order in the trace.",

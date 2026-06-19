@@ -1,10 +1,10 @@
 ---
 id: TASK-49
 title: Class D Step 2：实现 runFixtureAndExtractTrace — 真实 claude -p 调用（k=1 验证通路）
-status: Backlog
+status: Done
 assignee: []
 created_date: '2026-06-19 15:12'
-updated_date: '2026-06-19 15:20'
+updated_date: '2026-06-19 16:13'
 labels:
   - class-d
   - runner
@@ -15,7 +15,7 @@ references:
   - experiments/skill-quality/scripts/run-class-d.ts
   - experiments/skill-quality/fixtures/class-d/
 priority: high
-ordinal: 29000
+ordinal: 1000
 ---
 
 ## Description
@@ -223,6 +223,10 @@ npx tsx experiments/skill-quality/scripts/run-class-d.ts --k 1
 
 <!-- SECTION:NOTES:BEGIN -->
 Plan review iteration 2: APPROVED
+
+claimed: 2026-06-19T16:09:38Z
+
+Completed: 2026-06-19T16:13:18Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

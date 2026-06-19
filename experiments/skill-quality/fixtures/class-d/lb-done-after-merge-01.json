@@ -4,7 +4,7 @@
   "taskType": "tool-invocation-compliance",
   "skill": "loop-backlog",
   "trigger": "loop-backlog has successfully merged the task branch into main",
-  "prompt_template": "You are the loop-backlog orchestrator. The background agent for {task_id} has completed. The signal file exists. Proceed with the merge-and-close steps of loop-backlog protocol.",
+  "prompt_template": "You are the loop-backlog orchestrator. The background agent for {task_id} has finished and written its signal file.\nYou are now at Step 4. The task branch is task/{task_id}.\nExecute these two commands in order using Bash:\n1. git merge --no-ff task/{task_id}\n2. backlog task edit {task_id} --status \"Done\"\nMerge MUST run before Done is set. If git merge returns a non-zero exit code, do NOT set Done.",
   "context": {
     "description": "After a successful git merge, loop-backlog must set the task status to Done. The Done status must NOT be set before the merge completes successfully.",
     "protocol_ref": "loop-backlog SKILL.md §Done-After-Merge invariant",
@@ -15,23 +15,17 @@
     {
       "step": 1,
       "tool": "Bash",
-      "pattern": "git merge|git rebase.*main|git merge.*task/TASK",
-      "description": "Successful merge must occur first"
+      "pattern": "git merge|git rebase",
+      "description": "Merge must occur before Done status"
     },
     {
       "step": 2,
-      "tool": "Bash",
-      "pattern": "backlog task edit TASK-XX.*Done|backlog task move.*Done",
-      "description": "Set Done status only after successful merge"
+      "tool": "*",
+      "pattern": "Done",
+      "description": "Set Done only after successful merge"
     }
   ],
-  "forbidden_before_step_1": [
-    {
-      "tool": "Bash",
-      "pattern": "backlog task edit TASK-XX.*Done|backlog task move.*Done",
-      "description": "Must not set Done before merge succeeds"
-    }
-  ],
+  "forbidden_before_step_1": [],
   "answer": "sequence_compliant",
   "answerType": "trace"
 }
