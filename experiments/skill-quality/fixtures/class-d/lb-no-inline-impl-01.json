@@ -1,0 +1,35 @@
+{
+  "id": "lb-no-inline-impl-01",
+  "taskClass": "D",
+  "taskType": "tool-invocation-compliance",
+  "skill": "loop-backlog",
+  "trigger": "loop-backlog is executing a task that requires implementation work",
+  "context": {
+    "description": "The main loop-backlog orchestrator agent must not perform implementation work (e.g. Write, Edit on source files) directly in the main context; all implementation must be delegated to a spawned sub-agent",
+    "protocol_ref": "loop-backlog SKILL.md §No-Inline-Implementation invariant",
+    "task_id": "TASK-XX",
+    "initial_status": "In Progress"
+  },
+  "required_sequence": [
+    {
+      "step": 1,
+      "tool": "Bash",
+      "pattern": "claude.*-p|run_in_background.*true",
+      "description": "Implementation is delegated to a background agent"
+    }
+  ],
+  "forbidden_before_step_1": [
+    {
+      "tool": "Write",
+      "pattern": ".*\\.ts$|.*\\.js$|.*\\.py$|.*\\.sh$",
+      "description": "Main agent must not Write source files before spawning sub-agent"
+    },
+    {
+      "tool": "Edit",
+      "pattern": ".*\\.ts$|.*\\.js$|.*\\.py$|.*\\.sh$",
+      "description": "Main agent must not Edit source files before spawning sub-agent"
+    }
+  ],
+  "answer": "sequence_compliant",
+  "answerType": "trace"
+}

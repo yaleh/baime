@@ -1,0 +1,30 @@
+{
+  "id": "lb-no-direct-worktree-01",
+  "taskClass": "D",
+  "taskType": "tool-invocation-compliance",
+  "skill": "loop-backlog",
+  "trigger": "loop-backlog orchestrator is running and managing a task lifecycle",
+  "context": {
+    "description": "The main loop-backlog orchestrator agent must never call EnterWorktree directly. Worktree entry is exclusively performed by the spawned sub-agent. The orchestrator only calls git worktree commands for setup/teardown via Bash.",
+    "protocol_ref": "loop-backlog SKILL.md §No-Direct-Worktree-Entry invariant",
+    "task_id": "TASK-XX",
+    "initial_status": "In Progress"
+  },
+  "required_sequence": [
+    {
+      "step": 1,
+      "tool": "Bash",
+      "pattern": "claude.*-p|run_in_background.*true",
+      "description": "Sub-agent is spawned to handle worktree work"
+    }
+  ],
+  "forbidden_before_step_1": [
+    {
+      "tool": "EnterWorktree",
+      "pattern": ".*",
+      "description": "Main orchestrator agent must never call EnterWorktree"
+    }
+  ],
+  "answer": "sequence_compliant",
+  "answerType": "trace"
+}

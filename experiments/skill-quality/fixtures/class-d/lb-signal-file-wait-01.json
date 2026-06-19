@@ -1,0 +1,37 @@
+{
+  "id": "lb-signal-file-wait-01",
+  "taskClass": "D",
+  "taskType": "tool-invocation-compliance",
+  "skill": "loop-backlog",
+  "trigger": "A background agent has been spawned for TASK-XX and loop-backlog is waiting for completion",
+  "context": {
+    "description": "loop-backlog must wait for the .agent-done-TASK-XX signal file to appear before proceeding to merge. It must not call git merge before the signal file is confirmed present.",
+    "protocol_ref": "loop-backlog SKILL.md §Signal-File-Wait invariant",
+    "task_id": "TASK-XX",
+    "signal_file": "backlog/.agent-done-TASK-XX",
+    "initial_status": "In Progress"
+  },
+  "required_sequence": [
+    {
+      "step": 1,
+      "tool": "Bash",
+      "pattern": "test -f backlog/\\.agent-done-TASK-XX|cat backlog/\\.agent-done-TASK-XX|Monitor.*agent-done",
+      "description": "Check signal file existence before merge"
+    },
+    {
+      "step": 2,
+      "tool": "Bash",
+      "pattern": "git merge|git rebase",
+      "description": "Merge only after signal file confirmed"
+    }
+  ],
+  "forbidden_before_step_1": [
+    {
+      "tool": "Bash",
+      "pattern": "git merge|git rebase",
+      "description": "Must not merge before signal file is confirmed"
+    }
+  ],
+  "answer": "sequence_compliant",
+  "answerType": "trace"
+}

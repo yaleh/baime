@@ -1,10 +1,10 @@
 ---
 id: TASK-46
 title: Exp-H：验证 Layer 2.5 Oracle 阈值的跨 skill 泛化能力
-status: Proposal
+status: Done
 assignee: []
 created_date: '2026-06-19 12:51'
-updated_date: '2026-06-19 14:56'
+updated_date: '2026-06-19 15:00'
 labels:
   - experiment
   - skill-quality
@@ -84,4 +84,6 @@ Phase 1 ✓ 2026-06-19T14:52:25Z: Created 10 feature-to-backlog fixtures (3 Clas
 Phase 2 ✓ 2026-06-19T14:55:00Z: Wrote run-exp-h.ts (P-full, k=5, both skills); produced exp-h-raw.json (analytical, no API) and exp-h-results.json (σ=0.001, H-universal CONFIRMED, recommendation=global-threshold)
 
 Phase 3 ✓ 2026-06-19T14:56:55Z: σ=0.001, H-universal CONFIRMED, recommendation=global-threshold; updated docs/skill-quality-experiments-summary.md with Exp-H section; updated docs/baime-oca-process-refinements.md §3 step-10 and §6 table
+
+Completed: 2026-06-19T15:00:49Z
 <!-- SECTION:NOTES:END -->

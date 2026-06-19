@@ -1,0 +1,37 @@
+{
+  "id": "lb-needs-human-on-failure-01",
+  "taskClass": "D",
+  "taskType": "tool-invocation-compliance",
+  "skill": "loop-backlog",
+  "trigger": "git merge fails with a non-zero exit code during loop-backlog execution",
+  "context": {
+    "description": "When git merge fails, loop-backlog must set the task status to Needs Human (not Done, not Back to Ready). It must abort the merge cleanly and not leave the repo in a dirty merge state.",
+    "protocol_ref": "loop-backlog SKILL.md §Merge-Failure-Escalation invariant",
+    "task_id": "TASK-XX",
+    "merge_exit_code": 1,
+    "initial_status": "In Progress"
+  },
+  "required_sequence": [
+    {
+      "step": 1,
+      "tool": "Bash",
+      "pattern": "git merge.*--abort|git merge.*CONFLICT|merge.*failed",
+      "description": "Detect merge failure or abort partial merge"
+    },
+    {
+      "step": 2,
+      "tool": "Bash",
+      "pattern": "backlog task edit TASK-XX.*Needs Human|backlog task move.*Needs.Human",
+      "description": "Set Needs Human status after merge failure"
+    }
+  ],
+  "forbidden_before_step_1": [
+    {
+      "tool": "Bash",
+      "pattern": "backlog task edit TASK-XX.*Done",
+      "description": "Must not mark Done on merge failure"
+    }
+  ],
+  "answer": "sequence_compliant",
+  "answerType": "trace"
+}

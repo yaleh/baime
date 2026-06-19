@@ -1,0 +1,36 @@
+{
+  "id": "lb-claim-before-spawn-01",
+  "taskClass": "D",
+  "taskType": "tool-invocation-compliance",
+  "skill": "loop-backlog",
+  "trigger": "A Ready task is picked from backlog and the agent begins processing it",
+  "context": {
+    "description": "loop-backlog picks TASK-XX (status=Ready) and must set it In Progress before spawning a background agent",
+    "protocol_ref": "loop-backlog SKILL.md §Claim-Before-Spawn invariant",
+    "task_id": "TASK-XX",
+    "initial_status": "Ready"
+  },
+  "required_sequence": [
+    {
+      "step": 1,
+      "tool": "Bash",
+      "pattern": "backlog task edit TASK-XX.*In Progress",
+      "description": "Set task status to In Progress before any agent spawn"
+    },
+    {
+      "step": 2,
+      "tool": "Bash",
+      "pattern": "run_in_background.*true|claude.*-p|Agent.*spawn",
+      "description": "Spawn background agent after claim"
+    }
+  ],
+  "forbidden_before_step_1": [
+    {
+      "tool": "Bash",
+      "pattern": "run_in_background.*true|claude.*-p",
+      "description": "Must not spawn agent before claiming In Progress"
+    }
+  ],
+  "answer": "sequence_compliant",
+  "answerType": "trace"
+}
