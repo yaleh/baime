@@ -1,0 +1,126 @@
+
+=== JSON Manifest Validation ===
+  PASS: plugin.json is valid JSON
+  PASS: marketplace.json is valid JSON
+  PASS: Version parity: plugin.json (1.3.0) == marketplace.json (1.3.0)
+  PASS: plugin.json has no mcpServers field
+
+=== YAML Frontmatter Validation ===
+  PASS: Agent: iteration-executor.md
+  PASS: Agent: iteration-prompt-designer.md
+  PASS: Agent: knowledge-extractor.md
+  PASS: Agent: workflow-coach.md
+  PASS: Skill: agent-prompt-evolution
+  PASS: Skill: api-design
+  PASS: Skill: backlog-setup
+  PASS: Skill: baseline-quality-assessment
+  PASS: Skill: build-quality-gates
+  PASS: Skill: ci-cd-optimization
+  PASS: Skill: code-refactoring
+  PASS: Skill: cross-cutting-concerns
+  PASS: Skill: dependency-health
+  PASS: Skill: documentation-management
+  PASS: Skill: feature-developer
+  PASS: Skill: feature-to-backlog
+  PASS: Skill: knowledge-transfer
+  PASS: Skill: loop-backlog
+  PASS: Skill: methodology-bootstrapping
+  PASS: Skill: next-step-generation
+  PASS: Skill: observability-instrumentation
+  PASS: Skill: rapid-convergence
+  PASS: Skill: subagent-prompt-construction
+  PASS: Skill: task-from-template
+  PASS: Skill: task-to-backlog
+  PASS: Skill: technical-debt-management
+  PASS: Skill: testing-strategy
+
+=== Count Assertions ===
+  PASS: Agent count: 4 (expected 4)
+  PASS: Skill count: 23 (expected 23)
+
+=== .claude/skills Symlink Consistency ===
+  PASS: symlink: .claude/skills/agent-prompt-evolution
+  PASS: symlink: .claude/skills/api-design
+  PASS: symlink: .claude/skills/backlog-setup
+  PASS: symlink: .claude/skills/baseline-quality-assessment
+  PASS: symlink: .claude/skills/build-quality-gates
+  PASS: symlink: .claude/skills/ci-cd-optimization
+  PASS: symlink: .claude/skills/code-refactoring
+  PASS: symlink: .claude/skills/cross-cutting-concerns
+  PASS: symlink: .claude/skills/dependency-health
+  PASS: symlink: .claude/skills/documentation-management
+  PASS: symlink: .claude/skills/feature-developer
+  PASS: symlink: .claude/skills/feature-to-backlog
+  PASS: symlink: .claude/skills/knowledge-transfer
+  PASS: symlink: .claude/skills/loop-backlog
+  PASS: symlink: .claude/skills/methodology-bootstrapping
+  PASS: symlink: .claude/skills/next-step-generation
+  PASS: symlink: .claude/skills/observability-instrumentation
+  PASS: symlink: .claude/skills/rapid-convergence
+  PASS: symlink: .claude/skills/subagent-prompt-construction
+  PASS: symlink: .claude/skills/task-from-template
+  PASS: symlink: .claude/skills/task-to-backlog
+  PASS: symlink: .claude/skills/technical-debt-management
+  PASS: symlink: .claude/skills/testing-strategy
+
+=== Forbidden File Check ===
+  PASS: Forbidden agent absent: feature-developer.md
+  PASS: Forbidden agent absent: phase-planner-executor.md
+  PASS: workflow-coach.md has no unconditional mcp_meta_cc calls
+  PASS: next-step-generation/SKILL.md has no mcp_ references
+
+=== Unit Tests ===
+  PASS: unit test: loop-backlog-daemon.test.js
+  PASS: unit test: skill-lint.test.sh
+
+=== Contract Tests ===
+  PASS: contract grep 'specialization' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/agent-prompt-evolution//SKILL.md
+  PASS: contract grep 'evolution' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/agent-prompt-evolution//SKILL.md
+  PASS: contract grep 'reusab' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/agent-prompt-evolution//SKILL.md
+  PASS: contract grep 'proposalLoop' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/feature-to-backlog//SKILL.md
+  PASS: contract grep 'planLoop' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/feature-to-backlog//SKILL.md
+  PASS: contract grep 'APPROVED' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/feature-to-backlog//SKILL.md
+  PASS: contract not-grep 'git worktree add' absent in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/feature-to-backlog//SKILL.md
+  PASS: contract grep 'Monitor(persistent=true' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract not-grep 'schedule(' absent in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract grep 'loop-stop' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract grep '## Shutdown' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract grep 'daemonBootstrap' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract not-grep 'ScheduleWakeup' absent in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract grep 'loop-backlog-daemon' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract grep '.daemon.pid' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/loop-backlog//SKILL.md
+  PASS: contract grep 'Observe' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/methodology-bootstrapping//SKILL.md
+  PASS: contract grep 'convergence' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/methodology-bootstrapping//SKILL.md
+  PASS: contract grep 'OCA' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/methodology-bootstrapping//SKILL.md
+  PASS: contract grep 'FRESH' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/task-from-template//SKILL.md
+  PASS: contract grep 'STALE' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/task-from-template//SKILL.md
+  PASS: contract grep 'templates' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/task-from-template//SKILL.md
+  PASS: contract grep 'reviewLoop' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/task-to-backlog//SKILL.md
+  PASS: contract grep 'non-development' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/task-to-backlog//SKILL.md
+  PASS: contract grep 'Backlog' in /home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/plugin/skills/task-to-backlog//SKILL.md
+
+=== Layer 0: Internal Consistency ===
+
+=== Layer 0: Trigger Overlap Detection ===
+  PASS: no skill pairs exceed overlap threshold 0.35
+
+=== Manifest Lint Smoke Tests ===
+  PASS: manifest valid (/home/yale/work/baime/.claude/worktrees/task-39-contracts-baseline/scripts/fixtures/manifest-valid.json)
+  PASS: skill-lint: valid manifest
+  FAIL: R1: field_writes contains field='description' with tool='backlog task edit' (only allowed for 'backlog task create')
+  PASS: skill-lint: manifest-bad-field-description rejected
+  FAIL: R2: unknown phase 'unknownPhase' in phases_to_execute (valid: ['createTask', 'draftPlan', 'draftProposal', 'finalise', 'planLoop', 'proposalLoop', 'resolveOrCreate', 'reviewLoop'])
+  PASS: skill-lint: manifest-bad-missing-phase rejected
+  FAIL: R3: invalid entry_point 'badEntryPoint' (must be one of ['createTask', 'resolveOrCreate'])
+  PASS: skill-lint: manifest-bad-entry-point rejected
+  FAIL: R4: entry_point='resolveOrCreate' requires skip_draft=true (got False)
+  PASS: skill-lint: manifest-bad-skip-draft-mismatch rejected
+
+=== Layer 0: Contract Density Check ===
+  PASS: all large skills (>500 lines) have ≥3 contracts
+
+=== Summary ===
+Agents: 4, Skills: 23
+Errors: 0, Warnings: 0
+
+ALL CHECKS PASSED
