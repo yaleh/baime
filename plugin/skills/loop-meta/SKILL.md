@@ -25,6 +25,12 @@ contracts:
     target: self
   - grep: "reviewLoop"
     target: self
+  - grep: "WIP_CAP"
+    target: self
+  - grep: "setReady"
+    target: self
+  - grep: "budget exhausted"
+    target: self
 ---
 
 λ() → metaLoop()
@@ -116,10 +122,13 @@ idempotentReconcile(id) = {
     return: escalate(id, "diverging: actual sub-task set has grown beyond desired — manual review needed"),
 
   if (budgetExceeded(id)):
-    return: escalate(id, "budget: reconcile loop has exceeded cost threshold"),
+    return: escalate(id, "budget exhausted: reconcile loop exceeded cycle limit"),
 
   ∀t ∈ gap: createSubTask(id, t),
   appendNote(id, "idempotentReconcile: created " + length(gap) + " sub-task(s)"),
+
+  -- Auto-schedule: promote Backlog children up to WIP_CAP (Meta-Active only)
+  setReady(id, filter(c → status(c) == Backlog, listChildren(id))),
   return: Reconciled
 }
 
@@ -168,6 +177,28 @@ escalate(id, r) = {
                + "\nTo continue: answer in notes and set status → Meta-Active."),
   return: Escalated(r)
 }
+
+
+-- WIP_CAP: maximum number of sub-tasks in Ready or In Progress at any time.
+-- Conservative initial value; adjustable after validation data accumulates.
+WIP_CAP :: Int
+WIP_CAP = 2
+
+-- setReady: promote Backlog sub-tasks to Ready while wip(id) < WIP_CAP.
+-- Called inside idempotentReconcile when Meta-Active and human gate has passed.
+-- Never auto-schedules from Meta-Plan — that gate is preserved unconditionally.
+setReady :: (TaskId, [SubTaskSpec]) → ()
+setReady(parent, backlogChildren) = {
+  ∀t ∈ backlogChildren:
+    if (wip(parent) < WIP_CAP):
+      setStatus(t, "Ready"),
+      appendNote(parent, "setReady: promoted " + t.title)
+}
+
+-- wip: count of children currently in Ready or In Progress status.
+wip :: TaskId → Int
+wip(id) =
+  length(filter(c → status(c) ∈ {Ready, InProgress}, listChildren(id)))
 
 
 -- evaluator: slice-aggregate quality assessor. Takes a meta-task and its Done
@@ -385,6 +416,46 @@ reviewLoop() {
 
   backlog task edit "$META_ID" --append-notes \
     "reviewLoop: iteration ${ITER_NEXT} of ${MAX_ITER}"
+}
+```
+
+### setReady (auto-schedule)
+
+```bash
+setReady() {
+  local META_ID="$1"
+
+  # Count current WIP (Ready + In Progress children)
+  WIP=$(backlog task list --plain     | grep -oP 'TASK-\d+'     | while read TID; do
+        NOTE=$(backlog task view "$TID" --plain)
+        if echo "$NOTE" | grep -q "parentTask: ${META_ID}"; then
+          STATUS=$(echo "$NOTE" | grep -oP '(?<=status: )\S.*' | head -1 | xargs)
+          case "$STATUS" in Ready|"In Progress") echo "$TID" ;; esac
+        fi
+      done | wc -l)
+
+  if [ "$WIP" -ge "$WIP_CAP" ]; then
+    return 0
+  fi
+
+  # Promote Backlog children up to WIP_CAP
+  backlog task list --plain     | grep -oP 'TASK-\d+'     | while read TID; do
+        NOTE=$(backlog task view "$TID" --plain)
+        if echo "$NOTE" | grep -q "parentTask: ${META_ID}"; then
+          STATUS=$(echo "$NOTE" | grep -oP '(?<=status: )\S.*' | head -1 | xargs)
+          if [ "$STATUS" = "Backlog" ]; then
+            CURRENT_WIP=$(backlog task list --plain | grep -oP 'TASK-\d+' | while read T; do
+              N=$(backlog task view "$T" --plain)
+              echo "$N" | grep -q "parentTask: ${META_ID}" &&                 echo "$N" | grep -qP 'status: (Ready|In Progress)' && echo "$T"
+            done | wc -l)
+            if [ "$CURRENT_WIP" -lt "$WIP_CAP" ]; then
+              TITLE=$(echo "$NOTE" | grep -oP '(?<=Task TASK-\d+ - ).+' | head -1)
+              backlog task edit "$TID" --status "Ready"
+              backlog task edit "$META_ID" --append-notes "setReady: promoted ${TITLE}"
+            fi
+          fi
+        fi
+      done
 }
 ```
 
