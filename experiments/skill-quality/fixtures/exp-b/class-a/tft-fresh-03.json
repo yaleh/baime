@@ -15,5 +15,9 @@
     "3d92f0e feat(loop-backlog): parallel background agent execution (2026-06-13)"
   ],
   "answer": "FRESH",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

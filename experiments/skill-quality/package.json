@@ -8,6 +8,8 @@
     "exp-a": "npx tsx scripts/run-exp-a.ts",
     "exp-b": "npx tsx scripts/run-exp-b.ts",
     "oracle-class-c": "npx tsx scripts/run-oracle-class-c.ts",
+    "oracle-class-a": "npx tsx scripts/run-oracle-class-a.ts",
+    "oracle-class-b": "npx tsx scripts/run-oracle-class-b.ts",
     "exp-d": "npx tsx scripts/run-exp-d.ts",
     "exp-e": "npx tsx scripts/run-exp-e.ts",
     "exp-f": "npx tsx exp-f/run-exp-f.ts"

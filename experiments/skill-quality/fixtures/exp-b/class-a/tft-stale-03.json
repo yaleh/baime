@@ -13,5 +13,9 @@
     "c5f2a87 docs: update CONTRIBUTING.md, remove manual validate-plugin.sh step (2026-06-12)"
   ],
   "answer": "STALE",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

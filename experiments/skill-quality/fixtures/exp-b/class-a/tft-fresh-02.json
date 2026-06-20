@@ -11,5 +11,9 @@
     "c8a91d3 chore(templates): update last-used for backlog-weekly-review (TASK-35) (2026-06-19)"
   ],
   "answer": "FRESH",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

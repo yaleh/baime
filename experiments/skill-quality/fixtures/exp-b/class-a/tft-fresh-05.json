@@ -15,5 +15,9 @@
     "a385f27 refactor(build-quality-gates): shrink SKILL.md (2026-06-15)"
   ],
   "answer": "FRESH",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

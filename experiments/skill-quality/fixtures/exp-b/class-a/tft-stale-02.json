@@ -14,5 +14,9 @@
     "7e4d1a8 test: add parallel execution integration tests (2026-06-15)"
   ],
   "answer": "STALE",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

@@ -15,5 +15,9 @@
     "f9a3c71 chore(deps): move from npm to pnpm workspace (2026-06-14)"
   ],
   "answer": "STALE",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

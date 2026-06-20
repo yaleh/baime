@@ -12,5 +12,9 @@
     "9e2d4f1 docs: update CHANGELOG entry for 1.3.0 (2026-06-17)"
   ],
   "answer": "FRESH",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

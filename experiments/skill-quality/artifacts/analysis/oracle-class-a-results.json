@@ -1,0 +1,132 @@
+{
+  "data_source": "measured",
+  "accuracy": 0.8800000000000001,
+  "threshold": 0.85,
+  "skill": "task-from-template",
+  "model": "claude-haiku-4-5-20251001",
+  "k": 5,
+  "fixture_count": 10,
+  "pass": true,
+  "per_fixture": [
+    {
+      "id": "tft-fresh-01",
+      "expected": "FRESH",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "tft-fresh-02",
+      "expected": "FRESH",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "tft-fresh-03",
+      "expected": "FRESH",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "tft-fresh-04",
+      "expected": "FRESH",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "tft-fresh-05",
+      "expected": "FRESH",
+      "mean": 0.6,
+      "scores": [
+        1,
+        0,
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "tft-stale-01",
+      "expected": "STALE",
+      "mean": 0.2,
+      "scores": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "tft-stale-02",
+      "expected": "STALE",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "tft-stale-03",
+      "expected": "STALE",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "tft-stale-04",
+      "expected": "STALE",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "tft-stale-05",
+      "expected": "STALE",
+      "mean": 1,
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}

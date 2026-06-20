@@ -20,8 +20,15 @@ on:
     branches: ["main"]
     paths:
       - "plugin/skills/loop-backlog/SKILL.md"
+      - "plugin/skills/task-from-template/SKILL.md"
+      - "plugin/skills/task-to-backlog/SKILL.md"
+      - "plugin/skills/feature-to-backlog/SKILL.md"
       - "experiments/skill-quality/fixtures/exp-b/class-c/**"
+      - "experiments/skill-quality/fixtures/exp-b/class-a/**"
+      - "experiments/skill-quality/fixtures/exp-b/class-b/**"
       - "experiments/skill-quality/scripts/run-oracle-class-c.ts"
+      - "experiments/skill-quality/scripts/run-oracle-class-a.ts"
+      - "experiments/skill-quality/scripts/run-oracle-class-b.ts"
       - "experiments/skill-quality/lib/**"
 
 jobs:
@@ -46,6 +53,58 @@ jobs:
 
       - name: Run Class C oracle
         run: npx tsx scripts/run-oracle-class-c.ts --threshold 0.80 --k 3
+        working-directory: experiments/skill-quality
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          MODEL_PRIMARY: claude-haiku-4-5-20251001
+
+  oracle-class-a:
+    name: freshnessCheck Binary-Gate Oracle
+    runs-on: ubuntu-latest
+    if: vars.ORACLE_ENABLED == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: experiments/skill-quality
+
+      - name: Run Class A oracle
+        run: npx tsx scripts/run-oracle-class-a.ts --threshold 0.85 --k 5
+        working-directory: experiments/skill-quality
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          MODEL_PRIMARY: claude-haiku-4-5-20251001
+
+  oracle-class-b:
+    name: reviewPlan Invariant-Check Oracle
+    runs-on: ubuntu-latest
+    if: vars.ORACLE_ENABLED == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: experiments/skill-quality
+
+      - name: Run Class B oracle
+        run: npx tsx scripts/run-oracle-class-b.ts --threshold 0.70 --k 5
         working-directory: experiments/skill-quality
         env:
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}

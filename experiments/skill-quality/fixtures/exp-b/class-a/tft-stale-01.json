@@ -13,5 +13,9 @@
     "b2e5f91 docs: update README CI section to reference check-plugin.sh (2026-06-16)"
   ],
   "answer": "STALE",
-  "answerType": "exact"
+  "answerType": "exact",
+  "answer_vocab": [
+    "FRESH",
+    "STALE"
+  ]
 }

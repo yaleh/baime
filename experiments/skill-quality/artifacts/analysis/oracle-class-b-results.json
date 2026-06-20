@@ -1,0 +1,174 @@
+{
+  "data_source": "measured",
+  "verdict_only": 1,
+  "composite": 0.9,
+  "scorer_warning": false,
+  "threshold": 0.7,
+  "skill": "feature-to-backlog",
+  "model": "claude-haiku-4-5-20251001",
+  "k": 5,
+  "fixture_count": 8,
+  "pass": true,
+  "per_fixture": [
+    {
+      "id": "review-approved-01",
+      "expected_verdict": "APPROVED",
+      "verdict_only": 1,
+      "composite": 1,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "review-approved-02",
+      "expected_verdict": "APPROVED",
+      "verdict_only": 1,
+      "composite": 1,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "review-fail-empty-dod",
+      "expected_verdict": "NEEDS_REVISION",
+      "verdict_only": 1,
+      "composite": 1,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "review-fail-empty-phases",
+      "expected_verdict": "NEEDS_REVISION",
+      "verdict_only": 1,
+      "composite": 1,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "review-fail-nl-acceptance",
+      "expected_verdict": "NEEDS_REVISION",
+      "verdict_only": 1,
+      "composite": 0.7,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        1,
+        0.5,
+        1,
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "id": "review-fail-nl-dod",
+      "expected_verdict": "NEEDS_REVISION",
+      "verdict_only": 1,
+      "composite": 0.5,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "id": "review-fail-no-acceptance",
+      "expected_verdict": "NEEDS_REVISION",
+      "verdict_only": 1,
+      "composite": 1,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "review-fail-no-instructions",
+      "expected_verdict": "NEEDS_REVISION",
+      "verdict_only": 1,
+      "composite": 1,
+      "verdictScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compositeScores": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
