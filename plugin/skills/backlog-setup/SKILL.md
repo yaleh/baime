@@ -2,6 +2,22 @@
 name: backlog-setup
 description: "One-time initializer for the backlog task board. Checks that the backlog CLI is installed, initializes a backlog project if none exists, and verifies that all columns required by loop-backlog and feature-to-backlog are present. Idempotent — safe to run multiple times."
 allowed-tools: Bash, Read, Write
+contracts:
+  - grep: "backlogSetup"
+    target: self
+    description: "Main entry function backlogSetup() must remain defined"
+  - grep: "verifyColumns"
+    target: self
+    description: "Column verification step must not be removed"
+  - grep: "seedExamples"
+    target: self
+    description: "Seed examples step must remain present"
+  - grep: "initProject"
+    target: self
+    description: "Project init step must remain present"
+  - grep: "config.yml"
+    target: self
+    description: "Implementation must edit config.yml directly (backlog column add removed in CLI v1.45+)"
 ---
 
 λ() → backlogSetup()
