@@ -3,10 +3,10 @@ id: TASK-93.8
 title: >-
   G3: Emit provenance-stamped baseline from real cycles via check-roi-gate.sh
   --emit-json
-status: Needs Human
+status: In Progress
 assignee: []
 created_date: '2026-06-20 10:04'
-updated_date: '2026-06-20 13:42'
+updated_date: '2026-06-20 13:47'
 labels: []
 dependencies:
   - TASK-93.10

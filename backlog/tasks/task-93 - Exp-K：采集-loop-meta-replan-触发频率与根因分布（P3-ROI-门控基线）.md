@@ -4,7 +4,7 @@ title: Exp-K：采集 loop-meta replan 触发频率与根因分布（P3 ROI 门�
 status: Meta-Active
 assignee: []
 created_date: '2026-06-20 07:53'
-updated_date: '2026-06-20 13:42'
+updated_date: '2026-06-20 14:27'
 labels: []
 dependencies: []
 ordinal: 1000
@@ -85,4 +85,6 @@ idempotentReconcile: no gap — all 4 sub-tasks present (93.7 Done, 93.10 Done, 
 setReady: promoted G3 (TASK-93.8) and G4 (TASK-93.9) to Ready (WIP=2, WIP_CAP=2)
 
 evaluateAndReplan: evaluator verdict=Met (verify-subtask-dod.sh PASS, archive contamination cleared) | done=2 pending=2 | partial progress — no escalation. Waiting for loop-backlog to execute TASK-93.8 (G3) — its DoD#1 gates on ≥10 real Meta-Done cycles with idempotentReconcile: markers; that gate will block until the experiment corpus is run through loop-meta. | data_source: measured
+
+Exp-K corpus ready: 12 meta tasks created in Meta-Plan status (TASK-106–117) via /meta-task-to-backlog skill. Each carries proposal + implementation plan + acceptance criteria; no shell-gate DoD on meta tasks (evaluator-judged). Loop-meta can now dispatch draftDecomposition on all 12. TASK-93.8 DoD#1 gate (≥10 tasks with meta/reconcile markers) will clear as loop-meta processes each subject through Meta-Done.
 <!-- SECTION:NOTES:END -->
