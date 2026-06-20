@@ -1,6 +1,6 @@
 project_name: "baime"
 default_status: "Proposal"
-statuses: ["Proposal", "Plan", "Backlog", "Ready", "In Progress", "Done", "Needs Human"]
+statuses: ["Proposal", "Plan", "Backlog", "Ready", "In Progress", "Done", "Needs Human", "Meta-Proposal", "Meta-Plan", "Meta-Active", "Meta-Done"]
 labels: []
 date_format: yyyy-mm-dd
 max_column_width: 20

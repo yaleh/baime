@@ -297,7 +297,7 @@ dependency needed.
 
 ```bash
 DAEMON_SCRIPT="${REPO_ROOT}/scripts/loop-backlog-daemon.js"
-DAEMON_VERSION="v3"
+DAEMON_VERSION="v4"
 
 NEED_WRITE=true
 if [ -f "$DAEMON_SCRIPT" ]; then
@@ -309,11 +309,13 @@ if [ "$NEED_WRITE" = "true" ]; then
   mkdir -p "${REPO_ROOT}/scripts"
   cat > "$DAEMON_SCRIPT" << 'DAEMON_EOF'
 #!/usr/bin/env node
-// daemon-version: v3
+// daemon-version: v4
 /**
  * loop-backlog-daemon.js — polls backlog tasks dir and emits task-ready events to stdout.
  *
- * Emits one line per Ready transition: "task-ready:TASK-N"
+ * Emits one line per Ready transition:      "task-ready:TASK-N"
+ * Emits one line per Meta-ready transition: "meta-ready:TASK-N"
+ * Meta-lane tasks (Meta-Proposal, Meta-Plan) are excluded from task-ready.
  * Stops on stop-sentinel file or SIGTERM. Does NOT self-terminate on parent PID death
  * (parent is a transient Bash shell; lifecycle is managed by sentinel and nohup/disown).
  *
@@ -359,15 +361,32 @@ function parseTaskId(filename) {
   return m ? `TASK-${m[1]}` : null;
 }
 
-function isReady(filepath) {
+const META_STATUSES = new Set([
+  'meta-proposal', 'meta-plan', 'meta-active', 'meta-done',
+]);
+
+const META_READY_STATUSES = new Set(['meta-proposal', 'meta-plan']);
+
+function readStatus(filepath) {
   try {
     const content = fs.readFileSync(filepath, 'utf8');
     for (const line of content.split('\n')) {
       const s = line.trim().toLowerCase();
-      if (s === 'status: ready' || s.startsWith('status: ready')) return true;
+      if (s.startsWith('status:')) return s.slice('status:'.length).trim();
     }
   } catch { /* unreadable */ }
-  return false;
+  return null;
+}
+
+function isReady(filepath) {
+  const status = readStatus(filepath);
+  if (status === null || META_STATUSES.has(status)) return false;
+  return status === 'ready';
+}
+
+function isMetaReady(filepath) {
+  const status = readStatus(filepath);
+  return status !== null && META_READY_STATUSES.has(status);
 }
 
 function scanReadyIds(tasksDir) {
@@ -378,6 +397,18 @@ function scanReadyIds(tasksDir) {
     if (!entry.endsWith('.md')) continue;
     const id = parseTaskId(entry);
     if (id && isReady(path.join(tasksDir, entry))) ready.add(id);
+  }
+  return ready;
+}
+
+function scanMetaReadyIds(tasksDir) {
+  const ready = new Set();
+  let entries;
+  try { entries = fs.readdirSync(tasksDir); } catch { return ready; }
+  for (const entry of entries) {
+    if (!entry.endsWith('.md')) continue;
+    const id = parseTaskId(entry);
+    if (id && isMetaReady(path.join(tasksDir, entry))) ready.add(id);
   }
   return ready;
 }
@@ -394,14 +425,24 @@ process.on('exit', removePid);
 process.on('SIGTERM', () => process.exit(0));
 process.on('SIGINT',  () => process.exit(0));
 
-const notified = new Set();
+const notified     = new Set();
+const metaNotified = new Set();
+
 const timer = setInterval(() => {
   if (fs.existsSync(args.stopFile)) { clearInterval(timer); process.exit(0); }
+
   const readyIds = scanReadyIds(args.tasksDir);
   for (const id of notified) { if (!readyIds.has(id)) notified.delete(id); }
   for (const id of [...readyIds].filter(id => !notified.has(id)).sort()) {
     process.stdout.write(`task-ready:${id}\n`);
     notified.add(id);
+  }
+
+  const metaReadyIds = scanMetaReadyIds(args.tasksDir);
+  for (const id of metaNotified) { if (!metaReadyIds.has(id)) metaNotified.delete(id); }
+  for (const id of [...metaReadyIds].filter(id => !metaNotified.has(id)).sort()) {
+    process.stdout.write(`meta-ready:${id}\n`);
+    metaNotified.add(id);
   }
 }, intervalMs);
 DAEMON_EOF
