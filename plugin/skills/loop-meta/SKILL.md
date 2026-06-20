@@ -368,14 +368,49 @@ DECOMP_EOF
 
 ### draftMetaProposal
 
+Intake entry-point: when `loop-meta` receives a bare macro-goal (via `/loop-meta <goal>`
+or finds a task already at `Meta-Proposal` status), it calls `draftMetaProposal` to:
+
+1. Create a `Meta-Proposal`-status meta-task if one does not yet exist.
+2. Call the `proposalPrompt` subagent to produce a structured proposal document containing:
+   - **Background** (3-8 lines, WHY this goal matters)
+   - **Frozen Acceptance Criteria** (numbered, shell-verifiable where possible)
+   - **Sub-Goal Tree** (bullet hierarchy, max 2 levels, one line per sub-goal)
+3. Write the proposal document to the meta-task's Implementation Plan field.
+4. Enter `reviewLoop` (max 4 iterations) for human-feedback iteration.
+
 ```bash
 draftMetaProposal() {
   local META_ID="$1"
 
-  # Draft proposal via subagent
   GOAL=$(backlog task view "$META_ID" --plain | grep -oP '(?<=Description: ).+' | head -1)
-  # Subagent writes proposal text; result captured for reviewLoop
-  DOC=$(Agent(run_in_background=false, prompt="Draft a structured Meta-Proposal for: ${GOAL}"))
+
+  # proposalPrompt: produces Background + Frozen Acceptance Criteria + Sub-Goal Tree
+  DOC=$(Agent(run_in_background=false, prompt="$(cat <<PROPOSAL_EOF
+You are a meta-proposal drafter. Given the macro goal below, produce a structured
+Meta-Proposal document with exactly three sections:
+
+## Background
+(3-8 lines explaining WHY this goal matters, the problem it solves, and context)
+
+## Frozen Acceptance Criteria
+(numbered list; each criterion must be a concrete, verifiable outcome;
+use shell-verifiable conditions where possible, e.g.: bash <command> exits 0)
+
+## Sub-Goal Tree
+(bullet hierarchy, max 2 levels; each leaf is a self-contained unit of work)
+
+Macro goal: ${GOAL}
+
+Output ONLY the three-section document. No preamble, no explanation.
+PROPOSAL_EOF
+  )"))
+
+  # Write proposal to Implementation Plan field
+  backlog task edit "$META_ID" --plan "$DOC"
+
+  # Intake entry-point note for traceability
+  backlog task edit "$META_ID" --append-notes     "draftMetaProposal: proposal drafted for goal: ${GOAL}"
 
   reviewLoop "$META_ID" "$DOC" 4
 }
@@ -383,16 +418,40 @@ draftMetaProposal() {
 
 ### gateHuman
 
+`gateHuman` is a **soft halt**: it appends a note to the meta-task and then exits.
+It never sets the status automatically — the human must advance the status themselves.
+After exit, the daemon re-emits `meta-ready:<id>` on its next poll cycle, which
+re-enters `metaLoop`. If the status is still `Meta-Proposal`, the reconcile branch
+calls `reviewLoop` again (incrementing the iteration counter). When the human sets
+the status to `Meta-Plan`, `metaLoop` dispatches to `draftDecomposition` instead —
+this is the **approval path** that exits the intake loop and begins formal planning.
+
 ```bash
 gateHuman() {
   local META_ID="$1"
   local MSG="$2"
+  # Soft halt: append note, then exit — do NOT change status
   backlog task edit "$META_ID" --append-notes "$MSG"
-  # Halt: loop-meta exits; daemon emits meta-ready again on next poll cycle
+  # loop-meta process exits here; daemon re-emits meta-ready on next poll cycle
+  exit 0
 }
 ```
 
 ### reviewLoop
+
+`reviewLoop` drives the iterative human-feedback gate for `Meta-Proposal` intake:
+
+- **Iteration counting**: reads `grep -c "reviewLoop:"` from task notes. Each call
+  appends one `reviewLoop:` note line, so the count monotonically increases.
+- **Cap**: MAX_ITER = 4 (matches `task-to-backlog` and `feature-to-backlog`). On
+  exhaustion, status is set to `Needs Human` and the loop exits permanently.
+- **Human approval path**: the human sets `status → Meta-Plan`. The daemon emits
+  `meta-ready`, `metaLoop` dispatches to `draftDecomposition` (not `draftMetaProposal`),
+  and the intake reviewLoop is never re-entered. This is the intended approval path.
+- **Revision path**: the human adds a feedback note but leaves status at `Meta-Proposal`.
+  The daemon re-emits `meta-ready`, `metaLoop` calls `draftMetaProposal` again
+  (which calls `reviewLoop`), the ITER count has already incremented, so the next
+  iteration message is shown automatically.
 
 ```bash
 reviewLoop() {
@@ -400,7 +459,7 @@ reviewLoop() {
   local DOC="$2"
   local MAX_ITER="$3"
 
-  # Count prior reviewLoop iterations recorded in notes
+  # Iteration counting: each reviewLoop call appends one "reviewLoop:" note line
   ITER=$(backlog task view "$META_ID" --plain | grep -c "reviewLoop:" || true)
 
   if [ "$ITER" -ge "$MAX_ITER" ]; then
@@ -411,9 +470,12 @@ reviewLoop() {
   fi
 
   ITER_NEXT=$((ITER + 1))
-  gateHuman "$META_ID" \
-    "reviewLoop: iteration ${ITER_NEXT}/${MAX_ITER} — review proposal and set status → Meta-Plan to approve, or add feedback note and leave status unchanged for revision."
 
+  # Soft halt via gateHuman — re-enters on next meta-ready event
+  gateHuman "$META_ID" \
+    "reviewLoop: iteration ${ITER_NEXT}/${MAX_ITER} — review proposal and set status → Meta-Plan to approve (approval path), or add feedback note and leave status unchanged for revision."
+
+  # Note written before gateHuman exits the process
   backlog task edit "$META_ID" --append-notes \
     "reviewLoop: iteration ${ITER_NEXT} of ${MAX_ITER}"
 }
