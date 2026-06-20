@@ -27,6 +27,10 @@ contracts:
     target: self
   - grep: "executePrompt"
     target: self
+  - grep: '"DoD #.*: PASS"'
+    target: self
+  - grep: '"DoD #.*: FAIL"'
+    target: self
 ---
 
 λ() → workerLoop()
@@ -796,6 +800,8 @@ for N in $(seq 0 $((DOD_COUNT - 1))); do
   while true; do
     if eval "$CMD"; then
       backlog task edit "$TASK_ID" --check-dod $N
+      DOD_PASS_NOTE="DoD #${N}: PASS"
+      backlog task edit "$TASK_ID" --append-notes "${DOD_PASS_NOTE} — ${CMD}"
       log_exec "DoD #${N} ✓: ${CMD}"
       break
     fi
@@ -804,6 +810,9 @@ for N in $(seq 0 $((DOD_COUNT - 1))); do
     if [ $ATTEMPTS -ge 3 ]; then
       STUCK_INDEX=$N
       STUCK_CMD="$CMD"
+      DOD_FAIL_NOTE="DoD #${N}: FAIL"
+      backlog task edit "$TASK_ID" --append-notes "${DOD_FAIL_NOTE} — ${STUCK_CMD}
+$(echo "$LAST_ERROR" | head -5)"
       log_exec "DoD #${N} ✗ STUCK after 3 attempts: ${CMD}
 Last error:
 ${LAST_ERROR}"
