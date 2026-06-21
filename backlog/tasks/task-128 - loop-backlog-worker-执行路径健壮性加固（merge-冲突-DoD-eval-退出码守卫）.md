@@ -1,14 +1,14 @@
 ---
 id: TASK-128
 title: loop-backlog worker 执行路径健壮性加固（merge 冲突 / DoD eval / 退出码守卫）
-status: 'Basic: Backlog'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-21 12:05'
-updated_date: '2026-06-21 12:21'
+updated_date: '2026-06-21 12:32'
 labels:
   - 'kind:basic'
 dependencies: []
-ordinal: 87000
+ordinal: 1000
 ---
 
 ## Description
@@ -297,29 +297,55 @@ Proposal review iteration 1: APPROVED
 Proposal approved. Starting plan draft.
 
 Plan review iteration 2: APPROVED
+
+claimed: 2026-06-21T00:00:00Z
+
+## Execution Summary
+Result: Done
+Commit: b8ef66a (worktree) → merged into main
+
+### Phase A: Eliminate task .md merge conflict
+- Removed all `backlog task edit ${TID} --append-notes` from executePrompt heredoc
+- Agent now writes phase/DoD/Summary to `${TWT}/.agent-summary-${TID}`
+- Both merge blocks read agent summary post-merge and append via `backlog task edit --append-notes`
+
+### Phase B: DoD eval via bash -c
+- `eval "$CMD"` → `bash -c "$CMD"` in verifyDod (condition + LAST_ERROR capture)
+- `eval "$DOD_CMD" 2>&1` → `bash -c "$DOD_CMD" 2>&1` in workerLoop
+
+### Phase C: Merge exit-code guard
+- No-pipe rule comment added before both `git merge --no-ff` calls
+- MERGE_HEAD / diff-filter=U guard added before any `Basic: Done` write
+
+### Tests
+- 3 new scripts: worker-taskfile-merge.test.sh, dod-eval.test.sh, merge-guard.test.sh
+- All 21 DoD items: PASS
+- bash scripts/validate-plugin.sh: ALL CHECKS PASSED
+
+Completed: 2026-06-21T00:00:00Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bash scripts/validate-plugin.sh
-- [ ] #2 ! grep -qF 'backlog task edit ${TID} --append-notes' plugin/skills/loop-backlog/SKILL.md
-- [ ] #3 grep -q 'agent-summary' plugin/skills/loop-backlog/SKILL.md
-- [ ] #4 bash scripts/worker-taskfile-merge.test.sh
-- [ ] #5 bash scripts/validate-plugin.sh
-- [ ] #6 bash scripts/dod-eval.test.sh
-- [ ] #7 ! grep -q 'eval "\$CMD"' plugin/skills/loop-backlog/SKILL.md
-- [ ] #8 ! grep -q 'eval "\$DOD_CMD"' plugin/skills/loop-backlog/SKILL.md
-- [ ] #9 bash scripts/validate-plugin.sh
-- [ ] #10 bash scripts/merge-guard.test.sh
-- [ ] #11 grep -q 'MERGE_HEAD' plugin/skills/loop-backlog/SKILL.md
-- [ ] #12 grep -q 'diff-filter=U' plugin/skills/loop-backlog/SKILL.md
-- [ ] #13 bash scripts/validate-plugin.sh
-- [ ] #14 node scripts/daemon-routing.test.js
-- [ ] #15 bash scripts/worker-taskfile-merge.test.sh
-- [ ] #16 bash scripts/dod-eval.test.sh
-- [ ] #17 bash scripts/merge-guard.test.sh
-- [ ] #18 ! grep -qF 'backlog task edit ${TID} --append-notes' plugin/skills/loop-backlog/SKILL.md
-- [ ] #19 ! grep -q 'eval "\$CMD"' plugin/skills/loop-backlog/SKILL.md
-- [ ] #20 ! grep -q 'eval "\$DOD_CMD"' plugin/skills/loop-backlog/SKILL.md
-- [ ] #21 grep -q 'MERGE_HEAD' plugin/skills/loop-backlog/SKILL.md
+- [x] #1 bash scripts/validate-plugin.sh
+- [x] #2 ! grep -qF 'backlog task edit ${TID} --append-notes' plugin/skills/loop-backlog/SKILL.md
+- [x] #3 grep -q 'agent-summary' plugin/skills/loop-backlog/SKILL.md
+- [x] #4 bash scripts/worker-taskfile-merge.test.sh
+- [x] #5 bash scripts/validate-plugin.sh
+- [x] #6 bash scripts/dod-eval.test.sh
+- [x] #7 ! grep -q 'eval "\$CMD"' plugin/skills/loop-backlog/SKILL.md
+- [x] #8 ! grep -q 'eval "\$DOD_CMD"' plugin/skills/loop-backlog/SKILL.md
+- [x] #9 bash scripts/validate-plugin.sh
+- [x] #10 bash scripts/merge-guard.test.sh
+- [x] #11 grep -q 'MERGE_HEAD' plugin/skills/loop-backlog/SKILL.md
+- [x] #12 grep -q 'diff-filter=U' plugin/skills/loop-backlog/SKILL.md
+- [x] #13 bash scripts/validate-plugin.sh
+- [x] #14 node scripts/daemon-routing.test.js
+- [x] #15 bash scripts/worker-taskfile-merge.test.sh
+- [x] #16 bash scripts/dod-eval.test.sh
+- [x] #17 bash scripts/merge-guard.test.sh
+- [x] #18 ! grep -qF 'backlog task edit ${TID} --append-notes' plugin/skills/loop-backlog/SKILL.md
+- [x] #19 ! grep -q 'eval "\$CMD"' plugin/skills/loop-backlog/SKILL.md
+- [x] #20 ! grep -q 'eval "\$DOD_CMD"' plugin/skills/loop-backlog/SKILL.md
+- [x] #21 grep -q 'MERGE_HEAD' plugin/skills/loop-backlog/SKILL.md
 <!-- DOD:END -->
