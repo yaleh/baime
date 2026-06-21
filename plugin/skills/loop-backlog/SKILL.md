@@ -127,26 +127,31 @@ workerLoop() = {
 -- proposal/plan review happens interactively in epic-to-backlog, not in this worker.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- epicDecompose: triggered by epic-ready (status Epic: Ready). Auto-processes the epic:
--- Epic: Ready → Epic: Decomposing → create kind:basic children at Basic: Backlog →
--- Epic: Awaiting Children. Idempotent via cap:decompose. Children carry parent_task_id.
--- The human then promotes chosen children Basic: Backlog → Basic: Ready to execute them.
+-- epicDecompose: triggered by epic-ready (status Epic: Ready). Checks preconditions then
+-- spawns a single background agent that handles ALL decomposition work autonomously.
+-- Orchestrator returns immediately after spawning (spawn-and-forget pattern).
+-- The background agent: sets Decomposing, creates children via task-to-backlog, runs R1
+-- guard, advances to Awaiting Children or escalates to Needs Human on failure.
 epicDecompose :: TaskId → Outcome
 epicDecompose(id) = {
-  if (¬isEpicReady(id)):      return Idle,       -- status changed out from under us
+  if (¬isEpicReady(id)):        return Idle,     -- status changed out from under us
   if (hasCap(id, "decompose")): return Idle,     -- already decomposed (idempotent)
-  _:    setStatus(id, "Epic: Decomposing"),      -- auto-processing (≈ Basic: In Progress)
-  plan: readField(id, "implementationPlan"),
-  subs: decomposer(id, plan),                     -- subagent → [SubTaskSpec]
-  if (empty(subs)):
-    return escalateEpic(id, "decomposer returned no sub-tasks", "cap:decompose=empty"),
-  _:    ∀t ∈ subs: createSubTask(id, t),         -- kind:basic, Basic: Backlog, parent_task_id:id, DoD
-  if (¬verifySubTaskDod(id)):                     -- R1 guard: no rubber-stampable children
-    return escalateEpic(id, "decompose produced DoD-less child", "cap:decompose=dodless"),
-  _:    appendNote(id, "cap:decompose=done"),
-  _:    setStatus(id, "Epic: Awaiting Children"),
-  return: Reconciled
+  _:    Agent(run_in_background=true, prompt=decomposeAgentPrompt(id)),
+  return: Reconciled                              -- orchestrator returns immediately; agent is autonomous
 }
+
+-- decomposeAgentPrompt: the background agent performs ALL decomposition steps:
+-- 1. Idempotency check: if cap:decompose=done already set, exit immediately.
+-- 2. Write cap:decompose=started.
+-- 3. setStatus(id, "Epic: Decomposing").
+-- 4. Read Sub-Task Decomposition from epic plan.
+-- 5. ∀t ∈ subs: createSubTask(id, t) via /task-to-backlog (kind:basic, Basic: Backlog,
+--    parent_task_id:id, shell-gate DoD).
+-- 6. R1 guard: verifySubTaskDod(id).
+-- 7. On R1 pass: appendNote(id, "cap:decompose=done") + setStatus(id, "Epic: Awaiting Children").
+-- 8. On R1 fail or any error: escalateEpic(id, reason, "cap:decompose=failed|<reason>")
+--    → setStatus(id, "Epic: Needs Human").
+decomposeAgentPrompt :: TaskId → Prompt
 
 -- onChildDone: triggered by child-done (a kind:basic child hit Basic: Done). Find the
 -- parent epic; if it is a kind:epic at Epic: Awaiting Children and ALL its created
@@ -1444,57 +1449,56 @@ taskStatus() { backlog task view "$1" --plain 2>/dev/null | grep -oP '(?<=Status
 
 hasCap() { grep -q "cap:$2" "$(ls "${REPO_ROOT}"/backlog/tasks/${1,,}\ *.md 2>/dev/null | head -1)" 2>/dev/null; }
 
-# epicDecompose: epic-ready handler. Epic: Ready → Decomposing → children → Awaiting Children.
+# epicDecompose: epic-ready handler. Checks preconditions then spawns a single background
+# agent that handles ALL decomposition steps autonomously (spawn-and-forget).
+# Returns immediately after spawning — no signal file polling, no waiting.
 epicDecompose() {
   local EPIC_ID="$1"
   [ "$(taskStatus "$EPIC_ID")" = "Epic: Ready" ] || { echo "epicDecompose: $EPIC_ID not Epic: Ready, skip"; return 0; }
   if hasCap "$EPIC_ID" "decompose=done"; then echo "epicDecompose: $EPIC_ID already done"; return 0; fi
 
-  backlog task edit "$EPIC_ID" --status "Epic: Decomposing" --plain >/dev/null
+  Agent run_in_background=true prompt="$(cat <<DECOMPAGENT
+You are the autonomous decomposer agent for epic ${EPIC_ID}. Follow these steps exactly:
 
-  # decomposer subagent: read the epic plan's "Sub-Task Decomposition" and create one
-  # kind:basic child per leaf via task-to-backlog (shell-gate DoD), parent_task_id=EPIC_ID,
-  # status Basic: Backlog. Spawn via Agent(run_in_background=true). The agent MUST NOT
-  # promote children to Basic: Ready (that is the human's selection gate).
-  SIGNAL="${REPO_ROOT}/backlog/.agent-done-${EPIC_ID}-decompose"
-  rm -f "$SIGNAL"
-  Agent run_in_background=true prompt="$(cat <<DECOMP
-You are the epic decomposer for ${EPIC_ID}. Read its Implementation Plan
-(backlog task view ${EPIC_ID} --plain), specifically the Sub-Task Decomposition section.
-For EACH intended child sub-task, invoke /task-to-backlog to create a kind:basic backlog
-task with a multi-phase plan and shell-gate DoD. For each created child:
-  - set label kind:basic
-  - set frontmatter parent_task_id: ${EPIC_ID}
-  - set status "Basic: Backlog"   (NOT Ready — the human promotes)
-Do not create children that already exist (idempotent). Output the created TASK-ids.
-When finished, write the signal file: echo "done" > ${SIGNAL}
-DECOMP
-)"
+STEP 1 — Idempotency check:
+  Run: backlog task view ${EPIC_ID} --plain
+  If the notes already contain "cap:decompose=done", exit immediately (already decomposed).
 
-  # Wait for the decomposer background agent to complete (signal file polling)
-  local DECOMP_WAIT=0
-  while [ ! -f "$SIGNAL" ]; do
-    sleep 5
-    DECOMP_WAIT=$((DECOMP_WAIT + 5))
-    if [ "$DECOMP_WAIT" -ge 300 ]; then
-      backlog task edit "$EPIC_ID" --status "Epic: Needs Human" \
-        --append-notes "cap:decompose=timeout
-Escalated: decomposer did not complete within 300s. Re-set to Epic: Ready to retry."
-      return 1
-    fi
-  done
-  rm -f "$SIGNAL"
+STEP 2 — Mark started:
+  Run: backlog task edit ${EPIC_ID} --append-notes "cap:decompose=started" --plain
 
-  # R1 guard: every child must carry a shell-gate DoD
-  if ! bash scripts/verify-subtask-dod.sh "$EPIC_ID" >/dev/null 2>&1; then
-    backlog task edit "$EPIC_ID" --status "Epic: Needs Human" \
-      --append-notes "cap:decompose=dodless
-Escalated: decompose produced a DoD-less child. Fix sub-task DoD, set status → Epic: Ready."
-    return 1
-  fi
-  backlog task edit "$EPIC_ID" --status "Epic: Awaiting Children" \
+STEP 3 — Set status to Decomposing:
+  Run: backlog task edit ${EPIC_ID} --status "Epic: Decomposing" --plain
+
+STEP 4 — Read Sub-Task Decomposition:
+  The Implementation Plan (visible in step 1 output) contains a Sub-Task Decomposition
+  section. Parse each intended child sub-task from that section.
+
+STEP 5 — Create children:
+  For EACH intended child sub-task, invoke /task-to-backlog to create a kind:basic backlog
+  task with a multi-phase plan and shell-gate DoD. For each created child:
+    - set label kind:basic
+    - set frontmatter parent_task_id: ${EPIC_ID}
+    - set status "Basic: Backlog"  (NOT Ready — the human promotes chosen children)
+  Do not create children that already exist (idempotent). Record all created TASK-ids.
+
+STEP 6 — R1 guard (verify every child has a shell-gate DoD):
+  Run: bash scripts/verify-subtask-dod.sh ${EPIC_ID}
+
+STEP 7a — R1 PASS: advance to Awaiting Children:
+  Run: backlog task edit ${EPIC_ID} --status "Epic: Awaiting Children" \
     --append-notes "cap:decompose=done
 epicDecompose: children created at Basic: Backlog. Promote chosen children → Basic: Ready to execute."
+
+STEP 7b — R1 FAIL or any earlier error: escalate to Needs Human:
+  Run: backlog task edit ${EPIC_ID} --status "Epic: Needs Human" \
+    --append-notes "cap:decompose=failed | <reason>
+Escalated: <reason>. Fix the issue and set status → Epic: Ready to retry."
+
+Important: Do NOT promote any child to Basic: Ready. That is the human's selection gate.
+DECOMPAGENT
+)"
+  # Returns immediately — background agent is fully autonomous.
 }
 
 # startPlanDraft: proposal-approved handler. Spawns a background agent to run Phase 3
