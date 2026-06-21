@@ -126,6 +126,23 @@ statuses:
 
 ---
 
+## 颗粒度（Epic vs Basic）
+
+选错泳道的根因是低估了 Basic Task 的容量。判据如下：
+
+**Basic Task** —— 一个**单一 worker 能在一个隔离 worktree 内连续完成**的工作单元，由自洽的 shell-gate DoD 验收。它**不小**：
+- Implementation Plan 可含 **Phase + Stage 两层**结构（Phase A/B/C，每个 Phase 内再分 Stage / Tests / Implementation / DoD）。
+- 单个 Basic Task 的代码变更可达**上千行**。已完成样例：TASK-16（为 16 个 skill 建立规格覆盖，计划正文 ~430 行，Phase A/B/C）、TASK-25/20/38 均 ≥370 行计划。
+- "几处相关的小修"（例如对同一个 skill 的 3 处 bug 修复）是**一个 Basic Task 的多个 Phase**，不是一个 epic。
+
+**Epic** —— 仅当目标需要**≥2 个独立的 Basic Task**、子任务间有顺序/依赖、且需要分解 + 统一验收时才用 epic lane。Epic 本身**不含实现代码**，只产出 proposal/plan + 子任务分解（每个子任务本身就是一个上述容量的 Basic Task）。
+
+**反模式**：
+- ❌ 把"几处相关小修"当 epic（→ 应为单个 Basic Task 的多 Phase）。
+- ❌ 把"需要多个独立交付物的大目标"塞进单个 Basic Task（→ 应升为 epic，拆成多个 Basic Task）。
+
+---
+
 ## 跨 kind 的边（事件，不穿越列分区）
 
 | 边 | 方向 | 时机 | 效果 |

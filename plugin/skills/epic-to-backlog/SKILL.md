@@ -503,6 +503,12 @@ Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
 
 ## Constraints
 
+- **Granularity gate (use an epic only when it earns it)**: an epic is justified ONLY when the
+  goal needs ≥2 independent Basic Tasks with ordering/dependencies and a combined acceptance.
+  A Basic Task is NOT small — its plan may have two levels (Phase + Stage) and reach ~1000s LOC
+  (e.g. TASK-16: 16 skills, ~430-line plan). "A few related fixes" is ONE Basic Task with
+  multiple Phases, not an epic. See `docs/proposals/proposal-epic-split-board.md` § 颗粒度.
+  If the idea is really one Basic Task, stop and use `task-to-backlog` / `feature-to-backlog`.
 - This skill outputs an epic proposal + plan and a backlog task only — it does not implement code
 - It creates NO child tasks and performs NO decomposition; that is the autonomous worker's job
 - No branch creation, no worktree operations, no git push, no PR creation
