@@ -254,15 +254,19 @@ fi
 
 If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2–3; proceed directly to Phase 4 using `$TMPDIR/etb-proposal.md` as the plan draft (rename it to `$TMPDIR/etb-plan.md`).
 
-**1b. draftProposal** — spawn Task agent (only when entry point is `ProposalLoop` AND topic is a new description; skip if existing task ID was given — its description is already in `$TMPDIR/etb-proposal.md`):
+**1b. draftAndReview** — spawn Task agent (label: "Draft epic proposal with built-in self-review"; only when entry point is `ProposalLoop` AND topic is a new description; skip if existing task ID was given — its description is already in `$TMPDIR/etb-proposal.md`):
 
-> Draft an epic proposal and update the backlog task.
+> Draft an epic proposal with built-in self-review.
 >
 > Task ID: `<TASK_ID>`
 >
+> You have up to 3 total rounds. Start at round 1.
+>
+> **Round start:**
+>
 > 1. Search the codebase to understand current architecture relevant to: `<topic>`
 >
-> 2. Write `$TMPDIR/etb-proposal.md`:
+> 2. Write (or revise) `$TMPDIR/etb-proposal.md`:
 >    ```markdown
 >    # Epic Proposal: <title>
 >
@@ -284,51 +288,20 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >    (What we are not doing, known risks, alternatives considered)
 >    ```
 >
-> 3. Update task:
->    ```bash
->    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/etb-proposal.md)" \
->      --status "Epic: Proposal"
->    ```
->
-> Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.
-> The Decomposition Sketch must list at least two candidate child sub-tasks.
-> Do NOT create any child tasks. No implementation phases or DoD commands here.
-
----
-
-### Phase 2: proposalLoop — reviewLoop(proposal)
-
-**Soft limit: 8 iterations.** On exhaustion:
-
-```bash
-backlog task edit $TASK_ID --status "Epic: Needs Human" \
-  --append-notes "Epic proposal review did not converge after 8 iterations. Manual review required."
-```
-
-Print current `$TMPDIR/etb-proposal.md` and stop.
-
-Each iteration — spawn Task agent with `run_in_background=true` (self-chaining background agent):
-
-> You are a strict software architect reviewing an epic proposal.
->
-> Task ID: `<TASK_ID>` — Iteration: `<N>` — Max iterations: 8
->
-> 1. Read `$TMPDIR/etb-proposal.md`
->
-> 2. Check each item:
+> 3. Self-review — check ALL of the following:
 >    - **Motivation**: Does Background explain WHY (not just WHAT)? Is it 3-8 lines?
 >    - **Goals**: All numbered and concretely verifiable? No vague language?
 >    - **Decomposition Sketch**: Present and lists ≥2 candidate child sub-tasks,
 >      each with a one-line scope? Do the children collectively cover the Goals?
->    - **Feasibility**: Does the epic align with the codebase? Search to verify.
+>    - **Feasibility**: Does the epic align with the codebase? (you already searched)
 >    - **Completeness**: Are trade-offs and risks identified?
 >    - **Consistency**: No contradictions between sections?
 >
-> 3a. ALL pass:
+> 4a. ALL criteria pass:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --append-notes "Epic proposal review iteration <N>: APPROVED"
+>      --planSet "$(cat $TMPDIR/etb-proposal.md)" \
+>      --append-notes "Epic proposal self-review: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-proposal-verdict.txt
 >    # Write marker file — daemon will fire proposal-approved event when human advances status
 >    touch backlog/.etb-awaiting-plan-<TASK_ID>
@@ -336,19 +309,37 @@ Each iteration — spawn Task agent with `run_in_background=true` (self-chaining
 >    Print: "Proposal APPROVED. Run: `backlog task edit <TASK_ID> --status 'Epic: Plan'` to start plan drafting."
 >    Then STOP — do NOT auto-advance status.
 >
-> 3b. ANY fail: fix the failing sections in `$TMPDIR/etb-proposal.md` directly,
->    update task plan with revised draft:
+> 4b. ANY criterion fails AND round < 3: fix the failing sections in `$TMPDIR/etb-proposal.md`,
+>    update task:
 >    ```bash
 >    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/etb-proposal.md)"
 >    echo "NEEDS_REVISION" > $TMPDIR/etb-proposal-verdict.txt
 >    ```
->    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
->    If `<N>` == 8: move to `Epic: Needs Human`, print proposal, STOP.
+>    Increment round and repeat from **Round start**.
+>
+> 4c. ANY criterion fails AND round == 3: update task and stop:
+>    ```bash
+>    backlog task edit <TASK_ID> \
+>      --planSet "$(cat $TMPDIR/etb-proposal.md)" \
+>      --status "Epic: Needs Human" \
+>      --append-notes "Epic proposal self-review did not converge after 3 rounds. Manual review required."
+>    echo "NEEDS_REVISION" > $TMPDIR/etb-proposal-verdict.txt
+>    ```
+>    Print current `$TMPDIR/etb-proposal.md` and STOP.
+>
+> Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.
+> The Decomposition Sketch must list at least two candidate child sub-tasks.
+> Do NOT create any child tasks. No implementation phases or DoD commands here.
 
-After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
-The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
-On APPROVED, the background agent writes `backlog/.etb-awaiting-plan-<TASK_ID>` and stops.
-The daemon detects the marker + human status advance and fires `proposal-approved:TASK-N`.
+---
+
+### Phase 2: self-review (integrated into Phase 1b)
+
+For new-description topics (ProposalLoop entry), proposal self-review is handled inside
+the `draftAndReview` agent in Phase 1b — no separate review agent is spawned.
+
+For existing task ID topics (PlanLoop entry), no proposal review is needed; proceed
+directly to Phase 3 (draftEpicPlan) or Phase 4 (planLoop).
 
 ---
 
@@ -467,51 +458,47 @@ The daemon detects the marker + human status advance and fires `plan-approved:TA
 
 ### Phase 5: finalise
 
-Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
+Run the following bash commands directly (no agent spawn needed — all steps are mechanical):
 
-> Finalise the epic task: write combined proposal + plan into the Implementation Plan
-> field and park the epic at Epic: Backlog. Do NOT create children or decompose.
->
-> Task ID: `<TASK_ID>` — Slug: `<SLUG>` — Doc root: `<CFG_DOC_PATH>`
->
-> **Step B — Write combined proposal+plan into task and set status to Epic: Backlog**:
-> ```bash
-> {
->   cat $TMPDIR/etb-proposal.md
->   printf '\n\n---\n\n'
->   cat $TMPDIR/etb-plan.md
-> } > $TMPDIR/etb-combined.md
->
-> backlog task edit <TASK_ID> \
->   --planSet "$(cat $TMPDIR/etb-combined.md)" \
->   --status "Epic: Backlog" \
->   --append-notes "cap:propose=approved"
-> ```
->
-> **Step D — Run Layer 0-2 validation gate**:
-> ```bash
-> bash scripts/validate-plugin.sh
-> ```
-> If validation fails, fix the SKILL.md contracts or internals before proceeding.
->
-> **Step E — Print completion**:
-> ```
-> ✅ Epic <TASK_ID> is now in Epic: Backlog.
->
-> 一轮起草 + 迭代审查（提案、计划）已完成。计划中已列出预期的子任务分解，
-> 但本技能不会创建任何子任务，也不会执行分解。
->
-> 请在 web UI 审阅 Epic Proposal / Epic Plan：
->   backlog browser --no-open --port 6421
->
-> 确认无误后，将 epic 推进到 Epic: Ready 以授权自主分解：
->   backlog task edit <TASK_ID> --status "Epic: Ready"
->
-> 之后统一的 loop-backlog worker（basic-daemon 在 Epic: Ready 时发 epic-ready 事件）会接管：
->   Epic: Ready → Epic: Decomposing → Epic: Awaiting Children →
->   Epic: Evaluating（写 FINISH/ITERATE 建议，软停等你确认）→ Epic: Done | Epic: Needs Human
-> 子任务建在 Basic: Backlog；由你提升选中的子任务到 Basic: Ready 来执行。
-> ```
+**Step B — Write combined proposal+plan into task and set status to Epic: Backlog**:
+```bash
+{
+  cat $TMPDIR/etb-proposal.md
+  printf '\n\n---\n\n'
+  cat $TMPDIR/etb-plan.md
+} > $TMPDIR/etb-combined.md
+
+backlog task edit <TASK_ID> \
+  --planSet "$(cat $TMPDIR/etb-combined.md)" \
+  --status "Epic: Backlog" \
+  --append-notes "cap:propose=approved"
+```
+
+**Step D — Run Layer 0-2 validation gate**:
+```bash
+bash scripts/validate-plugin.sh
+```
+If validation fails, fix the SKILL.md contracts or internals before proceeding.
+
+**Step E — Print completion**:
+```
+✅ Epic <TASK_ID> is now in Epic: Backlog.
+
+一轮起草 + 迭代审查（提案、计划）已完成。计划中已列出预期的子任务分解，
+但本技能不会创建任何子任务，也不会执行分解。
+
+请在 web UI 审阅 Epic Proposal / Epic Plan：
+  backlog browser --no-open --port 6421
+
+确认无误后，将 epic 推进到 Epic: Ready 以授权自主分解：
+  backlog task edit <TASK_ID> --status "Epic: Ready"
+
+之后统一的 loop-backlog worker（basic-daemon 在 Epic: Ready 时发 epic-ready 事件）会接管：
+  Epic: Ready → Epic: Decomposing → Epic: Awaiting Children →
+  Epic: Evaluating（写 FINISH/ITERATE 建议，软停等你确认）→ Epic: Done | Epic: Needs Human
+子任务建在 Basic: Backlog；由你提升选中的子任务到 Basic: Ready 来执行。
+```
+(print the above completion message as text output)
 
 ---
 
