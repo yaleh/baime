@@ -1198,10 +1198,11 @@ The top-level orchestration using claimBatch, background Agent spawning, and ser
 # (claimBatch sets CLAIMED_TASK_IDS)
 
 if [ -z "$CLAIMED_TASK_IDS" ]; then
-  # No ready tasks — block on daemon event
+  # No basic task to claim — block on the daemon event stream (all three channels).
   # Monitor(persistent=true, command="tail -f \"$DAEMON_LOG\"")
-  # On basic-ready:TASK-N event: re-enter workerLoop
-  # epic-ready:* lines are silently ignored — handled by loop-meta in its own session
+  # On basic-ready:TASK-N → re-enter workerLoop (claim & execute).
+  # On epic-ready:TASK-N  → epicDecompose(extractId), then re-enter workerLoop.
+  # On child-done:TASK-N  → onChildDone(extractId), then re-enter workerLoop.
   exit 0
 fi
 
