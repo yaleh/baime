@@ -222,9 +222,9 @@ fi
 
 If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2–3; proceed directly to Phase 4 using `$TMPDIR/ftb-proposal.md` as the plan draft (rename it to `$TMPDIR/ftb-plan.md`).
 
-**1b. draftProposal** — spawn Task agent (only when entry point is `ProposalLoop` AND topic is a new description; skip if existing task ID was given — its description is already in `$TMPDIR/ftb-proposal.md`):
+**1b. draftAndReview** — spawn Task agent "Draft proposal with built-in self-review" (only when entry point is `ProposalLoop` AND topic is a new description; skip if existing task ID was given — its description is already in `$TMPDIR/ftb-proposal.md`):
 
-> Draft a technical proposal and update the backlog task.
+> Draft a technical proposal and immediately self-review it against all criteria.
 >
 > Task ID: `<TASK_ID>`
 >
@@ -248,48 +248,21 @@ If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >    (What we are not doing, known risks, alternatives considered)
 >    ```
 >
-> 3. Update task:
->    ```bash
->    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/ftb-proposal.md)" \
->      --status "Basic: Proposal"
->    ```
->
-> Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.
-> No implementation phases or DoD commands in this document.
-
----
-
-### Phase 2: reviewLoop(proposal)
-
-**Soft limit: 8 iterations.** On exhaustion:
-
-```bash
-backlog task edit $TASK_ID --status "Basic: Needs Human" \
-  --append-notes "Proposal review did not converge after 8 iterations. Manual review required."
-```
-
-Print current `$TMPDIR/ftb-proposal.md` and stop.
-
-Each iteration — spawn Task agent with `run_in_background=true` (self-chaining background agent):
-
-> You are a strict software architect reviewing a proposal.
->
-> Task ID: `<TASK_ID>` — Iteration: `<N>` — Max iterations: 8
->
-> 1. Read `$TMPDIR/ftb-proposal.md`
->
-> 2. Check each item:
+> 3. Self-review: check each criterion against the draft you just wrote:
 >    - **Motivation**: Does Background explain WHY (not just WHAT)? Is it 3-8 lines?
 >    - **Goals**: All numbered and concretely verifiable? No vague language?
 >    - **Feasibility**: Does Approach align with the codebase? Search to verify.
 >    - **Completeness**: Are trade-offs and risks identified?
 >    - **Consistency**: No contradictions between sections?
 >
-> 3a. ALL pass:
+>    If ANY criterion fails: fix the failing sections inline in `$TMPDIR/ftb-proposal.md` and
+>    repeat self-review. Repeat up to 3 total rounds (initial draft + 2 revision rounds).
+>
+> 4. After all criteria pass (or after 3 rounds), update the task and stop:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --append-notes "Proposal review iteration <N>: APPROVED"
+>      --planSet "$(cat $TMPDIR/ftb-proposal.md)" \
+>      --status "Basic: Proposal"
 >    echo "APPROVED" > $TMPDIR/ftb-proposal-verdict.txt
 >    # Write marker file — daemon will fire proposal-approved event when human advances status
 >    touch backlog/.ftb-awaiting-plan-<TASK_ID>
@@ -297,19 +270,18 @@ Each iteration — spawn Task agent with `run_in_background=true` (self-chaining
 >    Print: "Proposal APPROVED. Run: `backlog task edit <TASK_ID> --status 'Basic: Plan'` to start plan drafting."
 >    Then STOP — do NOT auto-advance status or proceed to Phase 3.
 >
-> 3b. ANY fail: fix the failing sections in `$TMPDIR/ftb-proposal.md` directly,
->    update task plan with revised draft:
->    ```bash
->    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-proposal.md)"
->    echo "NEEDS_REVISION" > $TMPDIR/ftb-proposal-verdict.txt
->    ```
->    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
->    If `<N>` == 8: move to `Basic: Needs Human`, print proposal, STOP.
+> Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.
+> No implementation phases or DoD commands in this document.
 
-After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
-The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
-On APPROVED, the background agent writes `backlog/.ftb-awaiting-plan-<TASK_ID>` and stops.
-The daemon detects the marker + human status advance and fires `proposal-approved:TASK-N`.
+---
+
+### Phase 2: self-review (integrated into Phase 1b)
+
+For new-description topics (ProposalLoop entry), proposal self-review is handled inside
+the `draftAndReview` agent in Phase 1b — no separate review agent is spawned.
+
+For existing task ID topics (PlanLoop entry), no proposal review is needed; proceed
+directly to Phase 3 (draftPlan) or Phase 4 (planLoop).
 
 ---
 
