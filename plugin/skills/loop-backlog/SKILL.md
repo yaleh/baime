@@ -977,19 +977,20 @@ If you cannot continue without human input (escalation):
 
 ## Execution Protocol
 
-**Phase checkpoints**: After completing each ## Phase section described in the task Description, run:
-  backlog task edit ${TID} --append-notes "Phase X ✓ $(date -u +%Y-%m-%dT%H:%M:%SZ)
-  <one-line summary of what was done>"
+**Phase checkpoints**: After completing each ## Phase section described in the task Description,
+append a structured note to the worktree summary file:
+  echo "Phase X ✓ $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> ${TWT}/.agent-summary-${TID}
+  echo "<one-line summary of what was done>" >> ${TWT}/.agent-summary-${TID}
 
-**DoD verification notes**: For each DoD command run, append:
-  backlog task edit ${TID} --append-notes "DoD #N: PASS|FAIL — <cmd>
-  <up to 5 lines of output on failure>"
+**DoD verification notes**: For each DoD command run, append to the summary file:
+  echo "DoD #N: PASS|FAIL — <cmd>" >> ${TWT}/.agent-summary-${TID}
+  echo "<up to 5 lines of output on failure>" >> ${TWT}/.agent-summary-${TID}
 
-**Execution Summary**: Before writing the signal file, append:
-  backlog task edit ${TID} --append-notes "## Execution Summary
-  Result: Done|Needs Human
-  Commit: <hash or 'no changes'>
-  <ordered list of Phase and DoD outcomes>"
+**Execution Summary**: Before writing the signal file, write a final summary section:
+  printf '## Execution Summary\nResult: Done|Needs Human\nCommit: <hash or no changes>\n<ordered list of Phase and DoD outcomes>\n' >> ${TWT}/.agent-summary-${TID}
+
+Do NOT run `backlog task edit` for any --append-notes, --status, or other task edits.
+The worker (main branch) handles all task-file writes after reading this summary file.
 
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 PROMPT_EOF
@@ -1082,7 +1083,7 @@ for N in $(seq 0 $((DOD_COUNT - 1))); do
   CMD=$(echo "$TASK_VIEW" | grep -P "^\- \[.\] #${N} " | sed "s/^- \[.\] #${N} //")
   ATTEMPTS=0
   while true; do
-    if eval "$CMD"; then
+    if bash -c "$CMD"; then
       backlog task edit "$TASK_ID" --check-dod $N
       DOD_PASS_NOTE="DoD #${N}: PASS"
       backlog task edit "$TASK_ID" --append-notes "${DOD_PASS_NOTE} — ${CMD}"
@@ -1090,7 +1091,7 @@ for N in $(seq 0 $((DOD_COUNT - 1))); do
       break
     fi
     ATTEMPTS=$((ATTEMPTS + 1))
-    LAST_ERROR="$(eval "$CMD" 2>&1 || true)"
+    LAST_ERROR="$(bash -c "$CMD" 2>&1 || true)"
     if [ $ATTEMPTS -ge 3 ]; then
       STUCK_INDEX=$N
       STUCK_CMD="$CMD"
@@ -1133,7 +1134,15 @@ fi
 
 ```bash
 cd "$REPO_ROOT"
+# RULE: never pipe git merge (| tail/cat/tee) — no-pipe: a pipe replaces its exit code and masks abort.
 if git merge --no-ff "$BRANCH" -m "merge: ${TITLE} (${TASK_ID})"; then
+  # Guard: MERGE_HEAD or unmerged files → treat as failure, never mark Done
+  if [ -f ".git/MERGE_HEAD" ] || [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+    backlog task edit "$TASK_ID" --status "Basic: Needs Human" \
+      --append-notes "Merge guard: MERGE_HEAD/unmerged files present — worktree preserved."
+    echo "needs-human: merge guard triggered" > "${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
+    exit 0
+  fi
   FINAL_SUMMARY="## Execution Summary
 
 **Result:** Done  
@@ -1141,6 +1150,12 @@ if git merge --no-ff "$BRANCH" -m "merge: ${TITLE} (${TASK_ID})"; then
 
 ### Execution Log
 $(echo -e "$EXECUTION_LOG")"
+  # post-merge append: read agent summary from worktree and append to task notes
+  AGENT_SUMMARY_FILE="${WORKTREE}/.agent-summary-${TASK_ID}"
+  if [ -f "$AGENT_SUMMARY_FILE" ]; then
+    AGENT_SUMMARY_CONTENT=$(cat "$AGENT_SUMMARY_FILE")
+    backlog task edit "$TASK_ID" --append-notes "$AGENT_SUMMARY_CONTENT"
+  fi
   backlog task edit "$TASK_ID" \
     --status "Basic: Done" \
     --append-notes "Completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -1254,7 +1269,7 @@ for TASK_ID in $CLAIMED_TASK_IDS; do
     while IFS= read -r DOD_CMD; do
       DOD_CMD=$(echo "$DOD_CMD" | sed 's/^- \[.\] #[0-9]* //')
       cd "$WORKTREE"
-      DOD_OUT=$(eval "$DOD_CMD" 2>&1)
+      DOD_OUT=$(bash -c "$DOD_CMD" 2>&1)
       DOD_EXIT=$?
       cd "$REPO_ROOT"
       if [ $DOD_EXIT -ne 0 ]; then
@@ -1276,7 +1291,21 @@ for TASK_ID in $CLAIMED_TASK_IDS; do
   cd "$REPO_ROOT"
   if [ "$SIGNAL_CONTENT" = "done" ]; then
     # Standard merge path (same as existing merge section)
+    # RULE: never pipe git merge (| tail/cat/tee) — no-pipe: a pipe replaces its exit code and masks abort.
     if git merge --no-ff "$BRANCH" -m "merge: ${TITLE} (${TASK_ID})"; then
+      # Guard: MERGE_HEAD or unmerged files → treat as failure, never mark Done
+      if [ -f ".git/MERGE_HEAD" ] || [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+        backlog task edit "$TASK_ID" --status "Basic: Needs Human" \
+          --append-notes "Merge guard: MERGE_HEAD/unmerged files present — worktree preserved."
+        echo "needs-human: merge guard triggered" > "${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
+        exit 0
+      fi
+      # post-merge append: read agent summary from worktree and append to task notes
+      AGENT_SUMMARY_FILE="${WORKTREE}/.agent-summary-${TASK_ID}"
+      if [ -f "$AGENT_SUMMARY_FILE" ]; then
+        AGENT_SUMMARY_CONTENT=$(cat "$AGENT_SUMMARY_FILE")
+        backlog task edit "$TASK_ID" --append-notes "$AGENT_SUMMARY_CONTENT"
+      fi
       backlog task edit "$TASK_ID" \
         --status "Basic: Done" \
         --append-notes "Completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
