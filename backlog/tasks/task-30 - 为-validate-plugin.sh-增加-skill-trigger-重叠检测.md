@@ -1,11 +1,12 @@
 ---
 id: TASK-30
 title: 为 validate-plugin.sh 增加 skill trigger 重叠检测
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-18 07:07'
 updated_date: '2026-06-18 10:03'
-labels: []
+labels:
+  - kind:basic
 dependencies: []
 ordinal: 1000
 ---

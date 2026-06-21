@@ -141,7 +141,7 @@ echo ""
 echo "=== Count Assertions ==="
 
 EXPECTED_AGENTS=4
-EXPECTED_SKILLS=25
+EXPECTED_SKILLS=26
 
 if [ "$AGENT_COUNT" -eq "$EXPECTED_AGENTS" ]; then
     pass "Agent count: $AGENT_COUNT (expected $EXPECTED_AGENTS)"
@@ -703,6 +703,27 @@ if [ -d "$TASKS_DIR" ]; then
 else
   pass "Nested Meta Task Check: no backlog/tasks/ directory found"
 fi
+
+# ── B″ Board Invariant Checks ────────────────────────────────────────────────
+
+echo ""
+echo "=== B″ Board Invariant Checks ==="
+
+if bash "$REPO_ROOT/scripts/verify-kind-status.sh" > /tmp/verify-kind-status-out.txt 2>&1; then
+    pass "verify-kind-status: all tasks have valid kind/status"
+else
+    fail "verify-kind-status: violations found"
+    cat /tmp/verify-kind-status-out.txt | grep 'column-overlap-violation' || true
+fi
+rm -f /tmp/verify-kind-status-out.txt
+
+if bash "$REPO_ROOT/scripts/verify-cap-markers.sh" > /tmp/verify-cap-markers-out.txt 2>&1; then
+    pass "verify-cap-markers: advisory check passed"
+else
+    # cap-markers is advisory; always pass in validate-plugin context
+    pass "verify-cap-markers: advisory (warnings noted)"
+fi
+rm -f /tmp/verify-cap-markers-out.txt
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 

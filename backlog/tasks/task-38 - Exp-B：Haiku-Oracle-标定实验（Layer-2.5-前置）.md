@@ -1,11 +1,12 @@
 ---
 id: TASK-38
 title: Exp-B：Haiku Oracle 标定实验（Layer 2.5 前置）
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-19 08:54'
 updated_date: '2026-06-19 10:04'
 labels:
+  - kind:basic
   - experiment
   - skill-quality
   - layer-2.5

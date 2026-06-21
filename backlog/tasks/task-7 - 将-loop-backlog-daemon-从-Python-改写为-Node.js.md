@@ -1,11 +1,12 @@
 ---
 id: TASK-7
 title: 将 loop-backlog-daemon 从 Python 改写为 Node.js
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-17 07:10'
 updated_date: '2026-06-17 07:20'
-labels: []
+labels:
+  - kind:basic
 dependencies: []
 ordinal: 1000
 ---

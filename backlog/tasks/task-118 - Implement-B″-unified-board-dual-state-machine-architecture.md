@@ -1,11 +1,12 @@
 ---
 id: TASK-118
 title: Implement B″ unified-board dual-state-machine architecture
-status: Backlog
+status: Basic: Backlog
 assignee: []
 created_date: '2026-06-21 06:21'
 updated_date: '2026-06-21 06:47'
 labels:
+  - kind:basic
   - architecture
   - epic-split-board
   - loop-backlog

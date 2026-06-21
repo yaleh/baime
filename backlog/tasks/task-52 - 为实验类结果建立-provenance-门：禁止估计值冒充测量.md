@@ -1,11 +1,12 @@
 ---
 id: TASK-52
 title: 为实验类结果建立 provenance 门：禁止估计值冒充测量
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-19 15:58'
 updated_date: '2026-06-19 17:19'
 labels:
+  - kind:basic
   - skill-quality
   - experiment-tooling
   - process

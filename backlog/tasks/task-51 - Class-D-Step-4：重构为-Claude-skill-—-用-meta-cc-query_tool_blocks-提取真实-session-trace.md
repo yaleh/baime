@@ -3,10 +3,11 @@ id: TASK-51
 title: >-
   Class D Step 4：重构为 Claude skill — 用 meta-cc query_tool_blocks 提取真实 session
   trace
-status: Proposal
+status: Basic: Proposal
 assignee: []
 created_date: '2026-06-19 15:13'
 labels:
+  - kind:basic
   - class-d
   - runner
   - skill-quality

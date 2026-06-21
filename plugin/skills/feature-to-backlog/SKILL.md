@@ -92,8 +92,7 @@ featureToBacklog(T) = {
   return: task  -- status: Backlog
 }
 
-reviewLoop :: (Task, Doc, MaxRounds) → ApprovedDoc  -- see spec-stdlib § reviewLoop
-reviewLoop task doc = reviewLoopStdlib task doc maxRounds  -- MaxRounds = 8
+-- see spec-stdlib § reviewLoop (MaxRounds = 8)
 
 -- Plan review invariants (all must hold for APPROVED)
 

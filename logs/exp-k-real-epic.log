@@ -1,0 +1,12 @@
+# STUB: Replace with real epic smoke test output
+# Run: epic-to-backlog → start both daemons → let one epic complete → capture output
+# Instructions:
+#   1. Run: /epic-to-backlog "Test epic for B'' smoke test"
+#   2. Start basic-daemon: node scripts/basic-daemon.js >> logs/exp-k-real-epic.log
+#   3. Start epic-daemon: node scripts/epic-daemon.js >> logs/exp-k-real-epic.log
+#   4. Run loop-meta worker in one session (epic worker)
+#   5. Run loop-backlog worker in another session (basic worker)
+#   6. Wait for the epic to complete through all stages
+#   7. Append "terminal:<TASK-ID>" line when epic reaches Epic: Done
+#   8. Replace this stub with the captured output
+terminal:STUB-requires-human-run

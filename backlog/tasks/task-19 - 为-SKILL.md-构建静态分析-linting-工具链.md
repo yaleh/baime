@@ -1,11 +1,12 @@
 ---
 id: TASK-19
 title: 为 SKILL.md 构建静态分析 linting 工具链
-status: Proposal
+status: Basic: Proposal
 assignee: []
 created_date: '2026-06-17 17:24'
 updated_date: '2026-06-18 02:27'
 labels:
+  - kind:basic
   - architecture
   - spec-quality
   - tooling

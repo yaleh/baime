@@ -1,11 +1,12 @@
 ---
 id: TASK-21
 title: loop-backlog：并行 background agent 执行 task（主循环控制 merge）
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-17 23:48'
 updated_date: '2026-06-18 01:47'
 labels:
+  - kind:basic
   - loop-backlog
   - skill
   - parallelism

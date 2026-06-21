@@ -67,11 +67,11 @@ taskToBacklog(T) = {
     then reviewLoop(task, task.description, 4)  -- existing description IS the plan draft
     else reviewLoop(task, draftPlan(task, T), 4)
   _:    finalise(task, plan, cfg),
-  return: task   -- status: Backlog
+  _:    appendNote(task, "cap:propose=approved"),  -- B″ idempotency marker
+  return: task   -- status: Basic: Backlog
 }
 
-reviewLoop :: (Task, Plan, MaxRounds) → ApprovedPlan  -- see spec-stdlib § reviewLoop
-reviewLoop task plan = reviewLoopStdlib task plan maxRounds  -- MaxRounds = 4
+-- see spec-stdlib § reviewLoop (MaxRounds = 4)
 
 -- Review invariants (all must hold for APPROVED)
 reviewPlan :: Plan → Verdict

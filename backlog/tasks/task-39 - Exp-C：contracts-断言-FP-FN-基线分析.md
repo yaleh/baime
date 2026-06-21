@@ -1,11 +1,12 @@
 ---
 id: TASK-39
 title: Exp-C：contracts 断言 FP/FN 基线分析
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-19 08:54'
 updated_date: '2026-06-19 10:03'
 labels:
+  - kind:basic
   - experiment
   - skill-quality
   - contracts

@@ -312,7 +312,7 @@ if [ "$NEED_WRITE" = "true" ]; then
   mkdir -p "${REPO_ROOT}/scripts"
   cat > "$DAEMON_SCRIPT" << 'DAEMON_EOF'
 #!/usr/bin/env node
-// daemon-version: v5
+// daemon-version: v6
 /**
  * loop-backlog-daemon.js — polls backlog tasks dir and emits task-ready events to stdout.
  *

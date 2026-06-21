@@ -1,10 +1,11 @@
 ---
 id: TASK-50
 title: Class D Step 3：k=5 + 失败路径 fixture 补全
-status: Proposal
+status: Basic: Proposal
 assignee: []
 created_date: '2026-06-19 15:12'
 labels:
+  - kind:basic
   - class-d
   - fixture
   - skill-quality

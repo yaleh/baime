@@ -1,11 +1,12 @@
 ---
 id: TASK-85
 title: 'P0: L0 可观测性 —— loop-backlog 忠实记录 DoD 结果与 verifyDod 尝试次数'
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-20 06:01'
 updated_date: '2026-06-20 06:39'
 labels:
+  - kind:basic
   - loop-meta
   - observability
   - loop-backlog

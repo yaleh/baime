@@ -1,10 +1,11 @@
 ---
 id: TASK-31
 title: task-from-template 终点状态改为 Backlog + validate-plugin.sh 修复 contract grep -e
-status: Backlog
+status: Basic: Backlog
 assignee: []
 created_date: '2026-06-18 09:51'
-labels: []
+labels:
+  - kind:basic
 dependencies: []
 modified_files:
   - plugin/skills/task-from-template/SKILL.md

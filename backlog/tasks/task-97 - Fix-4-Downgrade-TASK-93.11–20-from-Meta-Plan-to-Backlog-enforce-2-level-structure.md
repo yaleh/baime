@@ -3,11 +3,12 @@ id: TASK-97
 title: >-
   Fix 4: Downgrade TASK-93.11–20 from Meta-Plan to Backlog (enforce 2-level
   structure)
-status: Done
+status: Basic: Done
 assignee: []
 created_date: '2026-06-20 11:41'
 updated_date: '2026-06-20 12:18'
 labels:
+  - kind:basic
   - loop-meta
   - architecture
   - cleanup
