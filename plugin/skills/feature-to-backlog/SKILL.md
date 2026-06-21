@@ -271,11 +271,11 @@ backlog task edit $TASK_ID --status "Basic: Needs Human" \
 
 Print current `$TMPDIR/ftb-proposal.md` and stop.
 
-Each iteration — spawn Task agent:
+Each iteration — spawn Task agent with `run_in_background=true` (self-chaining background agent):
 
 > You are a strict software architect reviewing a proposal.
 >
-> Task ID: `<TASK_ID>` — Iteration: `<N>`
+> Task ID: `<TASK_ID>` — Iteration: `<N>` — Max iterations: 8
 >
 > 1. Read `$TMPDIR/ftb-proposal.md`
 >
@@ -291,18 +291,25 @@ Each iteration — spawn Task agent:
 >    backlog task edit <TASK_ID> \
 >      --append-notes "Proposal review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/ftb-proposal-verdict.txt
+>    # Write marker file — daemon will fire proposal-approved event when human advances status
+>    touch backlog/.ftb-awaiting-plan-<TASK_ID>
 >    ```
+>    Print: "Proposal APPROVED. Run: `backlog task edit <TASK_ID> --status 'Basic: Plan'` to start plan drafting."
+>    Then STOP — do NOT auto-advance status or proceed to Phase 3.
 >
 > 3b. ANY fail: fix the failing sections in `$TMPDIR/ftb-proposal.md` directly,
 >    update task plan with revised draft:
 >    ```bash
 >    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-proposal.md)"
+>    echo "NEEDS_REVISION" > $TMPDIR/ftb-proposal-verdict.txt
 >    ```
->    Write `NEEDS_REVISION` to verdict file.
+>    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
+>    If `<N>` == 8: move to `Basic: Needs Human`, print proposal, STOP.
 
-After each agent run, read `$TMPDIR/ftb-proposal-verdict.txt`:
-- `APPROVED` → proceed to Phase 3
-- `NEEDS_REVISION` → increment counter, repeat Phase 2
+After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
+The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
+On APPROVED, the background agent writes `backlog/.ftb-awaiting-plan-<TASK_ID>` and stops.
+The daemon detects the marker + human status advance and fires `proposal-approved:TASK-N`.
 
 ---
 
@@ -384,11 +391,12 @@ Spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL`, `CFG_DOC_PATH` as literal
 
 **Soft limit: 8 iterations.** On exhaustion: move to Needs Human, print plan, stop.
 
-Each iteration — spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
+Each iteration — spawn Task agent with `run_in_background=true` (self-chaining background agent;
+pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
 
 > You are a strict software architect reviewing a TDD implementation plan.
 >
-> Task ID: `<TASK_ID>` — Iteration: `<N>`
+> Task ID: `<TASK_ID>` — Iteration: `<N>` — Max iterations: 8
 > Expected test command: `<CFG_TEST_CMD>`
 > Expected full suite: `<CFG_TEST_ALL>`
 >
@@ -413,18 +421,25 @@ Each iteration — spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as lite
 >    backlog task edit <TASK_ID> \
 >      --append-notes "Plan review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/ftb-plan-verdict.txt
+>    # Write marker file — daemon will fire plan-approved event when human advances status
+>    touch backlog/.ftb-awaiting-backlog-<TASK_ID>
 >    ```
+>    Print: "Plan APPROVED. Run: `backlog task edit <TASK_ID> --status 'Basic: Ready'` to finalise."
+>    Then STOP — do NOT auto-advance status or proceed to Phase 5.
 >
 > 3b. ANY fail: fix `$TMPDIR/ftb-plan.md` (and `$TMPDIR/ftb-proposal.md` if needed),
 >    update task plan:
 >    ```bash
 >    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-plan.md)"
+>    echo "NEEDS_REVISION" > $TMPDIR/ftb-plan-verdict.txt
 >    ```
->    Write `NEEDS_REVISION` to verdict file.
+>    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
+>    If `<N>` == 8: move to `Basic: Needs Human`, print plan, STOP.
 
-After each agent run, read `$TMPDIR/ftb-plan-verdict.txt`:
-- `APPROVED` → proceed to Phase 5
-- `NEEDS_REVISION` → increment counter, repeat Phase 4
+After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
+The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
+On APPROVED, the background agent writes `backlog/.ftb-awaiting-backlog-<TASK_ID>` and stops.
+The daemon detects the marker + human status advance and fires `plan-approved:TASK-N`.
 
 ---
 

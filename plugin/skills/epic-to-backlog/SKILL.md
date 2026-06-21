@@ -308,11 +308,11 @@ backlog task edit $TASK_ID --status "Epic: Needs Human" \
 
 Print current `$TMPDIR/etb-proposal.md` and stop.
 
-Each iteration — spawn Task agent (this is the reviewLoop body; see spec-stdlib § reviewLoop):
+Each iteration — spawn Task agent with `run_in_background=true` (self-chaining background agent):
 
 > You are a strict software architect reviewing an epic proposal.
 >
-> Task ID: `<TASK_ID>` — Iteration: `<N>`
+> Task ID: `<TASK_ID>` — Iteration: `<N>` — Max iterations: 8
 >
 > 1. Read `$TMPDIR/etb-proposal.md`
 >
@@ -330,18 +330,25 @@ Each iteration — spawn Task agent (this is the reviewLoop body; see spec-stdli
 >    backlog task edit <TASK_ID> \
 >      --append-notes "Epic proposal review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-proposal-verdict.txt
+>    # Write marker file — daemon will fire proposal-approved event when human advances status
+>    touch backlog/.etb-awaiting-plan-<TASK_ID>
 >    ```
+>    Print: "Proposal APPROVED. Run: `backlog task edit <TASK_ID> --status 'Epic: Plan'` to start plan drafting."
+>    Then STOP — do NOT auto-advance status.
 >
 > 3b. ANY fail: fix the failing sections in `$TMPDIR/etb-proposal.md` directly,
 >    update task plan with revised draft:
 >    ```bash
 >    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/etb-proposal.md)"
+>    echo "NEEDS_REVISION" > $TMPDIR/etb-proposal-verdict.txt
 >    ```
->    Write `NEEDS_REVISION` to verdict file.
+>    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
+>    If `<N>` == 8: move to `Epic: Needs Human`, print proposal, STOP.
 
-After each agent run, read `$TMPDIR/etb-proposal-verdict.txt`:
-- `APPROVED` → human approval gate: advance status `Epic: Proposal → Epic: Plan`, then proceed to Phase 3
-- `NEEDS_REVISION` → increment counter, repeat Phase 2
+After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
+The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
+On APPROVED, the background agent writes `backlog/.etb-awaiting-plan-<TASK_ID>` and stops.
+The daemon detects the marker + human status advance and fires `proposal-approved:TASK-N`.
 
 ---
 
@@ -412,11 +419,11 @@ Spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL`, `CFG_DOC_PATH` as literal
 
 **Soft limit: 8 iterations.** On exhaustion: move to `Epic: Needs Human`, print plan, stop.
 
-Each iteration — spawn Task agent (this is the reviewLoop body; see spec-stdlib § reviewLoop):
+Each iteration — spawn Task agent with `run_in_background=true` (self-chaining background agent):
 
 > You are a strict software architect reviewing an epic plan.
 >
-> Task ID: `<TASK_ID>` — Iteration: `<N>`
+> Task ID: `<TASK_ID>` — Iteration: `<N>` — Max iterations: 8
 >
 > 1. Read `$TMPDIR/etb-proposal.md` and `$TMPDIR/etb-plan.md`
 >
@@ -436,18 +443,25 @@ Each iteration — spawn Task agent (this is the reviewLoop body; see spec-stdli
 >    backlog task edit <TASK_ID> \
 >      --append-notes "Epic plan review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-plan-verdict.txt
+>    # Write marker file — daemon will fire plan-approved event when human advances status
+>    touch backlog/.etb-awaiting-backlog-<TASK_ID>
 >    ```
+>    Print: "Plan APPROVED. Run: `backlog task edit <TASK_ID> --status 'Epic: Backlog'` to finalise."
+>    Then STOP — do NOT auto-advance status.
 >
 > 3b. ANY fail: fix `$TMPDIR/etb-plan.md` (and `$TMPDIR/etb-proposal.md` if needed),
 >    update task plan:
 >    ```bash
 >    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/etb-plan.md)"
+>    echo "NEEDS_REVISION" > $TMPDIR/etb-plan-verdict.txt
 >    ```
->    Write `NEEDS_REVISION` to verdict file.
+>    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
+>    If `<N>` == 8: move to `Epic: Needs Human`, print plan, STOP.
 
-After each agent run, read `$TMPDIR/etb-plan-verdict.txt`:
-- `APPROVED` → human approval gate: advance status `Epic: Plan → Epic: Backlog`, then proceed to Phase 5
-- `NEEDS_REVISION` → increment counter, repeat Phase 4
+After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
+The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
+On APPROVED, the background agent writes `backlog/.etb-awaiting-backlog-<TASK_ID>` and stops.
+The daemon detects the marker + human status advance and fires `plan-approved:TASK-N`.
 
 ---
 

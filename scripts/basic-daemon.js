@@ -1,13 +1,21 @@
 #!/usr/bin/env node
-// daemon-version: v7
+// daemon-version: v8
 /**
- * basic-daemon.js — UNIFIED B″ poller. Polls backlog tasks dir and emits three
+ * basic-daemon.js — UNIFIED B″ poller. Polls backlog tasks dir and emits five
  * event channels to stdout:
  *
- *   basic-ready:TASK-N   kind:basic AND status "Basic: Ready"   → worker executes task
- *   epic-ready:TASK-N    kind:epic  AND status "Epic: Ready"    → worker auto-decomposes
- *   child-done:TASK-N    kind:basic AND status "Basic: Done" AND has parent_task_id
- *                                                               → worker re-checks parent epic
+ *   basic-ready:TASK-N       kind:basic AND status "Basic: Ready"   → worker executes task
+ *   epic-ready:TASK-N        kind:epic  AND status "Epic: Ready"    → worker auto-decomposes
+ *   child-done:TASK-N        kind:basic AND status "Basic: Done" AND has parent_task_id
+ *                                                                   → worker re-checks parent epic
+ *   proposal-approved:TASK-N marker file backlog/.etb-awaiting-plan-$id OR
+ *                            backlog/.ftb-awaiting-plan-$id exists AND task status is
+ *                            "Epic: Plan" or "Basic: Plan" respectively
+ *                                                                   → worker triggers plan drafting
+ *   plan-approved:TASK-N     marker file backlog/.etb-awaiting-backlog-$id OR
+ *                            backlog/.ftb-awaiting-backlog-$id exists AND task status is
+ *                            "Epic: Backlog" or "Basic: Ready" respectively
+ *                                                                   → worker triggers finalise
  *
  * One daemon, one log; the loop-backlog worker dispatches by event prefix. Replaces the
  * former separate basic-daemon/epic-daemon split. Note: epic-ready fires ONLY for
@@ -15,15 +23,22 @@
  * interactive epic-to-backlog skill, and Decomposing/Awaiting Children/Evaluating are
  * driven by the worker (via epic-ready then child-done), not by polling.
  *
+ * proposal-approved and plan-approved use marker files written by the review orchestrator
+ * (epic-to-backlog / feature-to-backlog) on APPROVED. The daemon deletes the marker on
+ * first dispatch (idempotent; prevents re-fire on restart).
+ *
  * Stops on stop-sentinel file or SIGTERM. Pure Node.js stdlib — no npm dependencies.
  */
 'use strict';
 const fs   = require('fs');
 const path = require('path');
 
-const BASIC_READY_STATUS = 'basic: ready';
-const EPIC_READY_STATUS  = 'epic: ready';
-const BASIC_DONE_STATUS  = 'basic: done';
+const BASIC_READY_STATUS   = 'basic: ready';
+const EPIC_READY_STATUS    = 'epic: ready';
+const BASIC_DONE_STATUS    = 'basic: done';
+const EPIC_PLAN_STATUS     = 'epic: plan';
+const BASIC_PLAN_STATUS    = 'basic: plan';
+const EPIC_BACKLOG_STATUS  = 'epic: backlog';
 
 function parseArgs(argv) {
   const args = {
@@ -117,6 +132,51 @@ function isChildDone(filepath) {
       && meta.status === BASIC_DONE_STATUS && !!meta.parent_task_id;
 }
 
+// Returns the backlog dir (one level up from tasksDir, e.g. "backlog/tasks" → "backlog").
+function backlogDir(tasksDir) {
+  return path.dirname(tasksDir);
+}
+
+// isProposalApproved: returns true when a pipeline marker file
+// (backlog/.etb-awaiting-plan-$id OR backlog/.ftb-awaiting-plan-$id) exists AND
+// task status is "epic: plan" (for ETB) or "basic: plan" (for FTB).
+function isProposalApproved(tasksDir) {
+  return function(filepath) {
+    const meta = readTaskMeta(filepath);
+    if (!meta) return false;
+    const id = parseTaskId(path.basename(filepath));
+    if (!id) return false;
+    const bd = backlogDir(tasksDir);
+    const etbMarker = path.join(bd, `.etb-awaiting-plan-${id}`);
+    const ftbMarker = path.join(bd, `.ftb-awaiting-plan-${id}`);
+    const hasEtbMarker = fs.existsSync(etbMarker);
+    const hasFtbMarker = fs.existsSync(ftbMarker);
+    if (hasEtbMarker && meta.status === EPIC_PLAN_STATUS) return true;
+    if (hasFtbMarker && meta.status === BASIC_PLAN_STATUS) return true;
+    return false;
+  };
+}
+
+// isPlanApproved: returns true when a pipeline marker file
+// (backlog/.etb-awaiting-backlog-$id OR backlog/.ftb-awaiting-backlog-$id) exists AND
+// task status is "epic: backlog" (for ETB) or "basic: ready" (for FTB).
+function isPlanApproved(tasksDir) {
+  return function(filepath) {
+    const meta = readTaskMeta(filepath);
+    if (!meta) return false;
+    const id = parseTaskId(path.basename(filepath));
+    if (!id) return false;
+    const bd = backlogDir(tasksDir);
+    const etbMarker = path.join(bd, `.etb-awaiting-backlog-${id}`);
+    const ftbMarker = path.join(bd, `.ftb-awaiting-backlog-${id}`);
+    const hasEtbMarker = fs.existsSync(etbMarker);
+    const hasFtbMarker = fs.existsSync(ftbMarker);
+    if (hasEtbMarker && meta.status === EPIC_BACKLOG_STATUS) return true;
+    if (hasFtbMarker && meta.status === BASIC_READY_STATUS) return true;
+    return false;
+  };
+}
+
 // Scan tasksDir, returning a Set of IDs for which predicate(filepath) is true.
 function scanIds(tasksDir, predicate) {
   const out = new Set();
@@ -146,10 +206,27 @@ process.on('SIGTERM', () => process.exit(0));
 process.on('SIGINT',  () => process.exit(0));
 
 // One notified set per channel; emit a given id once until it leaves the trigger state.
+// proposal-approved and plan-approved delete their marker files on first emit (idempotent).
 const channels = [
-  { prefix: 'basic-ready', predicate: isBasicReady, notified: new Set() },
-  { prefix: 'epic-ready',  predicate: isEpicReady,  notified: new Set() },
-  { prefix: 'child-done',  predicate: isChildDone,  notified: new Set() },
+  { prefix: 'basic-ready',       predicate: isBasicReady,              notified: new Set(), onEmit: null },
+  { prefix: 'epic-ready',        predicate: isEpicReady,               notified: new Set(), onEmit: null },
+  { prefix: 'child-done',        predicate: isChildDone,               notified: new Set(), onEmit: null },
+  { prefix: 'proposal-approved', predicate: isProposalApproved(args.tasksDir), notified: new Set(),
+    onEmit: (id) => {
+      const bd = backlogDir(args.tasksDir);
+      for (const stem of [`.etb-awaiting-plan-${id}`, `.ftb-awaiting-plan-${id}`]) {
+        try { fs.unlinkSync(path.join(bd, stem)); } catch { /* already gone */ }
+      }
+    }
+  },
+  { prefix: 'plan-approved',     predicate: isPlanApproved(args.tasksDir),     notified: new Set(),
+    onEmit: (id) => {
+      const bd = backlogDir(args.tasksDir);
+      for (const stem of [`.etb-awaiting-backlog-${id}`, `.ftb-awaiting-backlog-${id}`]) {
+        try { fs.unlinkSync(path.join(bd, stem)); } catch { /* already gone */ }
+      }
+    }
+  },
 ];
 
 const timer = setInterval(() => {
@@ -163,6 +240,7 @@ const timer = setInterval(() => {
     for (const id of [...ids].filter(id => !ch.notified.has(id)).sort()) {
       process.stdout.write(`${ch.prefix}:${id}\n`);
       ch.notified.add(id);
+      if (ch.onEmit) ch.onEmit(id);
     }
   }
 }, intervalMs);
