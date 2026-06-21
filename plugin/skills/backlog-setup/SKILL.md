@@ -26,16 +26,13 @@ contracts:
 
 -- Columns required by each skill
 
-FEATURE_TO_BACKLOG_COLUMNS := [
-  "Proposal", "Plan",
-  "Backlog"
+REQUIRED_COLUMNS := [
+  "Epic: Proposal", "Epic: Plan", "Epic: Backlog", "Epic: Ready",
+  "Epic: Decomposing", "Epic: Awaiting Children", "Epic: Evaluating",
+  "Epic: Done", "Epic: Needs Human",
+  "Basic: Proposal", "Basic: Plan", "Basic: Backlog", "Basic: Ready",
+  "Basic: In Progress", "Basic: Done", "Basic: Needs Human"
 ]
-
-LOOP_BACKLOG_COLUMNS := [
-  "Ready", "In Progress", "Done", "Needs Human"
-]
-
-REQUIRED_COLUMNS := FEATURE_TO_BACKLOG_COLUMNS ∪ LOOP_BACKLOG_COLUMNS
 
 backlogSetup :: () → SetupResult
 backlogSetup() = {
@@ -113,10 +110,11 @@ in-place, preserving all other fields.
 
 ```bash
 REQUIRED_COLUMNS=(
-  "Proposal" "Plan"
-  "Backlog"
-  "Ready"    "In Progress"
-  "Done"     "Needs Human"
+  "Epic: Proposal" "Epic: Plan" "Epic: Backlog" "Epic: Ready"
+  "Epic: Decomposing" "Epic: Awaiting Children" "Epic: Evaluating"
+  "Epic: Done" "Epic: Needs Human"
+  "Basic: Proposal" "Basic: Plan" "Basic: Backlog" "Basic: Ready"
+  "Basic: In Progress" "Basic: Done" "Basic: Needs Human"
 )
 
 # Read existing statuses and compute missing ones via Python
@@ -125,10 +123,11 @@ import re, sys
 
 CONFIG = "backlog/config.yml"
 REQUIRED = [
-  "Proposal", "Plan",
-  "Backlog",
-  "Ready",    "In Progress",
-  "Done",     "Needs Human",
+  "Epic: Proposal", "Epic: Plan", "Epic: Backlog", "Epic: Ready",
+  "Epic: Decomposing", "Epic: Awaiting Children", "Epic: Evaluating",
+  "Epic: Done", "Epic: Needs Human",
+  "Basic: Proposal", "Basic: Plan", "Basic: Backlog", "Basic: Ready",
+  "Basic: In Progress", "Basic: Done", "Basic: Needs Human",
 ]
 
 with open(CONFIG) as f:
@@ -153,7 +152,7 @@ content = re.sub(
 # Ensure default_status is "Proposal"
 content = re.sub(
     r'^default_status:\s*"[^"]*"',
-    'default_status: "Proposal"',
+    'default_status: "Basic: Proposal"',
     content, flags=re.MULTILINE
 )
 
