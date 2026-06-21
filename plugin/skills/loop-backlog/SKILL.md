@@ -86,14 +86,16 @@ workerLoop() = {
 
   if (empty(tasks)):
     -- No basic task to claim; block persistently and dispatch the next daemon event.
-    -- The unified daemon (basic-daemon.js v7) emits THREE channels; this one worker
+    -- The unified daemon (basic-daemon.js v8) emits FIVE channels; this one worker
     -- session handles all of them (no separate loop-meta session needed).
     event: Monitor(persistent=true),
-    | stopSentinel()                       → return Stopped
-    | event matches "basic-ready:TASK-*"   → workerLoop()              -- re-claim & execute
-    | event matches "epic-ready:TASK-*"    → epicDecompose(extractId(event)); workerLoop()
-    | event matches "child-done:TASK-*"    → onChildDone(extractId(event)); workerLoop()
-    | otherwise                            → workerLoop(),             -- noise: loop back
+    | stopSentinel()                            → return Stopped
+    | event matches "basic-ready:TASK-*"        → workerLoop()              -- re-claim & execute
+    | event matches "epic-ready:TASK-*"         → epicDecompose(extractId(event)); workerLoop()
+    | event matches "child-done:TASK-*"         → onChildDone(extractId(event)); workerLoop()
+    | event matches "proposal-approved:TASK-*"  → startPlanDraft(extractId(event)); workerLoop()
+    | event matches "plan-approved:TASK-*"      → startFinalise(extractId(event));  workerLoop()
+    | otherwise                                 → workerLoop(),             -- noise: loop back
 
   -- Parallel: create worktrees and spawn one background agent per task
   worktrees: ∀t ∈ tasks: withWorktree(t, cfg),
@@ -193,6 +195,21 @@ escalateEpic(id, r, cap) = {
   setStatus(id, "Epic: Needs Human"),
   return: NeedsHuman(r)
 }
+
+-- startPlanDraft: triggered by proposal-approved (human advanced status to Epic: Plan or
+-- Basic: Plan after proposal was APPROVED). Spawns a background agent to run Phase 3
+-- (draftEpicPlan / draftPlan) of the respective skill. The agent updates the task and
+-- writes a plan draft. The daemon will subsequently detect plan-approved when the human
+-- advances to Epic: Backlog / Basic: Ready after plan review.
+startPlanDraft :: TaskId → ()
+startPlanDraft(id) = Agent(run_in_background=true, prompt=planDraftPrompt(id))
+
+-- startFinalise: triggered by plan-approved (human advanced status to Epic: Backlog or
+-- Basic: Ready after plan was APPROVED). Spawns a background agent to run Phase 5
+-- (finalise) of the respective skill. The agent writes combined proposal+plan into the
+-- task implementation plan and parks the task.
+startFinalise :: TaskId → ()
+startFinalise(id) = Agent(run_in_background=true, prompt=finalisePrompt(id))
 
 -- decomposer: subagent that reads the epic plan's Sub-Task Decomposition and returns a
 -- canonical [SubTaskSpec]. Each child is created via task-to-backlog so it carries a
@@ -1215,9 +1232,20 @@ The top-level orchestration using claimBatch, background Agent spawning, and ser
 if [ -z "$CLAIMED_TASK_IDS" ]; then
   # No basic task to claim — block on the daemon event stream (all three channels).
   # Monitor(persistent=true, command="tail -f \"$DAEMON_LOG\"")
-  # On basic-ready:TASK-N → re-enter workerLoop (claim & execute).
-  # On epic-ready:TASK-N  → epicDecompose(extractId), then re-enter workerLoop.
-  # On child-done:TASK-N  → onChildDone(extractId), then re-enter workerLoop.
+  # On basic-ready:TASK-N      → re-enter workerLoop (claim & execute).
+  # On epic-ready:TASK-N       → epicDecompose(extractId), then re-enter workerLoop.
+  # On child-done:TASK-N       → onChildDone(extractId), then re-enter workerLoop.
+  # On proposal-approved:TASK-N → startPlanDraft(extractId), then re-enter workerLoop.
+  # On plan-approved:TASK-N    → startFinalise(extractId), then re-enter workerLoop.
+  # Dispatch is handled by the Monitor event loop; this bash section exits to let the
+  # Monitor dispatch call the appropriate handler function.
+  # Example dispatch (in the Monitor event handler):
+  #   case "$EVENT" in
+  #     epic-ready:*)      epicDecompose "${EVENT#epic-ready:}" ;;
+  #     child-done:*)      onChildDone "${EVENT#child-done:}" ;;
+  #     proposal-approved:*) startPlanDraft "${EVENT#proposal-approved:}" ;;
+  #     plan-approved:*)   startFinalise "${EVENT#plan-approved:}" ;;
+  #   esac
   exit 0
 fi
 
@@ -1426,9 +1454,11 @@ epicDecompose() {
 
   # decomposer subagent: read the epic plan's "Sub-Task Decomposition" and create one
   # kind:basic child per leaf via task-to-backlog (shell-gate DoD), parent_task_id=EPIC_ID,
-  # status Basic: Backlog. Spawn via Agent(run_in_background=false). The agent MUST NOT
+  # status Basic: Backlog. Spawn via Agent(run_in_background=true). The agent MUST NOT
   # promote children to Basic: Ready (that is the human's selection gate).
-  Agent run_in_background=false prompt="$(cat <<DECOMP
+  SIGNAL="${REPO_ROOT}/backlog/.agent-done-${EPIC_ID}-decompose"
+  rm -f "$SIGNAL"
+  Agent run_in_background=true prompt="$(cat <<DECOMP
 You are the epic decomposer for ${EPIC_ID}. Read its Implementation Plan
 (backlog task view ${EPIC_ID} --plain), specifically the Sub-Task Decomposition section.
 For EACH intended child sub-task, invoke /task-to-backlog to create a kind:basic backlog
@@ -1437,8 +1467,23 @@ task with a multi-phase plan and shell-gate DoD. For each created child:
   - set frontmatter parent_task_id: ${EPIC_ID}
   - set status "Basic: Backlog"   (NOT Ready — the human promotes)
 Do not create children that already exist (idempotent). Output the created TASK-ids.
+When finished, write the signal file: echo "done" > ${SIGNAL}
 DECOMP
 )"
+
+  # Wait for the decomposer background agent to complete (signal file polling)
+  local DECOMP_WAIT=0
+  while [ ! -f "$SIGNAL" ]; do
+    sleep 5
+    DECOMP_WAIT=$((DECOMP_WAIT + 5))
+    if [ "$DECOMP_WAIT" -ge 300 ]; then
+      backlog task edit "$EPIC_ID" --status "Epic: Needs Human" \
+        --append-notes "cap:decompose=timeout
+Escalated: decomposer did not complete within 300s. Re-set to Epic: Ready to retry."
+      return 1
+    fi
+  done
+  rm -f "$SIGNAL"
 
   # R1 guard: every child must carry a shell-gate DoD
   if ! bash scripts/verify-subtask-dod.sh "$EPIC_ID" >/dev/null 2>&1; then
@@ -1450,6 +1495,40 @@ Escalated: decompose produced a DoD-less child. Fix sub-task DoD, set status →
   backlog task edit "$EPIC_ID" --status "Epic: Awaiting Children" \
     --append-notes "cap:decompose=done
 epicDecompose: children created at Basic: Backlog. Promote chosen children → Basic: Ready to execute."
+}
+
+# startPlanDraft: proposal-approved handler. Spawns a background agent to run Phase 3
+# (draftEpicPlan / draftPlan) of the appropriate skill for TASK_ID.
+# The daemon fires this when the human advances status to Epic: Plan or Basic: Plan
+# after proposal APPROVED and the marker file backlog/.etb-awaiting-plan-$id (or ftb) exists.
+startPlanDraft() {
+  local TASK_ID="$1"
+  local STATUS; STATUS="$(taskStatus "$TASK_ID")"
+  echo "startPlanDraft: $TASK_ID (status: $STATUS)"
+  Agent run_in_background=true prompt="$(cat <<PLANDRAFT
+Task ${TASK_ID} proposal has been APPROVED and its status is now '${STATUS}'.
+Run /epic-to-backlog ${TASK_ID} or /feature-to-backlog ${TASK_ID} (as appropriate for its kind)
+to continue from Phase 3 (plan drafting). The skill will detect the current status and
+resume from the correct phase automatically.
+PLANDRAFT
+)"
+}
+
+# startFinalise: plan-approved handler. Spawns a background agent to run Phase 5
+# (finalise) of the appropriate skill for TASK_ID.
+# The daemon fires this when the human advances status to Epic: Backlog or Basic: Ready
+# after plan APPROVED and the marker file backlog/.etb-awaiting-backlog-$id (or ftb) exists.
+startFinalise() {
+  local TASK_ID="$1"
+  local STATUS; STATUS="$(taskStatus "$TASK_ID")"
+  echo "startFinalise: $TASK_ID (status: $STATUS)"
+  Agent run_in_background=true prompt="$(cat <<FINALISE
+Task ${TASK_ID} plan has been APPROVED and its status is now '${STATUS}'.
+Run /epic-to-backlog ${TASK_ID} or /feature-to-backlog ${TASK_ID} (as appropriate for its kind)
+to continue from Phase 5 (finalise). The skill will detect the current status and
+resume from the correct phase automatically.
+FINALISE
+)"
 }
 
 # onChildDone: child-done handler. If parent epic at Awaiting Children and ALL children
