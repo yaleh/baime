@@ -45,7 +45,7 @@ for entry in "${DAEMONS[@]}"; do
   last_event="(no log)"
   log_age="-"
   if [ -f "$logfile" ]; then
-    le=$(grep -E '(basic|epic)-ready:|epic_task:|child_task:|terminal:' "$logfile" 2>/dev/null | tail -1)
+    le=$(grep -E '(basic|epic)-ready:|child-done:|terminal:' "$logfile" 2>/dev/null | tail -1)
     [ -n "$le" ] && last_event="$le"
     if mtime=$(stat -c %Y "$logfile" 2>/dev/null); then
       now=$(date +%s)
