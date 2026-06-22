@@ -1,7 +1,7 @@
 ---
 id: TASK-150
 title: 研究——定义并基线化 Gate 理解负载（GCL），验证「压缩所需理解表面积」方向
-status: Basic: Backlog
+status: 'Basic: Backlog'
 assignee: []
 created_date: '2026-06-22 09:43'
 updated_date: '2026-06-22 09:49'
