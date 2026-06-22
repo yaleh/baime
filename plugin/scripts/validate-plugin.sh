@@ -259,11 +259,11 @@ echo "=== Unit Tests ==="
 
 run_skill_unit_tests() {
   local test_dir="$REPO_ROOT/scripts"
-  for test_file in "$test_dir"/*.test.js "$test_dir"/*.test.sh; do
+  for test_file in "$test_dir"/*.test.js "$test_dir"/*.test.cjs "$test_dir"/*.test.sh; do
     [ -f "$test_file" ] || continue
     local name
     name="$(basename "$test_file")"
-    if [[ "$test_file" == *.test.js ]]; then
+    if [[ "$test_file" == *.test.js ]] || [[ "$test_file" == *.test.cjs ]]; then
       if node "$test_file" >/dev/null 2>&1; then
         pass "unit test: $name"
       else

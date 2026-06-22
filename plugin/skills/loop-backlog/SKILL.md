@@ -516,12 +516,19 @@ fi
 
 ### ensureDaemonScript
 
-Write the daemon script to `scripts/basic-daemon.js`, overwriting if the version tag
-does not match. Node.js is guaranteed available on every Claude Code install; no runtime
-dependency needed.
+Write the daemon script to `scripts/basic-daemon.js` (or `scripts/basic-daemon.cjs` in
+ESM projects where `"type": "module"` is set in package.json), overwriting if the version
+tag does not match. Node.js is guaranteed available on every Claude Code install; no
+runtime dependency needed.
 
 ```bash
-DAEMON_SCRIPT="${REPO_ROOT}/scripts/basic-daemon.js"
+# Detect ESM project; use .cjs extension to avoid CJS/ESM conflict
+if grep -q '"type"[[:space:]]*:[[:space:]]*"module"' "${REPO_ROOT}/package.json" 2>/dev/null; then
+  DAEMON_EXT="cjs"
+else
+  DAEMON_EXT="js"
+fi
+DAEMON_SCRIPT="${REPO_ROOT}/scripts/basic-daemon.${DAEMON_EXT}"
 DAEMON_VERSION="v7"
 
 NEED_WRITE=true
@@ -713,7 +720,8 @@ then run it. Tests cover the pure helper functions. Run this immediately after
 `ensureDaemonScript` so a broken daemon is caught before the daemon is launched.
 
 ```bash
-TEST_SCRIPT="${REPO_ROOT}/scripts/basic-daemon.test.js"
+TEST_EXT="${DAEMON_EXT:-js}"
+TEST_SCRIPT="${REPO_ROOT}/scripts/basic-daemon.test.${TEST_EXT}"
 
 if [ ! -f "$TEST_SCRIPT" ]; then
   cat > "$TEST_SCRIPT" << 'TEST_EOF'
@@ -861,7 +869,7 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 if [ "$DAEMON_RUNNING" = "false" ]; then
-  nohup node "${REPO_ROOT}/scripts/basic-daemon.js" \
+  nohup node "$DAEMON_SCRIPT" \
     --tasks-dir "$TASKS_DIR" \
     --pid-file  "$PID_FILE"  \
     --stop-file "$STOP_FILE" \
