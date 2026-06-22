@@ -1,0 +1,70 @@
+{
+  "generated": "2026-06-22T17:43:10.487Z",
+  "data_source": "measured",
+  "models": {
+    "claude-haiku-4-5-20251001": {
+      "V0": {
+        "accuracy_clear": 1,
+        "accuracy_ambig": 0.875,
+        "accuracy_overall": 0.938,
+        "cc_recall": 0.875,
+        "do_recall": 1
+      },
+      "V1": {
+        "accuracy_clear": 1,
+        "accuracy_ambig": 0.925,
+        "accuracy_overall": 0.963,
+        "cc_recall": 0.925,
+        "do_recall": 1
+      }
+    },
+    "claude-sonnet-4-6": {
+      "V0": {
+        "accuracy_clear": 1,
+        "accuracy_ambig": 0.9,
+        "accuracy_overall": 0.95,
+        "cc_recall": 0.9,
+        "do_recall": 1
+      },
+      "V1": {
+        "accuracy_clear": 1,
+        "accuracy_ambig": 0.875,
+        "accuracy_overall": 0.938,
+        "cc_recall": 0.875,
+        "do_recall": 1
+      }
+    }
+  },
+  "hypotheses": {
+    "H-A": {
+      "description": "V1 AMBIG accuracy >= V0 AMBIG accuracy + 5pp",
+      "V0_obs": 0.875,
+      "V1_obs": 0.925,
+      "delta": 0.05,
+      "verdict": "CONFIRMED"
+    },
+    "H-B": {
+      "description": "Both V0 and V1 achieve >= 0.90 on CLEAR fixtures",
+      "V0_obs": 1,
+      "V1_obs": 1,
+      "delta": 0,
+      "verdict": "CONFIRMED"
+    },
+    "H-C": {
+      "description": "V1 overall accuracy >= V0 overall accuracy + 5pp",
+      "V0_obs": 0.938,
+      "V1_obs": 0.963,
+      "delta": 0.025,
+      "verdict": "NULL"
+    },
+    "H-D": {
+      "description": "V1 DO recall not degraded > 10pp vs V0",
+      "V0_obs": 1,
+      "V1_obs": 1,
+      "delta": 0,
+      "verdict": "CONFIRMED"
+    }
+  },
+  "cross_model_consistency": "[underpowered] — models disagree on direction (Haiku: AMBIG Δ=0.050, Sonnet: AMBIG Δ=-0.025)",
+  "V_meta_experiment": 0.97
+}

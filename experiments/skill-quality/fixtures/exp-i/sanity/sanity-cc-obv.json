@@ -1,0 +1,1 @@
+{"id":"sanity-cc-obv","fixtureClass":"CLEAR","expectedClass":"DOC-ONLY","epicPlanExcerpt":"Sub-Task Decomposition:\n- Write a research summary of task classification approaches\n- Survey existing literature","subtaskHint":"Write a research summary of task classification approaches","ground_truth_rationale":"Explicit research summary writing → DOC-ONLY","tricky_aspect":null}

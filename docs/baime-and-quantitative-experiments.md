@@ -151,6 +151,26 @@ transferability: 90%        # [unvalidated] — 尚无 held-out 实验支撑
 
 ---
 
+## 五、Exp-I 结论摘要（2026-06-22）
+
+**实验**: persona 对 decomposer CODE-CHANGE vs DOC-ONLY 分类的影响  
+**设计**: V0（功能性指令）vs V1（专家架构师 persona），16 个 fixture（8 CLEAR + 8 AMBIGUOUS），k=5，双模型（Haiku + Sonnet）
+
+| 假设 | 裁决 | Δ（Haiku 主模型）|
+|------|------|-----------------|
+| H-A: V1 AMBIGUOUS 准确率 ≥ V0 + 5pp | **CONFIRMED** | +0.050（恰好达阈值）|
+| H-B: 两变体 CLEAR 准确率 ≥ 0.90 | **CONFIRMED** | V0=1.00, V1=1.00 |
+| H-C: V1 总体准确率 ≥ V0 + 5pp | **NULL** | +0.025（低于 5pp 阈值）|
+| H-D: DOC-ONLY 召回不下降 > 10pp | **CONFIRMED** | Δ=0（无偏置）|
+
+**跨模型一致性**: `[underpowered]` — Haiku 显示 AMBIG Δ=+0.050（正向），Sonnet 显示 AMBIG Δ=−0.025（负向），方向不一致。
+
+**结论**: H-A 在 Haiku 上刚好达到 CONFIRMED，但跨模型不一致性将置信度降级为"证据不足"。H-C 为 NULL。当前场景对应设计文档中"persona 对 AMBIGUOUS 有效，但整体无显著提升"——如果接受欠功效信号，可将 V1 persona 添加到 decomposer；如果要求更高置信度，需运行 Exp-J（扩大 AMBIGUOUS fixture 至 n=16）。CLEAR ceiling（100%）和 DOC-ONLY 召回（无偏置）均符合预期。
+
+详细数据: `experiments/skill-quality/artifacts/analysis/exp-i-results.json`
+
+---
+
 ## 四、两个最小可行的下一步
 
 | 步骤 | 制品 | 意义 |
