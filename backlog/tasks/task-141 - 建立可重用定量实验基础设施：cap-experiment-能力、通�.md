@@ -1,14 +1,14 @@
 ---
 id: TASK-141
 title: '建立可重用定量实验基础设施：cap:experiment 能力、通�'
-status: 'Epic: Backlog'
+status: 'Epic: Evaluating'
 assignee: []
 created_date: '2026-06-22 03:13'
-updated_date: '2026-06-22 03:52'
+updated_date: '2026-06-22 12:28'
 labels:
   - 'kind:epic'
 dependencies: []
-ordinal: 97000
+ordinal: 1000
 ---
 
 ## Description
@@ -149,4 +149,33 @@ cap:propose=approved
 - Goal 4 / TASK-141-E 从「写进 validate-plugin」改为「独立 opt-in 门 verify-experiment-provenance.sh + validate-plugin 仅作单行调用方」。实验完整性门校验实验、不校验发行;无实验产物时为 no-op,对非实验项目零成本。
 - 新增约束 7（解耦原则）:实验完整性 ≠ 发行/业务管道;baime 把它接进自己发行门是编辑选择,不强加给 BAIME 采纳者。
 - 新增约束 8（可重用性为设计约束、分发为后续 epic）:runner/timing/gate 写成项目无关,plugin 分发(及 canonical/copy 一致性)留作 dogfood 后的后续 epic;timing.ts 因普适性最高,保持最干净以便未来 lift。
+
+cap:decompose=started 2026-06-22T11:50:00Z
+
+cap:decompose=done
+epicDecompose: 6 children created at Basic: Backlog. Promote chosen children → Basic: Ready to execute.
+
+Sub-task TASK-153 completed: 2026-06-22T12:03:49Z
+
+onChildDone: 1/6 children done
+
+Sub-task TASK-156 completed: 2026-06-22T12:11:05Z
+
+onChildDone: 2/6 children done
+
+Sub-task TASK-154 completed: 2026-06-22T12:12:55Z
+
+onChildDone: 3/6 children done
+
+Sub-task TASK-157 reached terminal status: 2026-06-22T12:20:53Z
+
+Sub-task TASK-158 reached terminal status: 2026-06-22T12:24:43Z
+
+Sub-task TASK-155 reached terminal status: 2026-06-22T12:27:35Z
+
+cap:evaluate=recommendation:FINISH | done=6 needsHuman=0 | all children Basic: Done with DoD pass | data_source: measured
+
+RECOMMENDATION: FINISH.
+To finish: set status → Epic: Done.
+To iterate: set status → Epic: Proposal or Epic: Plan and re-run /epic-to-backlog.
 <!-- SECTION:NOTES:END -->
