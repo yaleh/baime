@@ -202,7 +202,7 @@ backlog-setup     — one-time initializer; validates columns
 
 2. **规则类隐性项外化**（Artifact+ 路径）：建立 `docs/ARCHITECTURE.md`，记录系统不变量（daemon 单进程、BasicDAG 状态机）、R1 guard 豁免规则、FINISH/ITERATE 判断准则。首批条目可从 gcl-corpus.md 的 H 列直接提取（TASK-125 H-A、TASK-147 H-B）。
 
-3. **H4 动态验证（meta-cc session trace 路径）**：当前 H4 数据全部来自截面分析和反事实预测。使用 meta-cc 对实际 gate 事件做纵向追踪，可将 H 分量从估算升至实测。详见§研究基础中的验证路径讨论。
+3. **H4 动态验证（premise-ledger 路径，已就绪）**：TASK-151 已将 premise-ledger 指令注入 feature-to-backlog 和 epic-to-backlog 的 reviewLoop reviewer prompt——后续每次 gate 裁决均自动向 task Notes 写入 `[E|C|H] criterion: premise` 和 `GCL-self-report: E=n C=n H=n`。H 从此可从 Notes 机械提取，无需 forensic 重建。下一步：累积若干自报事件后，与 gcl-corpus.md 估算值对比，验证偏差方向，并纵向观察判断类隐性项是否随 artifact 增加而持续涌现（H4 动态版本）。meta-cc session trace 可作为辅助交叉验证，不再是主路径。
 
 4. **Scope− 对照实验**：对比"全 proposal 评审"（当前）与"仅 DoD 机械验证"（Scope−）的 gate 可靠性差异，实证验证 GCL 5.0 vs 14.55 是否在保持可靠性的同时不增加漏检率。
 

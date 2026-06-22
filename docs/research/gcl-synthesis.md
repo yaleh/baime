@@ -73,7 +73,7 @@
 
 ## 下一步
 
-1. **验证 H4 方向性预测**：在后续 session 中记录 gate 实际行为，识别"判断类"隐性项是否随 artifact 增加而持续涌现（验证 H4 的动态版本）
+1. **首次 premise-ledger 对比验证**（TASK-151 已完成仪器建设）：从下一个经过 feature-to-backlog 或 epic-to-backlog reviewLoop 的 gate 事件中读取 task Notes 的 `GCL-self-report` 行，将自报 H 值与 gcl-corpus.md 同类事件的估算 H 值对比，验证估算方法的系统偏差方向；持续累积自报数据以验证 H4 的动态版本（判断类隐性项是否随 artifact 增加而持续涌现）
 
 2. **增加语料范围**：将语料扩展到更长时间窗口（>2 天）和更多任务类型，特别是 task-to-backlog 产生的 doc-only 任务
 

@@ -108,11 +108,12 @@ C = cross_task + cross_doc + has_parent
 
 隐性项难以从静态 artifact 提取，需通过以下方式逼近：
 
+0. **premise-ledger 自报法**（最可靠；TASK-151 起可用）：reviewer agent 在 gate 裁决时，将每条 criterion 所凭前提分类为 E/C/H 并写入 task Notes（格式：`[E|C|H] criterion: premise`，末尾含 `GCL-self-report: E=n C=n H=n`）。H 计数从 Notes 机械提取，无需 forensic 重建。适用范围：TASK-151 合并后的任何 feature-to-backlog 或 epic-to-backlog gate 事件。
 1. **负空间法**：gate 判断所需的全部前提 - 显性项 - 跨界项 = 隐性项候选
 2. **引用追踪法**：查看实现笔记（Implementation Notes）中出现的判断理由，如果某理由无法在任何引用的 artifact 中找到对应内容，则计为 1 隐性项
-3. **会话上下文法**（最可靠但需 meta-cc）：从会话 transcript 中提取判断者引用的信息，未被 artifact 锚定的计为隐性项
+3. **会话上下文法**（需 meta-cc）：从会话 transcript 中提取判断者引用的信息，未被 artifact 锚定的计为隐性项
 
-**本研究的测量降级**：因为 meta-cc session trace 在此研究语境中不可用，所有隐性项计数基于**方法 1 + 2 的保守估算**，并标注为 `[estimated: 负空间+引用追踪]`，除非有直接证据标注为 `[measured]`。
+**gcl-corpus.md 的测量降级**：因为该语料（N=20，TASK-125–149）早于 TASK-151，所有隐性项计数基于**方法 1 + 2 的保守估算**，标注为 `[estimated: 负空间+引用追踪]`。后续语料可使用方法 0 获得实测 H 值。
 
 ### 测量方式
 
