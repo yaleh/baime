@@ -8,23 +8,17 @@
  * H-universal: σ(verdict_only across skills) < 0.10 → global thresholds are valid
  * H-per-skill: σ(verdict_only across skills) ≥ 0.10 → per-skill calibration required
  *
- * Design:
- *   - P-full prompt injection (complete SKILL.md content per Exp-D/F recommendation)
- *   - Model: Haiku (MODEL_PRIMARY), k=5
- *   - Reports both composite score and verdict-only accuracy per skill
- *   - ≥6 CLEAR fixtures per skill required; otherwise: defer (not counted)
- *
  * Usage:
  *   npx tsx exp-h/run-exp-h.ts [--k 5] [--out artifacts/runs/exp-h]
  */
 
-import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { readdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createLlmClient } from '../lib/llm-client.js';
 import { extractAnswer, scoreResponse } from '../lib/score.js';
 import { validateEnv, getModelPrimary } from '../lib/env.js';
+import { runExperiment, type ExperimentConfig, type FixtureRecord } from '../lib/runner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const EXP_ROOT = join(__dirname, '..');
@@ -40,8 +34,8 @@ const FIXTURE_DIRS: Record<string, string> = {
   'backlog-setup': join(EXP_ROOT, 'fixtures/exp-h/backlog-setup'),
 };
 
-// Sanity (negative control) fixture directory — health check before real experiments
-const SANITY_FIXTURE_DIR = join(EXP_ROOT, 'fixtures/sanity');
+// Sanity (negative control) fixture directory
+export const SANITY_FIXTURE_DIR = join(EXP_ROOT, 'fixtures/sanity');
 
 function parseArgs() {
   const argv = process.argv.slice(2);
@@ -58,8 +52,7 @@ function parseArgs() {
 
 // ---------- Fixture types ----------
 
-interface BaseFixture {
-  id: string;
+interface BaseFixture extends FixtureRecord {
   skill: string;
   taskClass: 'A' | 'B' | 'C';
   taskType: string;
@@ -69,18 +62,6 @@ interface BaseFixture {
   answerType: 'exact' | 'set' | 'partial';
   fixtureClass: 'CLEAR' | 'AMBIGUOUS' | 'ERROR';
   ground_truth_rationale: string;
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try { await access(path); return true; } catch { return false; }
-}
-
-async function loadFixtures(dir: string): Promise<BaseFixture[]> {
-  const files = (await readdir(dir)).filter(f => f.endsWith('.json')).sort();
-  const all = await Promise.all(
-    files.map(async f => JSON.parse(await readFile(join(dir, f), 'utf-8')) as BaseFixture),
-  );
-  return all.filter(f => f.fixtureClass === 'CLEAR');
 }
 
 // ---------- Prompt builders ----------
@@ -143,7 +124,7 @@ function buildPromptSet(skillContent: string, fixture: BaseFixture): string {
 }
 
 function buildPromptPartial(skillContent: string, fixture: BaseFixture): string {
-  const planObj = (fixture as BaseFixture & { plan?: unknown; config?: unknown }).plan ?? {};
+  const planObj = (fixture as BaseFixture & { plan?: unknown }).plan ?? {};
   const configObj = (fixture as BaseFixture & { config?: unknown }).config ?? {};
   return [
     `You are reviewing a plan against the ${fixture.skill} skill's invariants.`,
@@ -174,18 +155,10 @@ function buildPromptPartial(skillContent: string, fixture: BaseFixture): string 
   ].join('\n');
 }
 
-function buildPrompt(skillContent: string, fixture: BaseFixture): string {
-  if (fixture.answerType === 'exact') return buildPromptExact(skillContent, fixture);
-  if (fixture.answerType === 'set') return buildPromptSet(skillContent, fixture);
-  if (fixture.answerType === 'partial') return buildPromptPartial(skillContent, fixture);
-  return buildPromptExact(skillContent, fixture);
-}
-
-// ---------- Answer extraction per type ----------
+// ---------- Answer extraction and scoring ----------
 
 function extractAnswerForFixture(response: string, fixture: BaseFixture): unknown {
   if (fixture.answerType === 'partial') {
-    // Extract verdict + failing_invariants
     const tryParse = (s: string) => {
       try {
         const obj = JSON.parse(s);
@@ -204,9 +177,7 @@ function extractAnswerForFixture(response: string, fixture: BaseFixture): unknow
     if (jsonMatch) { const r = tryParse(jsonMatch[0]); if (r) return r; }
     return null;
   }
-
   if (fixture.answerType === 'set') {
-    // Look for {"answer": [...]}
     const jsonMatch = response.match(/\{[^{}]*"answer"\s*:\s*\[[^\]]*\][^{}]*\}/);
     if (jsonMatch) {
       try { return JSON.parse(jsonMatch[0]).answer; } catch {}
@@ -217,8 +188,6 @@ function extractAnswerForFixture(response: string, fixture: BaseFixture): unknow
     }
     return null;
   }
-
-  // exact
   return extractAnswer(response);
 }
 
@@ -234,7 +203,6 @@ function scoreForFixture(extracted: unknown, fixture: BaseFixture): number {
   return scoreResponse(extracted, fixture.answer, fixture.answerType);
 }
 
-// Verdict-only score: for partial fixtures only check the verdict field
 function verdictOnlyScore(extracted: unknown, fixture: BaseFixture): number {
   if (fixture.answerType === 'partial') {
     const gt = fixture.answer as { verdict: string; failing_invariants: string[] };
@@ -242,216 +210,73 @@ function verdictOnlyScore(extracted: unknown, fixture: BaseFixture): number {
     if (!ans || !ans.verdict) return 0;
     return ans.verdict.toLowerCase() === gt.verdict.toLowerCase() ? 1 : 0;
   }
-  // For exact/set, verdict-only == composite
   return scoreForFixture(extracted, fixture);
 }
 
-// ---------- Harness field injection self-check ----------
-// Ensures that when a fixture has semantic fields (state/input/plan/config),
-// the built prompt actually contains content derived from those fields.
-// Motivation: Exp-H Class A false-negative root cause — state was silently dropped
-// by an earlier version of buildPromptExact. This check prevents regression.
+// ---------- Load fixture file paths for a skill directory ----------
 
-function assertPromptInjectsFields(fixture: BaseFixture, prompt: string): void {
-  const ext = fixture as BaseFixture & {
-    state?: Record<string, unknown>;
-    input?: Record<string, unknown>;
-    plan?: Record<string, unknown>;
-    config?: Record<string, unknown>;
-  };
-  const fieldsToCheck: Array<keyof typeof ext> = ['state', 'input', 'plan', 'config'];
-  const missing: string[] = [];
-
-  for (const field of fieldsToCheck) {
-    const value = ext[field];
-    if (value === undefined || value === null) continue;
-    if (typeof value !== 'object') continue;
-    const keys = Object.keys(value);
-    if (keys.length === 0) continue; // empty object is trivially injected
-
-    const anyKeyPresent = keys.some(k => prompt.includes(k));
-    if (!anyKeyPresent) {
-      missing.push(field);
-    }
+async function loadFixturePaths(dir: string): Promise<string[]> {
+  const files = (await readdir(dir)).filter(f => f.endsWith('.json')).sort();
+  const paths = files.map(f => join(dir, f));
+  // Filter to CLEAR fixtures only (matches original logic)
+  const cleared: string[] = [];
+  for (const p of paths) {
+    const fx = JSON.parse(await readFile(p, 'utf-8')) as { fixtureClass?: string };
+    if (fx.fixtureClass === 'CLEAR') cleared.push(p);
   }
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Injection check FAILED for fixture '${fixture.id}': ` +
-      `fields [${missing.join(', ')}] exist in fixture but no key appears in the built prompt. ` +
-      `Ensure buildPrompt injects all semantic fields into the prompt context.`
-    );
-  }
+  return cleared;
 }
 
-// ---------- Sanity / negative control check ----------
-// Runs trivially-correct fixtures before the real experiment.
-// If ALL sanity fixtures fail, the harness itself is likely broken.
-// This is a negative control: any competent model must pass these.
+// ---------- Build ExperimentConfig (exported for tests) ----------
 
-async function runSanityCheck(client: ReturnType<typeof createLlmClient>, model: string): Promise<void> {
-  if (!(await fileExists(SANITY_FIXTURE_DIR))) {
-    console.log('(No sanity fixtures directory found — skipping negative control check)');
-    return;
-  }
-
-  const files = (await readdir(SANITY_FIXTURE_DIR)).filter(f => f.endsWith('.json')).sort();
-  if (files.length === 0) {
-    console.log('(No sanity fixtures found — skipping negative control check)');
-    return;
-  }
-
-  console.log(`\n--- Sanity check (negative control, ${files.length} fixture(s)) ---`);
-
-  const sanityFixtures = await Promise.all(
-    files.map(async f => JSON.parse(
-      await readFile(join(SANITY_FIXTURE_DIR, f), 'utf-8')
-    ) as BaseFixture)
-  );
-
-  // Use a minimal prompt for sanity: no real SKILL.md needed
-  const sanitySkillContent = '# sanity-check\nThis is a trivially obvious decision fixture.';
-
-  let passCount = 0;
-  for (const fixture of sanityFixtures) {
-    const prompt = buildPrompt(sanitySkillContent, fixture);
-    // Injection assertion — sanity fixtures must also pass field injection check
-    assertPromptInjectsFields(fixture, prompt);
-
-    try {
-      const resp = await client.chat({ model, messages: [{ role: 'user', content: prompt }] });
-      const extracted = extractAnswerForFixture(resp.content, fixture);
-      const score = scoreForFixture(extracted, fixture);
-      if (score >= 0.99) {
-        console.log(`  PASS sanity: ${fixture.id} → ${JSON.stringify(extracted)}`);
-        passCount++;
-      } else {
-        console.warn(`  FAIL sanity: ${fixture.id} → got ${JSON.stringify(extracted)}, expected ${JSON.stringify(fixture.answer)}`);
-      }
-    } catch (err) {
-      console.warn(`  ERROR sanity: ${fixture.id}: ${(err as Error).message}`);
-    }
-  }
-
-  if (passCount === 0 && sanityFixtures.length > 0) {
-    console.error('\nHARNESS FAULT DETECTED: ALL sanity fixtures failed.');
-    console.error('This indicates a harness or prompt construction problem, not a skill problem.');
-    process.exit(1);
-  }
-
-  console.log(`Sanity check passed: ${passCount}/${sanityFixtures.length} trivial fixtures correct.\n`);
-}
-
-// ---------- Main ----------
-
-async function main() {
-  validateEnv();
-  const opts = parseArgs();
-  const client = createLlmClient();
-  const model = getModelPrimary();
-
-  // Run sanity / negative control check before real experiment
-  // (only when LLM calls will actually be made, i.e. not in dry-run scenarios)
-  // Comment: sanity fixtures serve as harness health checks — trivial questions any model must answer
-  await runSanityCheck(client, model);
-
+export async function buildConfig(opts: {
+  k: number;
+  outDir: string;
+}): Promise<ExperimentConfig> {
   const skillNames = Object.keys(FIXTURE_DIRS);
-  const allFixtures: Record<string, BaseFixture[]> = {};
+  const variants: Record<string, string[]> = {};
   const skillContents: Record<string, string> = {};
 
-  // Load fixtures and skill content
   for (const skill of skillNames) {
-    const fixtures = await loadFixtures(FIXTURE_DIRS[skill]!);
-    allFixtures[skill] = fixtures;
-
-    const skillPath = SKILL_PATHS[skill]!;
-    skillContents[skill] = await readFile(skillPath, 'utf-8');
-
-    const eligible = fixtures.length >= 6;
-    console.log(`${skill}: ${fixtures.length} CLEAR fixtures — ${eligible ? 'ELIGIBLE' : 'DEFERRED (< 6)'}`);
+    const paths = await loadFixturePaths(FIXTURE_DIRS[skill]!);
+    variants[skill] = paths;
+    skillContents[skill] = await readFile(SKILL_PATHS[skill]!, 'utf-8');
   }
 
-  const eligibleSkills = skillNames.filter(s => (allFixtures[s]?.length ?? 0) >= 6);
-  const totalCalls = eligibleSkills.reduce((sum, s) => sum + (allFixtures[s]?.length ?? 0), 0) * opts.k;
+  const config: ExperimentConfig = {
+    variants,
+    modelList: [getModelPrimary()],
+    k: opts.k,
+    outDir: opts.outDir,
+    sanityDir: SANITY_FIXTURE_DIR,
 
-  console.log(`\nModel: ${model} | k=${opts.k} | Total calls: ${totalCalls}`);
-  console.log('');
+    buildPrompt(fixture: FixtureRecord, variant: string): string {
+      const fx = fixture as BaseFixture;
+      const content = skillContents[variant] ?? skillContents[fx.skill] ?? '';
+      if (fx.answerType === 'exact') return buildPromptExact(content, fx);
+      if (fx.answerType === 'set') return buildPromptSet(content, fx);
+      if (fx.answerType === 'partial') return buildPromptPartial(content, fx);
+      return buildPromptExact(content, fx);
+    },
 
-  let completed = 0;
-  let skipped = 0;
+    scoreResponse(response: string, fixture: FixtureRecord): number {
+      const fx = fixture as BaseFixture;
+      const extracted = extractAnswerForFixture(response, fx);
+      return scoreForFixture(extracted, fx);
+    },
+  };
 
-  // ---------- Run LLM calls ----------
-  for (const skill of eligibleSkills) {
-    const fixtures = allFixtures[skill]!;
-    const content = skillContents[skill]!;
-
-    for (const fixture of fixtures) {
-      const runDir = join(opts.outDir, skill, fixture.id);
-      const resultPath = join(runDir, 'result.json');
-
-      let responses: string[] = [];
-      if (await fileExists(resultPath)) {
-        const existing = JSON.parse(await readFile(resultPath, 'utf-8')) as { responses: string[] };
-        responses = existing.responses ?? [];
-      }
-
-      const needed = opts.k - responses.length;
-      if (needed <= 0) {
-        skipped += opts.k;
-        continue;
-      }
-
-      const prompt = buildPrompt(content, fixture);
-      // Injection self-check: assert all semantic fields appear in the prompt
-      assertPromptInjectsFields(fixture, prompt);
-
-      for (let i = 0; i < needed; i++) {
-        try {
-          const resp = await client.chat({
-            model,
-            messages: [{ role: 'user', content: prompt }],
-          });
-          responses.push(resp.content);
-          completed++;
-
-          if ((completed + skipped) % 5 === 0) {
-            const pct = Math.round((completed + skipped) / totalCalls * 100);
-            process.stdout.write(`\r  [${pct}%] ${completed} done, ${skipped} skipped`);
-          }
-        } catch (err) {
-          console.error(`\n  ERROR ${skill}/${fixture.id} run ${i}:`, (err as Error).message);
-        }
-      }
-
-      await mkdir(runDir, { recursive: true });
-      await writeFile(resultPath, JSON.stringify({
-        skill,
-        model,
-        fixtureId: fixture.id,
-        taskClass: fixture.taskClass,
-        answerType: fixture.answerType,
-        groundTruth: fixture.answer,
-        responses,
-      }, null, 2));
-    }
-  }
-
-  if (totalCalls > 0) {
-    console.log(`\n\nDone: ${completed} new calls, ${skipped} checkpointed.`);
-  }
-
-  console.log('\nScoring and analyzing...');
-  await analyze(opts.outDir, opts.analysisDir, allFixtures, model, eligibleSkills);
+  return config;
 }
 
-// ---------- Analysis ----------
+// ---------- Cross-skill variance analysis (Exp-H specific) ----------
 
 async function analyze(
   outDir: string,
   analysisDir: string,
+  eligibleSkills: string[],
   allFixtures: Record<string, BaseFixture[]>,
   model: string,
-  eligibleSkills: string[],
 ) {
   type FixtureScore = {
     fixtureId: string;
@@ -467,20 +292,16 @@ async function analyze(
     per_fixture: FixtureScore[];
   }> = {};
 
+  const modelSlug = model.replace(/[^a-z0-9-]/gi, '_');
+
   for (const skill of eligibleSkills) {
     const fixtures = allFixtures[skill]!;
     const perFixture: FixtureScore[] = [];
 
     for (const fixture of fixtures) {
-      const resultPath = join(outDir, skill, fixture.id, 'result.json');
-      if (!(await fileExists(resultPath))) {
-        throw new Error(
-          `Missing result for ${skill}/${fixture.id} — run the LLM pass before analyzing. ` +
-          `(Provenance guard: analysis requires measured data, not estimated values.)`
-        );
-      }
-
+      const resultPath = join(outDir, skill, modelSlug, fixture.id, 'result.json');
       const result = JSON.parse(await readFile(resultPath, 'utf-8')) as { responses: string[] };
+
       const compositeScores = result.responses.map(r => {
         const extracted = extractAnswerForFixture(r, fixture);
         return scoreForFixture(extracted, fixture);
@@ -516,24 +337,7 @@ async function analyze(
     };
   }
 
-  // Raw output
-  const raw = {
-    generated: new Date().toISOString(),
-    model,
-    k: 5,
-    prompt_style: 'P-full',
-    eligible_skills: eligibleSkills,
-    'feature-to-backlog': perSkill['feature-to-backlog'] ?? null,
-    'backlog-setup': perSkill['backlog-setup'] ?? null,
-    per_skill: perSkill,
-  };
-
-  await mkdir(analysisDir, { recursive: true });
-  const rawPath = join(analysisDir, 'exp-h-raw.json');
-  await writeFile(rawPath, JSON.stringify(raw, null, 2));
-  console.log(`Raw results: ${rawPath}`);
-
-  // ---------- Cross-skill variance analysis ----------
+  // Cross-skill variance analysis
   const verdictOnlyValues = eligibleSkills.map(s => perSkill[s]?.verdict_only ?? 0);
   const mean = verdictOnlyValues.reduce((a, b) => a + b, 0) / verdictOnlyValues.length;
   const variance = verdictOnlyValues.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / verdictOnlyValues.length;
@@ -545,18 +349,15 @@ async function analyze(
     : sigma < 0.15 ? 'hybrid'
     : 'per-skill-calibration';
 
-  // Suspiciously-low σ sanity check: σ < 0.005 likely indicates anchored/estimated data
   const SUSPICIOUSLY_LOW_SIGMA_THRESHOLD = 0.005;
   const suspisciouslyLow = sigma < SUSPICIOUSLY_LOW_SIGMA_THRESHOLD;
   if (suspisciouslyLow) {
     console.warn(
       `\nWARNING: suspiciously_low σ detected: σ=${sigma.toFixed(6)} < ${SUSPICIOUSLY_LOW_SIGMA_THRESHOLD}.\n` +
-      `  This may indicate that skill scores were anchored to the same reference values\n` +
-      `  rather than measured independently. Verify that all fixtures produced real LLM responses.\n`
+      `  This may indicate anchored/estimated data. Verify real LLM responses.\n`
     );
   }
 
-  // Reference accuracies from Exp-B/D/E (loop-backlog / task-from-template skills)
   const refSkills = {
     'loop-backlog': { verdict_only: 0.92, source: 'Exp-D P-full' },
     'task-from-template': { verdict_only: 0.92, source: 'Exp-D P-full' },
@@ -565,7 +366,7 @@ async function analyze(
 
   const results = {
     generated: new Date().toISOString(),
-    data_source: 'measured',
+    data_source: 'measured' as const,
     data_source_note: `Real LLM calls: ${eligibleSkills.length} skills × fixtures × k=5. Run artifacts in artifacts/runs/exp-h/.`,
     model,
     reference_skills: refSkills,
@@ -583,7 +384,7 @@ async function analyze(
     recommendation,
     interpretation: hUniversal
       ? `Cross-skill σ=${sigma.toFixed(3)} < 0.10. Oracle thresholds generalize across skills. Global threshold table is valid.`
-      : `Cross-skill σ=${sigma.toFixed(3)} ≥ 0.10. Skill-specific calibration recommended. Per-skill thresholds should be measured.`,
+      : `Cross-skill σ=${sigma.toFixed(3)} ≥ 0.10. Skill-specific calibration recommended.`,
     layer25_threshold_table: {
       'Class A': { threshold: 0.85, condition: 'P-full injection' },
       'Class B': { threshold: 0.70, condition: 'verdict-only, scorer pre-validated' },
@@ -592,6 +393,7 @@ async function analyze(
     },
   };
 
+  await mkdir(analysisDir, { recursive: true });
   const resultsPath = join(analysisDir, 'exp-h-results.json');
   await writeFile(resultsPath, JSON.stringify(results, null, 2));
   console.log(`Results: ${resultsPath}`);
@@ -604,6 +406,54 @@ async function analyze(
   console.log(`  σ(verdict_only) = ${sigma.toFixed(3)}`);
   console.log(`  Hypothesis: ${hypothesis}`);
   console.log(`  Recommendation: ${recommendation}`);
+
+  return results;
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+// ---------- Main ----------
+
+async function main() {
+  validateEnv();
+  const opts = parseArgs();
+  const model = getModelPrimary();
+
+  const config = await buildConfig({ k: opts.k, outDir: opts.outDir });
+
+  // Filter to eligible skills (≥ 6 CLEAR fixtures)
+  const skillNames = Object.keys(FIXTURE_DIRS);
+  const eligibleSkills = skillNames.filter(s => (config.variants[s]?.length ?? 0) >= 6);
+  const allFixtures: Record<string, BaseFixture[]> = {};
+
+  for (const skill of skillNames) {
+    const paths = config.variants[skill] ?? [];
+    const eligible = paths.length >= 6;
+    console.log(`${skill}: ${paths.length} CLEAR fixtures — ${eligible ? 'ELIGIBLE' : 'DEFERRED (< 6)'}`);
+    if (eligible) {
+      allFixtures[skill] = await Promise.all(
+        paths.map(async p => JSON.parse(await readFile(p, 'utf-8')) as BaseFixture)
+      );
+    }
+  }
+
+  // Filter config variants to eligible skills only
+  const eligibleConfig: ExperimentConfig = {
+    ...config,
+    variants: Object.fromEntries(
+      eligibleSkills.map(s => [s, config.variants[s] ?? []])
+    ),
+  };
+
+  console.log(`\nModel: ${model} | k=${opts.k}`);
+  await runExperiment(eligibleConfig);
+
+  console.log('\nScoring and analyzing...');
+  await analyze(opts.outDir, opts.analysisDir, eligibleSkills, allFixtures, model);
+}
+
+// Guard: only run main() when this module is the entry point (not when imported by tests)
+const isEntryPoint = process.argv[1] === fileURLToPath(import.meta.url) ||
+  // tsx resolves .ts → .js; also handle tsx stripping the extension
+  process.argv[1]?.endsWith('run-exp-h.ts');
+if (isEntryPoint) {
+  main().catch(e => { console.error(e); process.exit(1); });
+}
