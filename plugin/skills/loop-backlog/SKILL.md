@@ -244,11 +244,11 @@ createSubTask(parent, spec) = {
 
 -- verifySubTaskDod: R1 guard — every child of the epic carries a shell-gate DoD.
 verifySubTaskDod :: TaskId → Bool
-verifySubTaskDod(id) = shell("bash scripts/verify-subtask-dod.sh " + id) == 0
+verifySubTaskDod(id) = shell("bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" " + id) == 0
 
 -- allDodPass: measured slice — every done child's DoD shell-gates exit 0 (re-run).
 allDodPass :: [Task] → Bool
-allDodPass(done) = ∀c ∈ done: shell("bash scripts/verify-subtask-dod.sh " + c.id) == 0
+allDodPass(done) = ∀c ∈ done: shell("bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" " + c.id) == 0
 
 reap :: [Task] → ()
 reap(tasks) = ∀t ∈ tasks
@@ -1501,7 +1501,7 @@ STEP 5 — Create children:
   Do not create children that already exist (idempotent). Record all created TASK-ids.
 
 STEP 6 — R1 guard (verify every child has a shell-gate DoD):
-  Run: bash scripts/verify-subtask-dod.sh ${EPIC_ID}
+  Run: bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" ${EPIC_ID}
 
 STEP 7a — R1 PASS: advance to Awaiting Children:
   Run: backlog task edit ${EPIC_ID} --status "Epic: Awaiting Children" \
@@ -1584,7 +1584,7 @@ onChildDone() {
 
   # Measured slice: re-run every child's DoD shell-gate
   local DOD_OK=true
-  bash scripts/verify-subtask-dod.sh "$EPIC_ID" >/dev/null 2>&1 || DOD_OK=false
+  bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" "$EPIC_ID" >/dev/null 2>&1 || DOD_OK=false
   local VERDICT="ITERATE"
   if [ "$NEEDS" -eq 0 ] && [ "$DOD_OK" = "true" ]; then VERDICT="FINISH"; fi
 

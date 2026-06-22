@@ -146,7 +146,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
 Write the manifest to `$TMPDIR/task-to-backlog-manifest.json`, then validate it:
 
 ```bash
-bash scripts/skill-lint.sh --manifest "$TMPDIR/task-to-backlog-manifest.json"
+bash "${REPO_ROOT}/scripts/skill-lint.sh" --manifest "$TMPDIR/task-to-backlog-manifest.json"
 ```
 
 If validation fails, stop and report the error before proceeding.
@@ -321,13 +321,13 @@ Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
 >
 > **Step D — Run Layer 0-2 validation gate**:
 > ```bash
-> bash scripts/validate-plugin.sh
+> bash "${REPO_ROOT}/scripts/validate-plugin.sh"
 > ```
 > If validation fails, fix any SKILL.md contracts or internals before proceeding.
 >
 > Add the validation DoD item to the task:
 > ```bash
-> backlog task edit <TASK_ID> --dod "bash scripts/validate-plugin.sh"
+> backlog task edit <TASK_ID> --dod "bash "${REPO_ROOT}/scripts/validate-plugin.sh""
 > ```
 >
 > **Step E — Print completion**:
