@@ -4,3 +4,4 @@ backlog/*.pid
 experiments/skill-quality/.env
 experiments/skill-quality/artifacts/runs/
 backlog/.caps
+backlog/.*
