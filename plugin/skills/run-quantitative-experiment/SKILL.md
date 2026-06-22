@@ -13,6 +13,8 @@ contracts:
     target: self
   - not-grep: "V_instance.*0\\.[0-9]"
     target: self
+  - grep: "runExperiment"
+    target: self
 ---
 
 # Run Quantitative Experiment
@@ -87,6 +89,25 @@ Each experiment run proceeds through five mandatory phases:
 - Checkpoint/resume support to handle timeout
 - Output: `artifacts/runs/<experiment>/<class>/<model>/<fixture_id>/result.json`
 
+**Backend: `runner.ts`**
+
+Execution is delegated to `experiments/skill-quality/lib/runner.ts` via the `runExperiment` function:
+
+```typescript
+runExperiment(config: ExperimentConfig): Promise<ExperimentResult>
+
+interface ExperimentConfig {
+  variants:    string[];       // experiment variant names
+  modelList:   string[];       // model IDs to run (≥ 2 required)
+  k:           number;         // repetitions per fixture (default: 5)
+  outDir:      string;         // output directory for run artifacts
+  buildPrompt: (fixture: Fixture, variant: string) => string;
+  sanityDir:   string;         // path to sanity/calibration fixtures
+}
+```
+
+The orchestrating agent calls `runExperiment(config)` and receives a structured `ExperimentResult` — no hand-coded fixture traversal is required.
+
 ### Phase 4 — Verdict
 - Score each hypothesis against its pre-registered threshold
 - Label: `CONFIRMED` (observed ≥ threshold), `REJECTED` (observed < threshold), `NULL` (direction reversed)
@@ -97,6 +118,7 @@ Each experiment run proceeds through five mandatory phases:
 - Use `evidence_pointer` to update originating SKILL.md frontmatter or docs
 - Tag written-back claims as `[measured: <evidence_pointer>]`
 - Trigger `knowledge-extractor` agent if claim updates existing methodology
+- Set `cap:experiment=<verdict>` on the backlog task (where `<verdict>` is one of `CONFIRMED|NULL|REJECTED|UNDERPOWERED`) after the `evidence_pointer` write-back is complete
 
 ---
 
