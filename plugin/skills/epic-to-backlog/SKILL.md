@@ -304,6 +304,18 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >      --append-notes "Epic proposal self-review: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-proposal-verdict.txt
 >    ```
+>    在写 APPROVED 时，把 verdict 扩展为结构化前提账本（premise-ledger）：
+>    对你检查的每条 criterion，追加一行 `[E|C|H] <criterion>: <你判断所凭的前提>`，
+>    分类规则：E=该前提可直接从本任务 task 文件读到；C=须跳转外部 task/doc/parent 才能确认；
+>    H=任何 artifact 都没有、靠背景知识或记忆推断。
+>    末尾追加一行 `GCL-self-report: E=<n> C=<n> H=<n>`（各类计数）。
+>    写法示例：
+>      backlog task edit <TASK_ID> --append-notes "Epic proposal self-review: APPROVED
+>      premise-ledger:
+>      [E] background lines: 背景段行数从 proposal 文件直接数
+>      [C] decomposition coverage: 子任务覆盖了 Goals（须对照每条 Goal）
+>      [H] epic 粒度基准: 何为'合理的 epic 粒度'靠背景知识判断
+>      GCL-self-report: E=1 C=2 H=1"
 >    Print: "Proposal APPROVED. Proceeding to epic plan draft."
 >
 > 4b. ANY criterion fails AND round < 3: fix the failing sections in `$TMPDIR/etb-proposal.md`,
@@ -432,6 +444,18 @@ Each iteration — spawn Task agent with `run_in_background=true` (self-chaining
 >      --append-notes "Epic plan review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-plan-verdict.txt
 >    ```
+>    在写 APPROVED 时，把 verdict 扩展为结构化前提账本（premise-ledger）：
+>    对你检查的每条 criterion，追加一行 `[E|C|H] <criterion>: <你判断所凭的前提>`，
+>    分类规则：E=该前提可直接从本任务 task 文件读到；C=须跳转外部 task/doc/parent 才能确认；
+>    H=任何 artifact 都没有、靠背景知识或记忆推断。
+>    末尾追加一行 `GCL-self-report: E=<n> C=<n> H=<n>`（各类计数）。
+>    写法示例：
+>      backlog task edit <TASK_ID> --append-notes "Epic plan review iteration <N>: APPROVED
+>      premise-ledger:
+>      [E] sub-task count: 子任务数量从 plan 文件直接数
+>      [C] goal coverage: 须对照 proposal Goals 逐条验证
+>      [H] sequencing 合理性: 依赖顺序靠背景知识判断
+>      GCL-self-report: E=1 C=2 H=1"
 >    Print: "Plan APPROVED. Proceeding to finalise."
 >
 > 3b. ANY fail: fix `$TMPDIR/etb-plan.md` (and `$TMPDIR/etb-proposal.md` if needed),

@@ -115,6 +115,14 @@ check "round 1 → round 2 → round 3 sequence (MaxRound=3)" \
 check "MaxRound=8 terminates at 8 (reviewLoop bound)" \
   '[ "$(runRounds 8)" = "8" ]'
 
+# premise-ledger spec assertions (TASK-151)
+grep -q 'premise-ledger' plugin/skills/feature-to-backlog/SKILL.md \
+  || { echo "FAIL: premise-ledger not found in ftb SKILL.md"; exit 1; }
+grep -q 'GCL-self-report' plugin/skills/feature-to-backlog/SKILL.md \
+  || { echo "FAIL: GCL-self-report not found in ftb SKILL.md"; exit 1; }
+grep -q '靠背景' plugin/skills/feature-to-backlog/SKILL.md \
+  || { echo "FAIL: H-type definition (靠背景) not found in ftb SKILL.md"; exit 1; }
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""

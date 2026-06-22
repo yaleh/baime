@@ -114,6 +114,14 @@ check "createTask + skip_draft=false → valid" \
 check "createTask + skip_draft=true → valid" \
   '[ "$(validateManifest createTask true)" = "valid" ]'
 
+# premise-ledger spec assertions (TASK-151)
+[ $(grep -c 'premise-ledger' plugin/skills/epic-to-backlog/SKILL.md) -ge 2 ] \
+  || { echo "FAIL: premise-ledger must appear ≥2 times in etb SKILL.md"; exit 1; }
+grep -q 'GCL-self-report' plugin/skills/epic-to-backlog/SKILL.md \
+  || { echo "FAIL: GCL-self-report not found in etb SKILL.md"; exit 1; }
+grep -q '靠背景' plugin/skills/epic-to-backlog/SKILL.md \
+  || { echo "FAIL: H-type definition (靠背景) not found in etb SKILL.md"; exit 1; }
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""

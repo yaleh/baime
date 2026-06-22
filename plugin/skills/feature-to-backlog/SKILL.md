@@ -391,6 +391,18 @@ pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
 >      --append-notes "Plan review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/ftb-plan-verdict.txt
 >    ```
+>    在写 APPROVED 时，把 verdict 扩展为结构化前提账本（premise-ledger）：
+>    对你检查的每条 criterion，追加一行 `[E|C|H] <criterion>: <你判断所凭的前提>`，
+>    分类规则：E=该前提可直接从本任务 task 文件读到；C=须跳转外部 task/doc/parent 才能确认；
+>    H=任何 artifact 都没有、靠背景知识或记忆推断。
+>    末尾追加一行 `GCL-self-report: E=<n> C=<n> H=<n>`（各类计数）。
+>    写法示例：
+>      backlog task edit <TASK_ID> --append-notes "Plan review iteration <N>: APPROVED
+>      premise-ledger:
+>      [E] goal coverage: 3 goals 映射到 Phase A/B/C
+>      [C] file paths exist: 引用的外部文件经 search 确认
+>      [H] DoD 充分性基准: 何为'足够'靠背景知识判断
+>      GCL-self-report: E=2 C=1 H=1"
 >    Print: "Plan APPROVED. Proceeding to finalise."
 >
 > 3b. ANY fail: fix `$TMPDIR/ftb-plan.md` (and `$TMPDIR/ftb-proposal.md` if needed),
