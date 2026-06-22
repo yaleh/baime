@@ -264,11 +264,8 @@ If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >      --planSet "$(cat $TMPDIR/ftb-proposal.md)" \
 >      --status "Basic: Proposal"
 >    echo "APPROVED" > $TMPDIR/ftb-proposal-verdict.txt
->    # Write marker file — daemon will fire proposal-approved event when human advances status
->    touch backlog/.ftb-awaiting-plan-<TASK_ID>
 >    ```
->    Print: "Proposal APPROVED. Run: `backlog task edit <TASK_ID> --status 'Basic: Plan'` to start plan drafting."
->    Then STOP — do NOT auto-advance status or proceed to Phase 3.
+>    Print: "Proposal APPROVED. Proceeding to plan draft."
 >
 > Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.
 > No implementation phases or DoD commands in this document.
@@ -393,11 +390,8 @@ pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
 >    backlog task edit <TASK_ID> \
 >      --append-notes "Plan review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/ftb-plan-verdict.txt
->    # Write marker file — daemon will fire plan-approved event when human advances status
->    touch backlog/.ftb-awaiting-backlog-<TASK_ID>
 >    ```
->    Print: "Plan APPROVED. Run: `backlog task edit <TASK_ID> --status 'Basic: Ready'` to finalise."
->    Then STOP — do NOT auto-advance status or proceed to Phase 5.
+>    Print: "Plan APPROVED. Proceeding to finalise."
 >
 > 3b. ANY fail: fix `$TMPDIR/ftb-plan.md` (and `$TMPDIR/ftb-proposal.md` if needed),
 >    update task plan:
@@ -410,8 +404,7 @@ pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
 
 After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
 The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
-On APPROVED, the background agent writes `backlog/.ftb-awaiting-backlog-<TASK_ID>` and stops.
-The daemon detects the marker + human status advance and fires `plan-approved:TASK-N`.
+On APPROVED, the background agent proceeds directly to Phase 5 (finalise).
 
 ---
 

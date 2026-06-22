@@ -303,11 +303,8 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >      --planSet "$(cat $TMPDIR/etb-proposal.md)" \
 >      --append-notes "Epic proposal self-review: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-proposal-verdict.txt
->    # Write marker file — daemon will fire proposal-approved event when human advances status
->    touch backlog/.etb-awaiting-plan-<TASK_ID>
 >    ```
->    Print: "Proposal APPROVED. Run: `backlog task edit <TASK_ID> --status 'Epic: Plan'` to start plan drafting."
->    Then STOP — do NOT auto-advance status.
+>    Print: "Proposal APPROVED. Proceeding to epic plan draft."
 >
 > 4b. ANY criterion fails AND round < 3: fix the failing sections in `$TMPDIR/etb-proposal.md`,
 >    update task:
@@ -434,11 +431,8 @@ Each iteration — spawn Task agent with `run_in_background=true` (self-chaining
 >    backlog task edit <TASK_ID> \
 >      --append-notes "Epic plan review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-plan-verdict.txt
->    # Write marker file — daemon will fire plan-approved event when human advances status
->    touch backlog/.etb-awaiting-backlog-<TASK_ID>
 >    ```
->    Print: "Plan APPROVED. Run: `backlog task edit <TASK_ID> --status 'Epic: Backlog'` to finalise."
->    Then STOP — do NOT auto-advance status.
+>    Print: "Plan APPROVED. Proceeding to finalise."
 >
 > 3b. ANY fail: fix `$TMPDIR/etb-plan.md` (and `$TMPDIR/etb-proposal.md` if needed),
 >    update task plan:
@@ -451,8 +445,7 @@ Each iteration — spawn Task agent with `run_in_background=true` (self-chaining
 
 After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
 The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
-On APPROVED, the background agent writes `backlog/.etb-awaiting-backlog-<TASK_ID>` and stops.
-The daemon detects the marker + human status advance and fires `plan-approved:TASK-N`.
+On APPROVED, the background agent proceeds directly to Phase 5 (finalise).
 
 ---
 

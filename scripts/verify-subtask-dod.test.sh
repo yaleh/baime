@@ -43,6 +43,17 @@ title: child with dod
 status: Backlog
 parent_task_id: $3
 ---
+## Phase A: Work
+### Tests (write first)
+Test X.
+### Implementation
+Impl.
+### DoD
+- [ ] bash scripts/validate-plugin.sh
+
+## Acceptance Gate
+- [ ] bash scripts/validate-plugin.sh
+
 ## Definition of Done
 
 - [ ] #1 test -f /tmp/whatever

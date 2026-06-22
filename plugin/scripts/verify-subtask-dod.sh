@@ -36,8 +36,17 @@ hasDod() {
   awk '
     /^## Definition of Done/ { indod=1; next }
     indod && /^## /          { indod=0 }
-    indod && /^- \[[ xX]\]/   { found=1 }
-    END { exit (found ? 0 : 1) }
+    indod && /^- \[[ xX]\]/  { found_dod=1 }
+    /^## Phase /             { phase_count++ }
+    /^## Acceptance Gate/    { found_gate=1 }
+    /^### Tests/             { found_tests=1 }
+    END {
+      if (!found_dod)   exit 1
+      if (!phase_count) exit 1
+      if (!found_tests) exit 1
+      if (!found_gate)  exit 1
+      exit 0
+    }
   ' "$1"
 }
 
