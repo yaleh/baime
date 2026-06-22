@@ -595,11 +595,11 @@ set +e
 python3 - "$SKILLS_DIR" <<'PYEOF'
 import sys, os, re
 
-LINE_THRESHOLD = 500
-CONTRACT_THRESHOLD = 3
+LINE_THRESHOLD = 300
+CONTRACT_THRESHOLD = 4
 
 skills_dir = sys.argv[1]
-warnings = 0
+errors = 0
 
 for entry in sorted(os.listdir(skills_dir)):
     skill_file = os.path.join(skills_dir, entry, 'SKILL.md')
@@ -622,17 +622,17 @@ for entry in sorted(os.listdir(skills_dir)):
             elif line.strip() and not re.match(r'^\s', line):
                 in_contracts = False
     if lines > LINE_THRESHOLD and contract_count < CONTRACT_THRESHOLD:
-        print(f"  WARNING: contracts density low: {entry} ({lines} lines, {contract_count} contracts, recommend ≥{CONTRACT_THRESHOLD})")
-        warnings += 1
+        print(f"  FAIL: contracts density low: {entry} ({lines} lines, {contract_count} contracts, need ≥{CONTRACT_THRESHOLD})")
+        errors += 1
 
-if warnings == 0:
+if errors == 0:
     print(f"  PASS: all large skills (>{LINE_THRESHOLD} lines) have ≥{CONTRACT_THRESHOLD} contracts")
-sys.exit(warnings)
+sys.exit(errors)
 PYEOF
 
-DENSITY_WARNINGS=$?
+DENSITY_ERRORS=$?
 set -e
-WARNINGS=$((WARNINGS + DENSITY_WARNINGS))
+ERRORS=$((ERRORS + DENSITY_ERRORS))
 
 # ── Layer 0: Meta-lint — Quantitative Claims ─────────────────────────────────
 

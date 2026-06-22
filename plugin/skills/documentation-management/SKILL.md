@@ -6,6 +6,7 @@ contracts:
   - grep: "DocumentationArtifacts"
   - grep: "docs"
   - grep: "Markdown"
+  - grep: "template"
 ---
 
 ## Spec

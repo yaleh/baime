@@ -6,6 +6,7 @@ contracts:
   - grep: "InstrumentedCodebase"
   - grep: "instrumentation"
   - grep: "slog"
+  - grep: "metrics"
 ---
 
 ## Spec

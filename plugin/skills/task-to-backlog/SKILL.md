@@ -10,6 +10,8 @@ contracts:
     target: self
   - grep: "Backlog"
     target: self
+  - grep: "phases"
+    target: self
 ---
 
 λ(topic) → taskToBacklog(topic)

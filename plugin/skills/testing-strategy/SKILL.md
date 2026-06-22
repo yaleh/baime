@@ -6,6 +6,7 @@ contracts:
   - grep: "TestStrategy"
   - grep: "unit"
   - grep: "integration"
+  - grep: "coverage"
 ---
 
 ## Spec
