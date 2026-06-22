@@ -182,7 +182,7 @@ echo ""
 echo "=== plugin/scripts/ Copy Consistency ==="
 
 PLUGIN_SCRIPTS_DIR="$REPO_ROOT/plugin/scripts"
-for script_name in basic-daemon.js verify-subtask-dod.sh skill-lint.sh validate-plugin.sh; do
+for script_name in basic-daemon.js verify-subtask-dod.sh skill-lint.sh validate-plugin.sh verify-experiment-provenance.sh; do
     canonical="${REPO_ROOT}/scripts/${script_name}"
     copy="${PLUGIN_SCRIPTS_DIR}/${script_name}"
     if [ -L "$copy" ]; then
@@ -795,6 +795,19 @@ then
 else
     fail "skill bare-status guard: non-B″ --status write found in a SKILL.md"
 fi
+
+# ── Experiment Provenance ─────────────────────────────────────────────────────
+
+echo ""
+echo "=== Experiment Provenance ==="
+
+if bash "$REPO_ROOT/scripts/verify-experiment-provenance.sh" > /tmp/verify-experiment-provenance-out.txt 2>&1; then
+    pass "verify-experiment-provenance: $(cat /tmp/verify-experiment-provenance-out.txt | tail -1)"
+else
+    fail "verify-experiment-provenance: violations found"
+    cat /tmp/verify-experiment-provenance-out.txt
+fi
+rm -f /tmp/verify-experiment-provenance-out.txt
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
