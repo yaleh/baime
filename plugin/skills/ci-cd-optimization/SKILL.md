@@ -6,6 +6,7 @@ contracts:
   - grep: "OptimizedPipeline"
   - grep: "pipeline"
   - grep: "quality gate"
+  - grep: "CHANGELOG"
 ---
 
 ## Spec

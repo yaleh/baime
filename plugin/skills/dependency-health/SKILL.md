@@ -6,6 +6,7 @@ contracts:
   - grep: "DependencyHealthReport"
   - grep: "remediation"
   - grep: "security"
+  - grep: "license"
 ---
 
 ## Spec

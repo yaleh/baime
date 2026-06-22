@@ -6,6 +6,7 @@ contracts:
   - grep: "StandardizedConventions"
   - grep: "enforcement"
   - grep: "cross-cutting"
+  - grep: "linter"
 ---
 
 ## Spec

@@ -6,6 +6,7 @@ contracts:
   - grep: "DebtPaydownPlan"
   - grep: "SQALE"
   - grep: "debt"
+  - grep: "priority"
 ---
 
 ## Spec

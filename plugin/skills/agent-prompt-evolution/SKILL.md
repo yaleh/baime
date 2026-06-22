@@ -9,6 +9,8 @@ contracts:
     target: self
   - grep: "reusab"
     target: self
+  - grep: "cross-experiment"
+    target: self
 ---
 
 # Agent Prompt Evolution

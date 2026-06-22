@@ -6,6 +6,7 @@ contracts:
   - grep: "QualityBaseline"
   - grep: "V_meta"
   - grep: "comprehensive"
+  - grep: "iteration 0"
 ---
 
 ## Spec
