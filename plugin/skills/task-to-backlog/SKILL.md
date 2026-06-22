@@ -10,6 +10,8 @@ contracts:
     target: self
   - grep: "Backlog"
     target: self
+  - grep: "phases"
+    target: self
 ---
 
 λ(topic) → taskToBacklog(topic)
@@ -67,11 +69,11 @@ taskToBacklog(T) = {
     then reviewLoop(task, task.description, 4)  -- existing description IS the plan draft
     else reviewLoop(task, draftPlan(task, T), 4)
   _:    finalise(task, plan, cfg),
-  return: task   -- status: Backlog
+  _:    appendNote(task, "cap:propose=approved"),  -- B″ idempotency marker
+  return: task   -- status: Basic: Backlog
 }
 
-reviewLoop :: (Task, Plan, MaxRounds) → ApprovedPlan  -- see spec-stdlib § reviewLoop
-reviewLoop task plan = reviewLoopStdlib task plan maxRounds  -- MaxRounds = 4
+-- see spec-stdlib § reviewLoop (MaxRounds = 4)
 
 -- Review invariants (all must hold for APPROVED)
 reviewPlan :: Plan → Verdict
@@ -137,7 +139,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
   "skip_draft": "<true if entry_point==\"resolveOrCreate\">",
   "field_writes": [
     { "tool": "backlog task edit", "field": "planSet", "source": "$TMPDIR/ttb-plan.md" },
-    { "tool": "backlog task edit", "field": "status", "value": "Backlog" }
+    { "tool": "backlog task edit", "field": "status", "value": "Basic: Backlog" }
   ],
   "phases_to_execute": ["<entry_point>", "reviewLoop", "finalise"]
 }
@@ -146,7 +148,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
 Write the manifest to `$TMPDIR/task-to-backlog-manifest.json`, then validate it:
 
 ```bash
-bash scripts/skill-lint.sh --manifest "$TMPDIR/task-to-backlog-manifest.json"
+bash "${REPO_ROOT}/scripts/skill-lint.sh" --manifest "$TMPDIR/task-to-backlog-manifest.json"
 ```
 
 If validation fails, stop and report the error before proceeding.
@@ -170,7 +172,7 @@ if echo "<topic>" | grep -qiP '^task-\d+$'; then
 else
   # New topic path — create task
   backlog task create "$TITLE" \
-    --status "Plan" \
+    --status "Basic: Plan" \
     --description "<topic>" \
     --plain
   # Extract task ID from output line `Task TASK-N`. Write to $TMPDIR/ttb-task-id.txt.
@@ -240,7 +242,7 @@ Spawn Task agent:
 >    ```bash
 >    backlog task edit <TASK_ID> \
 >      --planSet "$(cat $TMPDIR/ttb-plan.md)" \
->      --status "Plan"
+>      --status "Basic: Plan"
 >    ```
 
 ---
@@ -250,7 +252,7 @@ Spawn Task agent:
 **Soft limit: 4 iterations.** On exhaustion:
 
 ```bash
-backlog task edit $TASK_ID --status "Needs Human" \
+backlog task edit $TASK_ID --status "Basic: Needs Human" \
   --append-notes "Plan review did not converge after 4 iterations. Manual review required."
 ```
 
@@ -315,19 +317,19 @@ Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
 >
 > backlog task edit <TASK_ID> \
 >   --planSet "$(cat $TMPDIR/ttb-plan.md)" \
->   --status "Backlog" \
+>   --status "Basic: Backlog" \
 >   "${DOD_ARGS[@]}"
 > ```
 >
 > **Step D — Run Layer 0-2 validation gate**:
 > ```bash
-> bash scripts/validate-plugin.sh
+> bash "${REPO_ROOT}/scripts/validate-plugin.sh"
 > ```
 > If validation fails, fix any SKILL.md contracts or internals before proceeding.
 >
 > Add the validation DoD item to the task:
 > ```bash
-> backlog task edit <TASK_ID> --dod "bash scripts/validate-plugin.sh"
+> backlog task edit <TASK_ID> --dod "bash "${REPO_ROOT}/scripts/validate-plugin.sh""
 > ```
 >
 > **Step E — Print completion**:
@@ -340,7 +342,7 @@ Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
 >   backlog browser --no-open --port 6421
 >
 > 确认无误后，将任务移入执行队列：
->   backlog task edit <TASK_ID> --status "Ready"
+>   backlog task edit <TASK_ID> --status "Basic: Ready"
 >
 > 等待 loop-backlog 自动拾取，或立即启动：
 >   /loop-backlog

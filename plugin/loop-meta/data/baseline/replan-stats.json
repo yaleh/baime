@@ -1,0 +1,10 @@
+{
+  "data_source": "measured",
+  "generated_by": "scripts/check-roi-gate.sh",
+  "generated_at": "2026-06-20T10:51:39Z",
+  "tasks_dir": "/home/yale/work/baime/backlog/tasks",
+  "meta_task_cycles": 13,
+  "replan_total": 10,
+  "evaluator": { "Met": 13, "NotMet": 0 },
+  "decision": "PROCEED"
+}

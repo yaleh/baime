@@ -1,11 +1,12 @@
 ---
 id: TASK-56
 title: 为 backlog-setup 补充 contracts 字段
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-19'
 updated_date: '2026-06-20 00:46'
 labels:
+  - kind:basic
   - skill-quality
   - contracts
 dependencies:

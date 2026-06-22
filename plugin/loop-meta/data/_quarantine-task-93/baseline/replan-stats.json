@@ -1,0 +1,15 @@
+{
+  "task_total": 10,
+  "replan_total": 4,
+  "root_cause": {
+    "impl": 1,
+    "sub-plan": 1,
+    "meta-plan": 0,
+    "harness": 1,
+    "infeasible": 1
+  },
+  "evaluator": {
+    "Met": 8,
+    "NotMet": 2
+  }
+}

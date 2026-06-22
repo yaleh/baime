@@ -1,0 +1,90 @@
+{
+  "description": "Exp-K meta-task input corpus. Each entry is a real baime project goal to be fed into loop-meta for the baseline replan-frequency and root-cause-distribution experiment (TASK-93).",
+  "generated": "2026-06-20",
+  "entries": [
+    {
+      "id": "MT-01",
+      "goal": "Add a contracts-density soft-warning to validate-plugin.sh: emit a warning when any SKILL.md has fewer than 1 contract per 50 lines of spec, helping catch under-specified skills early in CI.",
+      "estimated_subtasks": 2,
+      "replan_expected": false,
+      "rationale": "validate-plugin.sh already has a contracts-count path; this extends it with a density check. Two sub-tasks: (1) implement density check in shell, (2) add a regression test in validate-plugin test suite. Clear, measurable acceptance criteria make replan unlikely."
+    },
+    {
+      "id": "MT-02",
+      "goal": "Build a skill-lint severity matrix: categorise all existing validate-plugin.sh warnings as P0 (blocker), P1 (warning), or P2 (advisory), and write the mapping to plugin/.claude-plugin/lint-severity.json so CI can gate on P0s only.",
+      "estimated_subtasks": 2,
+      "replan_expected": false,
+      "rationale": "Two clear sub-tasks: (1) audit current warning types and produce severity.json, (2) update validate-plugin.sh to read severity.json and exit non-zero only on P0s. Acceptance criteria are shell-testable (exit code, file existence)."
+    },
+    {
+      "id": "MT-03",
+      "goal": "Instrument loop-backlog daemon to emit a structured JSON event line to .daemon.log for every task status transition (task-ready, done, needs-human), enabling provenance-stamped trace replay in the evaluator slice.",
+      "estimated_subtasks": 3,
+      "replan_expected": false,
+      "rationale": "Three sub-tasks: (1) add JSON event emission to loop-backlog-daemon.js, (2) update extract-replan-markers.sh to parse new JSON lines, (3) add daemon unit tests for new event format. Well-scoped with shell-testable gates."
+    },
+    {
+      "id": "MT-04",
+      "goal": "Add a loop-meta idempotency integration test: run draftDecomposition twice on the same meta-task fixture and assert that the second run appends 'children already exist' and creates zero new sub-tasks.",
+      "estimated_subtasks": 2,
+      "replan_expected": false,
+      "rationale": "Two sub-tasks: (1) write shell integration test fixture and driver, (2) wire it into the CI job in .github/workflows. The idempotency guard code already exists; this is purely testing and CI plumbing."
+    },
+    {
+      "id": "MT-05",
+      "goal": "Extend the run-quantitative-experiment skill to support a 'replication' mode: given an existing experiment config JSON, re-run all fixtures and produce a results-replicated.json alongside the original results.json for comparison.",
+      "estimated_subtasks": 3,
+      "replan_expected": true,
+      "rationale": "Three sub-tasks: (1) add --replicate flag and mode logic to run-quantitative-experiment SKILL.md, (2) implement results comparison report generator, (3) validate with a regression fixture. Replan is expected because the current run-quantitative-experiment skill has an ambiguous output-format contract — the decomposer may produce subtasks that overlap or conflict once implementation reveals format assumptions, triggering a replanner root-cause classification of 'sub-plan'."
+    },
+    {
+      "id": "MT-06",
+      "goal": "Create a backlog task archival automation: write scripts/archive-done-tasks.sh that moves all Done-status task markdown files older than 30 days into backlog/archive/, and adds a CI cron job to run it weekly.",
+      "estimated_subtasks": 2,
+      "replan_expected": false,
+      "rationale": "Two sub-tasks: (1) write and test archive-done-tasks.sh, (2) add GitHub Actions cron workflow. Both sub-tasks have crisp file-existence and exit-code gates."
+    },
+    {
+      "id": "MT-07",
+      "goal": "Add a WIP_CAP auto-tuning probe to loop-meta: after each full meta-task lifecycle, emit a JSON record to plugin/loop-meta/data/wip-tuning.jsonl with fields {meta_id, wip_cap_used, cycle_count, elapsed_seconds} to accumulate throughput data for future WIP_CAP calibration.",
+      "estimated_subtasks": 3,
+      "replan_expected": false,
+      "rationale": "Three sub-tasks: (1) instrument idempotentReconcile to write JSONL record on meta-task completion, (2) add a wip-tuning schema validator script, (3) document the probe in loop-meta data README. All gates are shell-testable."
+    },
+    {
+      "id": "MT-08",
+      "goal": "Build a cross-skill duplicate-detection linter: scan all SKILL.md files for reviewLoop and detectLang implementations that are near-identical (>80% token overlap), and report them in validate-plugin.sh output so they can be extracted to a shared spec.",
+      "estimated_subtasks": 4,
+      "replan_expected": true,
+      "rationale": "Four sub-tasks: (1) implement token-overlap similarity function in skill-lint.sh, (2) build cross-file comparison loop, (3) integrate into validate-plugin.sh as a new check category, (4) add regression tests with known-duplicate fixtures. Replan is expected: the similarity threshold (80%) is ambiguous — initial decomposer output will likely propose a fixed threshold that proves too loose or tight once tested against real SKILL.md pairs, causing the evaluator to return NotMet and triggering replanner root-cause 'sub-plan' (threshold refinement required)."
+    },
+    {
+      "id": "MT-09",
+      "goal": "Implement a provenance-gate pre-commit hook: install scripts/verify-provenance.sh as a git pre-commit hook so that any commit adding or modifying a results JSON file that lacks data_source: measured is rejected before it reaches CI.",
+      "estimated_subtasks": 3,
+      "replan_expected": false,
+      "rationale": "Three sub-tasks: (1) adapt verify-provenance.sh to detect modified JSON files via git diff --cached, (2) write install-hooks.sh to place the hook at .git/hooks/pre-commit, (3) add test cases in verify-provenance.test.sh for the hook path. Well-defined, tested gate exists already (verify-provenance.sh)."
+    },
+    {
+      "id": "MT-10",
+      "goal": "Add a per-skill execution-trace log to the Class-D test framework: after each fixture run, append a structured trace record to experiments/skill-quality/artifacts/trace-log.jsonl with fields {fixture_id, skill, tool_calls, verdict, timestamp} for use by the evaluator trace_replay slice.",
+      "estimated_subtasks": 3,
+      "replan_expected": false,
+      "rationale": "Three sub-tasks: (1) extend Class-D runner to write trace-log.jsonl entries, (2) add a trace-log schema validator, (3) update evaluator documentation to reference trace-log.jsonl as the trace_replay data source. All acceptance criteria are file-existence and schema-conformance checks."
+    },
+    {
+      "id": "MT-11",
+      "goal": "Produce a methodology maturity scorecard: read all backlog tasks tagged as Exp-*, extract their result verdicts (Met/NotMet/Inconclusive) from task notes, and generate docs/methodology-maturity.md summarising per-claim evidence strength using the OCA convergence criteria.",
+      "estimated_subtasks": 4,
+      "replan_expected": false,
+      "rationale": "Four sub-tasks: (1) write scripts/extract-exp-verdicts.sh to parse Exp-* task notes, (2) implement scoring logic using OCA criteria in a Python script, (3) generate docs/methodology-maturity.md from scores, (4) add a gate that fails if any P0 claim has zero measured evidence. Real project need: baime lacks a consolidated evidence-strength dashboard."
+    },
+    {
+      "id": "MT-12",
+      "goal": "Add a shell-gate DoD template to task-to-backlog: when the skill creates a new task, auto-append a default '## Definition of Done' section with a placeholder shell-gate checkbox (e.g. '- [ ] bash scripts/validate-plugin.sh exits 0') if no DoD section is found in the draft.",
+      "estimated_subtasks": 2,
+      "replan_expected": false,
+      "rationale": "Two sub-tasks: (1) update task-to-backlog SKILL.md to inject default DoD section logic, (2) add a contract assertion and regression test verifying that created tasks always have a DoD section. Directly addresses root cause R1 documented in loop-meta SKILL.md."
+    }
+  ]
+}

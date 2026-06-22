@@ -1,11 +1,12 @@
 ---
 id: TASK-54
 title: OCA 收敛判据修订：实质验证门 + V_instance 双轨制 + 验证性实验更高证据标准
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-19 15:58'
 updated_date: '2026-06-19 23:21'
 labels:
+  - kind:basic
   - skill-quality
   - methodology
   - convergence

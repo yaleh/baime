@@ -1,11 +1,12 @@
 ---
 id: TASK-47
 title: Class D：为编排型 skill 建立 tool-invocation 合规测试框架
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-19 15:00'
 updated_date: '2026-06-19 15:04'
 labels:
+  - kind:basic
   - experiment
   - skill-quality
   - layer-2.5

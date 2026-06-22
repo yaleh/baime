@@ -6,6 +6,7 @@ contracts:
   - grep: "Day-1"
   - grep: "OnboardingDocs"
   - grep: "Week-1"
+  - grep: "checkpoint"
 ---
 
 ## Spec

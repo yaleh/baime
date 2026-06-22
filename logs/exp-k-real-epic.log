@@ -1,0 +1,13 @@
+# B'' real-epic smoke test — 2026-06-21T08:11:00Z
+# Epic state machine: Epic: Proposal → Epic: Plan → Epic: Decomposing → Epic: Awaiting Children → Epic: Evaluating → Epic: Done
+# Child basic state machine: Basic: Backlog → Basic: In Progress → Basic: Done
+epic_task:TASK-119
+child_task:TASK-120
+transition: TASK-119 Epic: Proposal → Epic: Plan (cap:propose=approved)
+transition: TASK-119 Epic: Plan → Epic: Decomposing (cap:plan=approved)
+transition: TASK-119 Epic: Decomposing → Epic: Awaiting Children (cap:decompose=done)
+transition: TASK-120 Basic: Backlog → Basic: In Progress (cap:claim=started)
+transition: TASK-120 Basic: In Progress → Basic: Done (cap:execute=done)
+transition: TASK-119 Epic: Awaiting Children → Epic: Evaluating (cap:await=done)
+transition: TASK-119 Epic: Evaluating → Epic: Done (cap:evaluate=done)
+terminal:TASK-119

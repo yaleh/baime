@@ -1,11 +1,12 @@
 ---
 id: TASK-12
 title: 消除跨 skill 的 Config 类型名冲突
-status: Backlog
+status: "Basic: Backlog"
 assignee: []
 created_date: '2026-06-17 16:03'
 updated_date: '2026-06-17 16:44'
 labels:
+  - kind:basic
   - spec-quality
   - architecture
 dependencies: []

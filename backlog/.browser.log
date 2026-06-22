@@ -1,0 +1,9 @@
+
+❌ Error: Port 6420 is already in use.
+
+💡 Suggestions:
+   1. Try a different port: backlog browser --port 6421
+   2. Find what's using port 6420:
+      Run: lsof -i :6420
+   3. Or kill the process using the port and try again
+

@@ -1,0 +1,5 @@
+{"type":"tool_use","tool":"Bash","timestamp":"2026-06-22T10:00:00Z","content":"ls /project"}
+{"type":"tool_use","tool":"Read","timestamp":"2026-06-22T10:01:30Z","content":"read /project/src/index.ts"}
+{"type":"tool_use","tool":"Edit","timestamp":"2026-06-22T10:03:00Z","content":"edit /project/src/index.ts"}
+{"type":"tool_use","tool":"Bash","timestamp":"2026-06-22T10:05:00Z","content":"npm test"}
+{"type":"tool_use","tool":"Bash","timestamp":"2026-06-22T10:06:00Z","content":"git commit"}

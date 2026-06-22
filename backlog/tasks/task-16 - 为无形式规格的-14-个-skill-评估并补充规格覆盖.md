@@ -1,11 +1,12 @@
 ---
 id: TASK-16
 title: 为无形式规格的 14 个 skill 评估并补充规格覆盖
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-17 16:04'
 updated_date: '2026-06-18 10:09'
 labels:
+  - kind:basic
   - spec-quality
   - documentation
 dependencies: []

@@ -71,8 +71,8 @@ resolveOrCreate(T) =
   | otherwise   → (createTask(T), ProposalLoop)
 
 fromStatus :: Status → EntryPoint
-fromStatus("Plan") = PlanLoop
-fromStatus(_)      = ProposalLoop  -- Proposal or other
+fromStatus("Basic: Plan") = PlanLoop
+fromStatus(_)             = ProposalLoop  -- Basic: Proposal or other
 
 -- Workflow
 
@@ -92,8 +92,7 @@ featureToBacklog(T) = {
   return: task  -- status: Backlog
 }
 
-reviewLoop :: (Task, Doc, MaxRounds) → ApprovedDoc  -- see spec-stdlib § reviewLoop
-reviewLoop task doc = reviewLoopStdlib task doc maxRounds  -- MaxRounds = 8
+-- see spec-stdlib § reviewLoop (MaxRounds = 8)
 
 -- Plan review invariants (all must hold for APPROVED)
 
@@ -175,7 +174,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
   "skip_draft": false,
   "field_writes": [
     { "tool": "backlog task edit", "field": "planSet", "source": "$TMPDIR/ftb-plan.md" },
-    { "tool": "backlog task edit", "field": "status", "value": "Backlog" }
+    { "tool": "backlog task edit", "field": "status", "value": "Basic: Backlog" }
   ],
   "phases_to_execute": ["createTask", "proposalLoop", "planLoop", "finalise"]
 }
@@ -184,7 +183,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
 Write the manifest to `$TMPDIR/feature-to-backlog-manifest.json`, then validate it:
 
 ```bash
-bash scripts/skill-lint.sh --manifest "$TMPDIR/feature-to-backlog-manifest.json"
+bash "${REPO_ROOT}/scripts/skill-lint.sh" --manifest "$TMPDIR/feature-to-backlog-manifest.json"
 ```
 
 If validation fails, stop and report the error before proceeding.
@@ -205,15 +204,15 @@ if echo "<topic>" | grep -qiP '^task-\d+$'; then
   awk '/^Description:/{found=1;next} found && /^-{10,}/{if(!sep){sep=1;next};exit} found && sep{print}' \
     $TMPDIR/ftb-existing-task.txt > $TMPDIR/ftb-proposal.md
   # Determine entry point from status
-  TASK_STATUS=$(grep -oP '(?<=Status: .)[ \w]+' $TMPDIR/ftb-existing-task.txt | head -1 | xargs)
+  TASK_STATUS=$(grep -oP '(?<=Status:).*' $TMPDIR/ftb-existing-task.txt | head -1 | grep -oP '(Basic|Epic): [A-Za-z ]+' | head -1 | xargs)
   case "$TASK_STATUS" in
-    "Plan") echo "PlanLoop"     > $TMPDIR/ftb-entry-point.txt ;;
+    "Basic: Plan") echo "PlanLoop"     > $TMPDIR/ftb-entry-point.txt ;;
     *)                          echo "ProposalLoop" > $TMPDIR/ftb-entry-point.txt ;;
   esac
 else
   # New topic path — create task
   backlog task create "$TITLE" \
-    --status "Proposal" \
+    --status "Basic: Proposal" \
     --description "<topic>" \
     --plain
   # Extract task ID from output line `Task TASK-N`. Write to $TMPDIR/ftb-task-id.txt.
@@ -223,9 +222,9 @@ fi
 
 If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2–3; proceed directly to Phase 4 using `$TMPDIR/ftb-proposal.md` as the plan draft (rename it to `$TMPDIR/ftb-plan.md`).
 
-**1b. draftProposal** — spawn Task agent (only when entry point is `ProposalLoop` AND topic is a new description; skip if existing task ID was given — its description is already in `$TMPDIR/ftb-proposal.md`):
+**1b. draftAndReview** — spawn Task agent "Draft proposal with built-in self-review" (only when entry point is `ProposalLoop` AND topic is a new description; skip if existing task ID was given — its description is already in `$TMPDIR/ftb-proposal.md`):
 
-> Draft a technical proposal and update the backlog task.
+> Draft a technical proposal and immediately self-review it against all criteria.
 >
 > Task ID: `<TASK_ID>`
 >
@@ -249,61 +248,37 @@ If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >    (What we are not doing, known risks, alternatives considered)
 >    ```
 >
-> 3. Update task:
->    ```bash
->    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/ftb-proposal.md)" \
->      --status "Proposal"
->    ```
->
-> Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.
-> No implementation phases or DoD commands in this document.
-
----
-
-### Phase 2: reviewLoop(proposal)
-
-**Soft limit: 8 iterations.** On exhaustion:
-
-```bash
-backlog task edit $TASK_ID --status "Needs Human" \
-  --append-notes "Proposal review did not converge after 8 iterations. Manual review required."
-```
-
-Print current `$TMPDIR/ftb-proposal.md` and stop.
-
-Each iteration — spawn Task agent:
-
-> You are a strict software architect reviewing a proposal.
->
-> Task ID: `<TASK_ID>` — Iteration: `<N>`
->
-> 1. Read `$TMPDIR/ftb-proposal.md`
->
-> 2. Check each item:
+> 3. Self-review: check each criterion against the draft you just wrote:
 >    - **Motivation**: Does Background explain WHY (not just WHAT)? Is it 3-8 lines?
 >    - **Goals**: All numbered and concretely verifiable? No vague language?
 >    - **Feasibility**: Does Approach align with the codebase? Search to verify.
 >    - **Completeness**: Are trade-offs and risks identified?
 >    - **Consistency**: No contradictions between sections?
 >
-> 3a. ALL pass:
+>    If ANY criterion fails: fix the failing sections inline in `$TMPDIR/ftb-proposal.md` and
+>    repeat self-review. Repeat up to 3 total rounds (initial draft + 2 revision rounds).
+>
+> 4. After all criteria pass (or after 3 rounds), update the task and stop:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --append-notes "Proposal review iteration <N>: APPROVED"
+>      --planSet "$(cat $TMPDIR/ftb-proposal.md)" \
+>      --status "Basic: Proposal"
 >    echo "APPROVED" > $TMPDIR/ftb-proposal-verdict.txt
 >    ```
+>    Print: "Proposal APPROVED. Proceeding to plan draft."
 >
-> 3b. ANY fail: fix the failing sections in `$TMPDIR/ftb-proposal.md` directly,
->    update task plan with revised draft:
->    ```bash
->    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-proposal.md)"
->    ```
->    Write `NEEDS_REVISION` to verdict file.
+> Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.
+> No implementation phases or DoD commands in this document.
 
-After each agent run, read `$TMPDIR/ftb-proposal-verdict.txt`:
-- `APPROVED` → proceed to Phase 3
-- `NEEDS_REVISION` → increment counter, repeat Phase 2
+---
+
+### Phase 2: self-review (integrated into Phase 1b)
+
+For new-description topics (ProposalLoop entry), proposal self-review is handled inside
+the `draftAndReview` agent in Phase 1b — no separate review agent is spawned.
+
+For existing task ID topics (PlanLoop entry), no proposal review is needed; proceed
+directly to Phase 3 (draftPlan) or Phase 4 (planLoop).
 
 ---
 
@@ -313,7 +288,7 @@ If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: `$TMPDIR/ftb-plan.md` alre
 
 ```bash
 backlog task edit $TASK_ID \
-  --status "Plan" \
+  --status "Basic: Plan" \
   --append-notes "Proposal approved. Starting plan draft."
 ```
 
@@ -376,7 +351,7 @@ Spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL`, `CFG_DOC_PATH` as literal
 >    ```bash
 >    backlog task edit <TASK_ID> \
 >      --planSet "$(cat $TMPDIR/ftb-plan.md)" \
->      --status "Plan"
+>      --status "Basic: Plan"
 >    ```
 
 ---
@@ -385,11 +360,12 @@ Spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL`, `CFG_DOC_PATH` as literal
 
 **Soft limit: 8 iterations.** On exhaustion: move to Needs Human, print plan, stop.
 
-Each iteration — spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
+Each iteration — spawn Task agent with `run_in_background=true` (self-chaining background agent;
+pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
 
 > You are a strict software architect reviewing a TDD implementation plan.
 >
-> Task ID: `<TASK_ID>` — Iteration: `<N>`
+> Task ID: `<TASK_ID>` — Iteration: `<N>` — Max iterations: 8
 > Expected test command: `<CFG_TEST_CMD>`
 > Expected full suite: `<CFG_TEST_ALL>`
 >
@@ -415,83 +391,101 @@ Each iteration — spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as lite
 >      --append-notes "Plan review iteration <N>: APPROVED"
 >    echo "APPROVED" > $TMPDIR/ftb-plan-verdict.txt
 >    ```
+>    在写 APPROVED 时，把 verdict 扩展为结构化前提账本（premise-ledger）：
+>    对你检查的每条 criterion，追加一行 `[E|C|H] <criterion>: <你判断所凭的前提>`，
+>    分类规则：E=该前提可直接从本任务 task 文件读到；C=须跳转外部 task/doc/parent 才能确认；
+>    H=任何 artifact 都没有、靠背景知识或记忆推断。
+>    末尾追加一行 `GCL-self-report: E=<n> C=<n> H=<n>`（各类计数）。
+>    写法示例：
+>      backlog task edit <TASK_ID> --append-notes "Plan review iteration <N>: APPROVED
+>      premise-ledger:
+>      [E] goal coverage: 3 goals 映射到 Phase A/B/C
+>      [C] file paths exist: 引用的外部文件经 search 确认
+>      [H] DoD 充分性基准: 何为'足够'靠背景知识判断
+>      GCL-self-report: E=2 C=1 H=1"
+>    Print: "Plan APPROVED. Proceeding to finalise."
 >
 > 3b. ANY fail: fix `$TMPDIR/ftb-plan.md` (and `$TMPDIR/ftb-proposal.md` if needed),
 >    update task plan:
 >    ```bash
 >    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-plan.md)"
+>    echo "NEEDS_REVISION" > $TMPDIR/ftb-plan-verdict.txt
 >    ```
->    Write `NEEDS_REVISION` to verdict file.
+>    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
+>    If `<N>` == 8: move to `Basic: Needs Human`, print plan, STOP.
 
-After each agent run, read `$TMPDIR/ftb-plan-verdict.txt`:
-- `APPROVED` → proceed to Phase 5
-- `NEEDS_REVISION` → increment counter, repeat Phase 4
+After the first iteration is spawned (`run_in_background=true`), the orchestrator exits.
+The background agent self-chains by spawning the next iteration on NEEDS_REVISION.
+On APPROVED, the background agent proceeds directly to Phase 5 (finalise).
 
 ---
 
 ### Phase 5: finalise
 
-Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
+Run the following bash commands directly (no agent spawn needed — all steps are mechanical):
 
-> Finalise the backlog task: write combined proposal + plan into task and add DoD items.
->
-> Task ID: `<TASK_ID>` — Slug: `<SLUG>` — Doc root: `<CFG_DOC_PATH>`
->
-> **Step B — Write combined proposal+plan into task and add DoD**:
-> ```bash
-> grep -oP '(?<=- \[ \] `)[^`]+(?=`)' $TMPDIR/ftb-plan.md \
->   > $TMPDIR/ftb-dod-cmds.txt
->
-> DOD_ARGS=()
-> while IFS= read -r cmd; do
->   DOD_ARGS+=("--dod" "$cmd")
-> done < $TMPDIR/ftb-dod-cmds.txt
->
-> {
->   cat $TMPDIR/ftb-proposal.md
->   printf '\n\n---\n\n'
->   cat $TMPDIR/ftb-plan.md
-> } > $TMPDIR/ftb-combined.md
->
-> backlog task edit <TASK_ID> \
->   --planSet "$(cat $TMPDIR/ftb-combined.md)" \
->   --status "Backlog" \
->   "${DOD_ARGS[@]}"
-> ```
->
-> **Step D — Run Layer 0-2 validation gate**:
-> ```bash
-> bash scripts/validate-plugin.sh
-> ```
-> If validation fails, fix the SKILL.md contracts or internals before proceeding.
->
-> Add the following DoD items to the task:
-> ```bash
-> backlog task edit <TASK_ID> \
->   --dod "bash scripts/validate-plugin.sh" \
->   --dod "grep -q 'contracts:' plugin/skills/<skill-slug>/SKILL.md"
-> ```
->
-> **Step E — Print completion**:
-> ```
-> ✅ Task <TASK_ID> is now in Backlog.
->
-> 两轮起草 + 两轮迭代审查已完成。
->
-> 请在 web UI 审阅 Definition of Done 中的命令：
->   backlog browser --no-open --port 6421
->
-> 确认无误后，将任务移入执行队列：
->   backlog task edit <TASK_ID> --status "Ready"
->
-> 启动 L0 执行：
->   /loop-backlog
-> ```
+**Step B — Write combined proposal+plan into task and add DoD**:
+```bash
+grep -oP '(?<=- \[ \] `)[^`]+(?=`)' $TMPDIR/ftb-plan.md \
+  > $TMPDIR/ftb-dod-cmds.txt
+
+DOD_ARGS=()
+while IFS= read -r cmd; do
+  DOD_ARGS+=("--dod" "$cmd")
+done < $TMPDIR/ftb-dod-cmds.txt
+
+{
+  cat $TMPDIR/ftb-proposal.md
+  printf '\n\n---\n\n'
+  cat $TMPDIR/ftb-plan.md
+} > $TMPDIR/ftb-combined.md
+
+backlog task edit <TASK_ID> \
+  --planSet "$(cat $TMPDIR/ftb-combined.md)" \
+  --status "Basic: Backlog" \
+  "${DOD_ARGS[@]}"
+```
+
+**Step D — Run Layer 0-2 validation gate**:
+```bash
+bash "${REPO_ROOT}/scripts/validate-plugin.sh"
+```
+If validation fails, fix the SKILL.md contracts or internals before proceeding.
+
+Add the following DoD items to the task:
+```bash
+backlog task edit <TASK_ID> \
+  --dod "bash "${REPO_ROOT}/scripts/validate-plugin.sh"" \
+  --dod "grep -q 'contracts:' plugin/skills/<skill-slug>/SKILL.md"
+```
+
+**Step E — Print completion**:
+```
+✅ Task <TASK_ID> is now in Backlog.
+
+两轮起草 + 两轮迭代审查已完成。
+
+请在 web UI 审阅 Definition of Done 中的命令：
+  backlog browser --no-open --port 6421
+
+确认无误后，将任务移入执行队列：
+  backlog task edit <TASK_ID> --status "Basic: Ready"
+
+启动 L0 执行：
+  /loop-backlog
+```
+(print the standard completion message as text output)
 
 ---
 
 ## Constraints
 
+- **Scope gate (epic vs basic)**: If the feature naturally decomposes into ≥2 independent
+  deliverables with ordering/dependencies and a combined acceptance, stop and use
+  `/epic-to-backlog` instead. A Basic Task is NOT small — its plan may have Phase + Stage
+  two levels and span thousands of LOC. Only reach for an epic when one worker in one
+  worktree genuinely cannot finish the whole goal. See
+  `docs/proposals/proposal-epic-split-board.md` § 颗粒度.
 - This skill outputs docs and a backlog task only — it does not implement code
 - No branch creation, no worktree operations, no git push, no PR creation
 - One task per feature throughout; the same TASK_ID moves through all columns

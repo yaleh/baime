@@ -1,11 +1,12 @@
 ---
 id: TASK-9
 title: task-from-template skill：为重复性任务建立预审批模板机制，跳过完整 review 循环直接创建 Ready 任务
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-17 11:03'
 updated_date: '2026-06-17 11:17'
-labels: []
+labels:
+  - kind:basic
 dependencies: []
 ordinal: 1000
 ---

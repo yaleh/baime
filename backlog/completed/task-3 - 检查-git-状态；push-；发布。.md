@@ -1,7 +1,7 @@
 ---
 id: TASK-3
 title: 检查 git 状态；push ；发布。
-status: Done
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-16 15:51'
 updated_date: '2026-06-16 16:06'

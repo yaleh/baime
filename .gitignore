@@ -1,5 +1,7 @@
-backlog/.daemon.log
-backlog/.daemon.pid
+backlog/*.log
+backlog/*.pid
 .archguard/
 experiments/skill-quality/.env
 experiments/skill-quality/artifacts/runs/
+backlog/.caps
+backlog/.*

@@ -6,6 +6,7 @@ contracts:
   - grep: "ConvergenceResult"
   - grep: "V_meta"
   - grep: "iteration"
+  - grep: "structural"
 ---
 
 ## Spec

@@ -87,8 +87,10 @@ with open("$INSTALL_DIR/.claude-plugin/plugin.json", "w") as f:
 print("  plugin.json updated with", len(commands), "commands,", len(agents), "agents")
 PYEOF
 
-# 4. Set up marketplace source dir — source="." so marketplace.json and plugin are co-located
-mkdir -p "$MARKETPLACE_DIR/.claude-plugin"
+# 4. Set up marketplace source dir — mirror full plugin content so source="." resolves commands/ correctly
+mkdir -p "$MARKETPLACE_DIR"
+rsync -a --delete "$INSTALL_DIR/" "$MARKETPLACE_DIR/"
+# Re-write marketplace.json after rsync (rsync --delete would remove it since it's not in INSTALL_DIR)
 cat > "$MARKETPLACE_DIR/.claude-plugin/marketplace.json" <<EOF
 {
   "name": "$MARKETPLACE_NAME",
@@ -96,10 +98,6 @@ cat > "$MARKETPLACE_DIR/.claude-plugin/marketplace.json" <<EOF
   "plugins": [{"name": "$PLUGIN_NAME", "source": "."}]
 }
 EOF
-
-# Copy plugin.json into marketplace dir so source="." resolves correctly
-mkdir -p "$MARKETPLACE_DIR/.claude-plugin"
-cp "$INSTALL_DIR/.claude-plugin/plugin.json" "$MARKETPLACE_DIR/.claude-plugin/plugin.json"
 
 # 5. Register extraKnownMarketplaces + enabledPlugins in ~/.claude/settings.json
 mkdir -p "$HOME/.claude"

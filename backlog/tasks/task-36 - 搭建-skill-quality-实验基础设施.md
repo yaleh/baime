@@ -1,11 +1,12 @@
 ---
 id: TASK-36
 title: 搭建 skill-quality 实验基础设施
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-19 08:53'
 updated_date: '2026-06-19 09:11'
 labels:
+  - kind:basic
   - experiment
   - infrastructure
 dependencies: []

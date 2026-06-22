@@ -1,0 +1,82 @@
+[
+  {
+    "id": "MT-01",
+    "goal": "Add a CONTRIBUTING.md with coding standards and PR checklist",
+    "complexity": "low",
+    "expected_replan": false,
+    "expected_replan_cause": null,
+    "notes": "Single-file documentation task with clear, stable acceptance criteria. No external dependencies. Baseline low-complexity happy path."
+  },
+  {
+    "id": "MT-02",
+    "goal": "Document all public functions in scripts/validate-plugin.sh with inline comments",
+    "complexity": "low",
+    "expected_replan": false,
+    "expected_replan_cause": null,
+    "notes": "Bounded scope (one file), non-breaking change. Expected to complete in one sub-task cycle without evaluator disagreement."
+  },
+  {
+    "id": "MT-03",
+    "goal": "Add 3 new unit tests for the ROI gate measurement report output format",
+    "complexity": "low",
+    "expected_replan": false,
+    "expected_replan_cause": null,
+    "notes": "Well-scoped test addition against an existing script. Acceptance criteria (3 passing tests) are objectively verifiable. Low replan risk."
+  },
+  {
+    "id": "MT-04",
+    "goal": "Rename all occurrences of 'baime' prefix to 'bame' across plugin manifests and validate consistency",
+    "complexity": "low",
+    "expected_replan": true,
+    "expected_replan_cause": "harness",
+    "notes": "Bulk rename across multiple files. Designed to surface a harness error: the grep/sed pipeline in the reconciler fails on binary files or symlinks. Triggers replan with root cause 'harness'."
+  },
+  {
+    "id": "MT-05",
+    "goal": "Design and implement a plugin-level dependency resolution algorithm that reads plugin/*/manifest.yml and outputs a topological sort",
+    "complexity": "medium",
+    "expected_replan": false,
+    "expected_replan_cause": null,
+    "notes": "Multi-file implementation with moderate algorithmic complexity. Sub-tasks decompose cleanly (parse manifests, implement sort, write tests). Happy-path medium scenario."
+  },
+  {
+    "id": "MT-06",
+    "goal": "Migrate all skill SKILL.md files to a new structured schema with required frontmatter fields",
+    "complexity": "medium",
+    "expected_replan": true,
+    "expected_replan_cause": "sub-plan",
+    "notes": "The decomposer initially generates sub-tasks keyed to individual skills, but misses skills nested in subdirectories. Evaluator returns NotMet because coverage is incomplete. Root cause classified as 'sub-plan' — decomposition was too shallow."
+  },
+  {
+    "id": "MT-07",
+    "goal": "Implement an end-to-end integration test that runs the full loop-meta lifecycle against a stub backlog",
+    "complexity": "medium",
+    "expected_replan": true,
+    "expected_replan_cause": "impl",
+    "notes": "Implementation sub-task fails because the stub backlog fixture is not correctly isolated, causing state leakage between test runs. Evaluator returns NotMet; replanner diagnoses 'impl' — code logic is wrong but goal remains achievable."
+  },
+  {
+    "id": "MT-08",
+    "goal": "Introduce a plugin sandboxing layer that enforces capability-based permissions for all MCP tool calls across all skills",
+    "complexity": "high",
+    "expected_replan": true,
+    "expected_replan_cause": "meta-plan",
+    "notes": "High-complexity architectural change. The initial meta-plan tackles sandboxing at the MCP transport layer, but after sub-task progress it becomes clear the approach requires changes to the Claude SDK not available in the current harness. Replanner revises the meta-plan to use an application-level allow-list instead. Root cause: 'meta-plan'."
+  },
+  {
+    "id": "MT-09",
+    "goal": "Achieve zero evaluator-NotMet cycles across all historical backlog tasks by retroactively satisfying their original acceptance criteria",
+    "complexity": "high",
+    "expected_replan": true,
+    "expected_replan_cause": "infeasible",
+    "notes": "Deliberately infeasible: historical task states are immutable once archived; acceptance criteria for completed tasks cannot be retroactively 'met' without falsifying records. Replanner escalates with root cause 'infeasible'."
+  },
+  {
+    "id": "MT-10",
+    "goal": "Build a multi-agent orchestration harness that parallelises all backlog tasks across 8 concurrent worktrees, with automatic conflict resolution and live progress streaming to a web dashboard",
+    "complexity": "high",
+    "expected_replan": false,
+    "expected_replan_cause": null,
+    "notes": "High-complexity but well-specified goal with clear phased decomposition (worktree manager, conflict resolver, streaming layer, dashboard). Designed as a high-complexity happy path to validate that large goals complete without triggering replan when sub-tasks are well-structured."
+  }
+]

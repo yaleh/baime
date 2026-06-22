@@ -1,0 +1,45 @@
+# feature-to-backlog / epic-to-backlog Session Index
+# Generated: 2026-06-21
+
+## Primary Session Analyzed
+Session ID: 855161fb-c108-447a-bef2-66297524213d
+Session file: /home/yale/.claude/projects/-home-yale-work-baime/855161fb-c108-447a-bef2-66297524213d.jsonl
+Session date: 2026-06-21
+Total messages in JSONL: 3600
+
+## Tasks Analyzed
+
+### TASK-132 (feature-to-backlog)
+- Title: epicDecompose spawn-and-forget background agent
+- Skill: feature-to-backlog
+- Invoked at: 15:27:12
+- Completed (Basic: Backlog): 15:57:14
+- Status: fully analyzed; planLoop iter 2 timing estimated (notification missed)
+
+### TASK-133 (feature-to-backlog)
+- Title: epicDecompose child quality: use feature-to-backlog / task-to-backlog instead of bare backlog task create
+- Skill: feature-to-backlog
+- Invoked at: 15:27:12 (parallel with TASK-132)
+- Completed (Basic: Backlog): 15:45:12
+- Status: fully analyzed; all phase notifications received
+
+### TASK-134 (epic-to-backlog)
+- Title: feature-to-backlog 审查周期提速：分析与实验驱动的 proposal/plan 阶段优化
+- Skill: epic-to-backlog
+- Invoked at: 15:51:47
+- Completed (Epic: Backlog): ~15:59:00
+- Status: timing pre-computed from session notification timestamps (provided as known context)
+
+## Methodology
+- Timestamps extracted from JSONL message fields: .timestamp (ISO 8601 UTC+0)
+- Phase boundaries determined by:
+  - Agent tool_use calls (spawn time)
+  - task-notification attachment messages (completion time)
+  - Assistant text messages confirming phase transitions
+- TASK-132 and TASK-133 were run in parallel by the same orchestrating agent
+
+## Notes on Other Feature-to-Backlog Runs Visible in Session
+- TASK-126 ftb run: 11:26:46 (separate earlier segment, not timed in this analysis)
+- TASK-128 ftb run: 12:09:20 (separate earlier segment, not timed)
+- TASK-129 ftb run: 12:39:10 (separate earlier segment, not timed)
+- Only TASK-132/133/134 are in the 15:27–16:00 window with precise per-phase timestamps

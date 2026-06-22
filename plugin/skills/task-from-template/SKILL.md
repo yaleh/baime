@@ -209,7 +209,7 @@ echo "✅ Template '$SLUG' is FRESH — creating task..."
 
 ```bash
 TASK_OUTPUT=$(backlog task create "$TMPL_TITLE" \
-  --status "Ready" \
+  --status "Basic: Ready" \
   --description "$TMPL_BODY" \
   --plain)
 

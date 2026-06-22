@@ -1,11 +1,12 @@
 ---
 id: TASK-32
 title: 为 validate-plugin.sh 的 trigger 重叠检测建立语义覆盖补充方案
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-18 12:53'
 updated_date: '2026-06-18 15:58'
 labels:
+  - kind:basic
   - prompt-quality
   - skill-descriptions
 dependencies:

@@ -1,11 +1,12 @@
 ---
 id: TASK-84
 title: 检查 git 状态；push；发布
-status: Needs Human
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-20 02:11'
-updated_date: '2026-06-20 03:11'
-labels: []
+updated_date: '2026-06-20 03:17'
+labels:
+  - kind:basic
 dependencies: []
 ordinal: 64000
 ---
@@ -96,6 +97,11 @@ Then set status → Ready.
 
 Confirmed:
 
-1. The version number to release (e.g. 1.4.0)
+1. The version number to release: 1.4.0
 2. Push to origin and publish a GitHub release
+
+claimed: 2026-06-20T03:15:13Z
+
+Completed: 2026-06-20T03:17:24Z
+Release v1.4.0 published: https://github.com/yaleh/baime/releases/tag/v1.4.0
 <!-- SECTION:NOTES:END -->

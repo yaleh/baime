@@ -1,11 +1,12 @@
 ---
 id: TASK-42
 title: 将 run-quantitative-experiment 算子化为 Operator Skill
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-19 12:25'
 updated_date: '2026-06-19 13:24'
 labels:
+  - kind:basic
   - baime
   - experiment
   - skill-quality

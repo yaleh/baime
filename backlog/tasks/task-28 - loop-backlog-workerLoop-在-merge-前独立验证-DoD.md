@@ -1,11 +1,12 @@
 ---
 id: TASK-28
 title: loop-backlog workerLoop 在 merge 前独立验证 DoD
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-18 06:31'
 updated_date: '2026-06-18 06:55'
-labels: []
+labels:
+  - kind:basic
 dependencies: []
 ordinal: 2000
 ---

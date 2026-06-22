@@ -1,11 +1,12 @@
 ---
 id: TASK-24
 title: 改进 feature-to-backlog / task-to-backlog：finalise 合并写入 proposal + plan 到 task
-status: Done
+status: "Basic: Done"
 assignee: []
 created_date: '2026-06-18 01:39'
 updated_date: '2026-06-18 02:14'
 labels:
+  - kind:basic
   - skill
   - feature-to-backlog
   - task-to-backlog

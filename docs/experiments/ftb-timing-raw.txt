@@ -1,0 +1,121 @@
+# feature-to-backlog / epic-to-backlog timing raw data
+# Session: 855161fb-c108-447a-bef2-66297524213d
+# Date: 2026-06-21
+# All times are local (UTC+8; displayed as HH:MM:SS)
+# Timestamps sourced from JSONL message .timestamp fields
+# Phase boundaries:
+#   start = Agent tool_use spawn timestamp (or skill invocation for draftProposal)
+#   end   = task-notification attachment or queue-operation timestamp for completion
+
+
+# ============================================================
+TASK-132 (feature-to-backlog) 2026-06-21
+# Title: epicDecompose spawn-and-forget background agent
+# Both TASK-132 and TASK-133 were driven by a single orchestrating agent in parallel
+# ============================================================
+
+draftProposal: 15:27:12 → 15:30:33 = 201s
+  # Boundary: skill invoked → proposalLoop Agent tool_use call
+  # Evidence: skill invoked at 15:27:12; ASST called Agent("TASK-132 proposal review iter 1") at 15:30:33
+
+proposalLoop: 15:30:33 → 15:33:02 = 149s, iterations=1, verdict=APPROVED
+  # Boundary: Agent spawn → attachment queued in JSONL (task-id a9e699970feb585eb)
+  # Evidence: attachment at 15:33:02 contains "Agent TASK-132 proposal review iteration 1 completed"
+  # Result: "Proposal APPROVED"
+
+draftPlan: 15:33:41 → 15:35:10 = 89s
+  # Boundary: Agent tool_use for "TASK-132 plan draft" → attachment queued (task-id aa3f3b8e8bb3534a5)
+  # Evidence: Agent spawned at 15:33:41; attachment at 15:35:10 contains "TASK-132 plan draft completed"
+
+planLoop: 15:35:30 → ~15:41:30 = ~360s, iterations=2, verdict=NEEDS_REVISION→APPROVED
+  # Iter 1: spawned 15:35:30; notification 15:38:16 (task-id a11c24aad169febef) = 166s
+  #   Result: "Iteration 1 review found two issues and fixed them" → NEEDS_REVISION
+  # Iter 2: auto-spawned within iter 1 agent at ~15:38:21
+  #   Completion: NOT received as notification in main session
+  #   Confirmed APPROVED by manual Bash check at 15:54:56 (user prompted check at 15:54:45)
+  #   Estimated iter 2 duration: ~160-180s (similar to iter 1)
+  #   Estimated completion: ~15:41:00-15:43:00
+  # CAVEAT: planLoop total is a lower-bound estimate; iter 2 end time is unknown
+  #   Lower bound: 15:35:30 → 15:38:21+iter2_duration
+  #   Best estimate: ~360s total
+
+finalise: 15:55:19 → 15:57:14 = 115s
+  # Boundary: ASST said "TASK-132 runs finalise" at 15:55:19; notification at 15:57:14
+  # Evidence: task-id a812f76934217d12f "TASK-132 finalise (epicDecompose spawn-and-forget) completed"
+  # Note: finalise was delayed because the orchestrator was handling TASK-134 epic-to-backlog
+  #   in parallel; actual finalise agent ran only 115s once spawned
+
+total_serial: 201+149+89+~360+115 = ~914s
+  # NOTE: wall-clock was longer (~1802s 15:27:12→15:57:14) due to:
+  #   (a) parallel TASK-133 processing delaying some orchestration steps
+  #   (b) TASK-134 epic-to-backlog running simultaneously during finalise delay
+
+
+# ============================================================
+TASK-133 (feature-to-backlog) 2026-06-21
+# Title: epicDecompose child quality: use feature-to-backlog / task-to-backlog
+# Run in parallel with TASK-132 by the same orchestrating agent
+# ============================================================
+
+draftProposal: 15:31:17 → 15:33:02 = 105s
+  # Boundary: Agent("Draft proposal for TASK-133") spawned at 15:31:17
+  #   → tool_result received at 15:33:02
+  # Evidence: Agent spawned at 15:31:17; tool_result at 15:33:02 confirms proposal written
+
+proposalLoop: 15:33:59 → 15:34:35 = 36s, iterations=1, verdict=APPROVED
+  # Boundary: Agent("TASK-133 proposal review iteration 1") spawned at 15:33:59
+  #   → notification at 15:34:35 (task-id a4b41589c6b7adaf1)
+  # Result: "Proposal APPROVED"
+
+draftPlan: 15:35:09 → 15:37:02 = 113s
+  # Boundary: Agent("TASK-133 plan draft") spawned at 15:35:09
+  #   → notification at 15:37:02 (task-id a5ba5a9e1be50ec61)
+  # Result: "Plan written and task updated"
+
+planLoop: 15:37:06 → 15:38:22 = 76s, iterations=1, verdict=APPROVED
+  # Boundary: ASST spawned planLoop iter 1 at ~15:37:06 (after processing 15:37:02 notification)
+  #   → notification at 15:38:22 (task-id a4ad75ef773a458bf)
+  # Result: "Plan APPROVED"
+
+finalise: 15:38:41 → 15:45:12 = 391s
+  # Boundary: Agent("TASK-133 finalise") spawned at 15:38:41
+  #   → notification at 15:45:12 (task-id a6e35c02dd6f26de8)
+  # Note: This is by far the longest phase; finalise agent re-reads proposal+plan,
+  #   formats combined document, extracts DoD commands, calls backlog CLI multiple times
+
+total_serial: 105+36+113+76+391 = 721s
+
+
+# ============================================================
+TASK-134 (epic-to-backlog) 2026-06-21
+# Title: feature-to-backlog 審査周期提速：分析与实験驱动的 proposal/plan 阶段優化
+# Skill: epic-to-backlog (different from feature-to-backlog)
+# Timing provided as pre-computed context (from known notification timestamps)
+# ============================================================
+
+draftProposal: 15:51:47 → 15:54:03 = 136s
+  # Boundary: skill invoked → ASST announced "Phase 2 — start proposalLoop"
+  # Evidence: skill at 15:51:47; ASST at 15:54:03
+
+proposalLoop: 15:54:03 → 15:55:12 = 69s, iterations=1, verdict=APPROVED
+  # Boundary: proposalLoop Agent spawned (15:54:16) → notification at 15:55:12
+  # task-id a33a2435f83a2dda9 "TASK-134 epic proposal review iteration 1 completed"
+  # Adjusted start: 15:54:03 (ASST announcement) for comparability
+  # Result: "Proposal APPROVED"
+
+draftPlan: 15:55:19 → 15:56:50 = 91s
+  # Boundary: ASST "TASK-134 进入计划起草" at 15:55:19; Agent spawned 15:55:49
+  #   → notification at 15:56:50 (task-id adb8b30d812e316a3)
+  # Result: "Plan written"
+
+planLoop: 15:56:50 → 15:57:58 = 68s, iterations=1, verdict=APPROVED
+  # Boundary: notification for draftPlan at 15:56:50 → ASST spawned planLoop
+  #   → notification at 15:57:58 (task-id a6889e5dc021af22a)
+  # Result: "Plan APPROVED"
+
+finalise: 15:58:04 → 15:59:00 = 56s
+  # Boundary: ASST "推进到 Epic: Backlog 并运行 finalise" at 15:58:04
+  #   → estimated completion ~15:59:00
+  # Evidence: context-provided pre-computed timing
+
+total: 420s
