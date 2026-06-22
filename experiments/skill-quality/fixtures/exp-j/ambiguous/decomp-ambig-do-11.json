@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-do-11",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "DOC-ONLY",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Map out the state transitions in the B-double-prime epic lifecycle as a diagram\n- Validate the diagram against current SKILL.md gate logic",
+  "subtaskHint": "Map out the state transitions in the B″ epic lifecycle as a diagram",
+  "ground_truth_rationale": "Mapping state transitions as a diagram is a documentation task — the natural output is a prose/diagram document, not a source file change. DOC-ONLY per explicit rule: 'writing prose docs'.",
+  "tricky_aspect": "'Map out' could mean implementing a state machine in code; 'state transitions' sounds technical/algorithmic; 'diagram' could suggest generating a diagram via code; model must recognize this is visual documentation"
+}

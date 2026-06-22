@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-cc-09",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "CODE-CHANGE",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Refactor the epic-worker event dispatch to use the new channel interface\n- Update unit tests to cover the new dispatch paths",
+  "subtaskHint": "Refactor the epic-worker event dispatch to use the new channel interface",
+  "ground_truth_rationale": "Refactoring the event dispatch logic means modifying the epic-worker code under plugin/ — CODE-CHANGE per explicit rule. 'Refactor ... to use new interface' always produces file changes.",
+  "tricky_aspect": "'Refactor' implies code but no explicit file type is named; 'channel interface' might sound like a doc/spec; model must infer plugin/ scope from 'epic-worker'"
+}

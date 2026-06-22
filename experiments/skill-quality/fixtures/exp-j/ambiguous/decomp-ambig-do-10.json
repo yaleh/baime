@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-do-10",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "DOC-ONLY",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Review and annotate the existing rate-limit handling decisions in the backlog\n- Summarize findings as a decision record in docs/",
+  "subtaskHint": "Review and annotate the existing rate-limit handling decisions in the backlog",
+  "ground_truth_rationale": "Review and annotation of existing decisions is reading + prose writing — DOC-ONLY per explicit rule. The natural output is annotations and a decision record, not modified source files.",
+  "tricky_aspect": "'Rate-limit handling' sounds like a code-related topic; 'backlog' could be misread as 'code backlog'; 'annotate' sounds technical; model must recognize this is doc-level analysis, not code modification"
+}

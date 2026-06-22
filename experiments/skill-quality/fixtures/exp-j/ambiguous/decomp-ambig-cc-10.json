@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-cc-10",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "CODE-CHANGE",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Wire up the loop-backlog child-done handler to reconcile parent epic state\n- Add integration test for the child-done reconciliation path",
+  "subtaskHint": "Wire up the loop-backlog child-done handler to reconcile parent epic state",
+  "ground_truth_rationale": "'Wire up' + 'handler' describe implementing integration code in plugin/ — CODE-CHANGE per explicit rule. Handlers are event-processing functions that must be written in source files.",
+  "tricky_aspect": "No explicit file path or extension named; 'reconcile parent epic state' sounds like a process or doc update; model must infer that a handler is code in plugin/"
+}

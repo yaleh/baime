@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-cc-12",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "CODE-CHANGE",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Patch the rate-limit backoff logic in the LLM client to handle 429 retries\n- Add test coverage for the patched backoff paths",
+  "subtaskHint": "Patch the rate-limit backoff logic in the LLM client to handle 429 retries",
+  "ground_truth_rationale": "'Patch ... logic in the LLM client' means modifying source code in the plugin/ or lib/ directory — CODE-CHANGE per explicit rule. Backoff logic is implemented in code, not described in a doc.",
+  "tricky_aspect": "'Backoff logic' sounds algorithmic/conceptual; '429 retries' could suggest writing a runbook; 'patch' implies code change but the word itself is ambiguous (could mean documentation patch)"
+}

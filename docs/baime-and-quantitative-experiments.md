@@ -179,3 +179,36 @@ transferability: 90%        # [unvalidated] — 尚无 held-out 实验支撑
 | **B：evidence/[unvalidated] meta-lint** | `validate-plugin.sh` 新规则 | 让 CI 强制区分"测出来的数字"和"自评的数字"，根治软断言问题 |
 
 步骤 B 的成本低、信号强：它会立即对现有 skill 产出一批 `[unvalidated]` 标注，形成待验证的主张清单，驱动后续实验的选题。
+
+---
+
+## 五、定量实验结果记录（Exp-H 至 Exp-J）
+
+### Exp-H — decomposer persona calibration (TASK-155)
+
+Pre-registered calibration run establishing the runner.ts framework. Confirmed end-to-end harness correctness.
+
+### Exp-I — Persona effect on decomposer CODE-CHANGE classification (TASK-160)
+
+**Purpose**: Test whether replacing the functional directive with an expert architect persona (V1) improves CODE-CHANGE vs DOC-ONLY classification accuracy on n=8 CLEAR + n=8 AMBIGUOUS fixtures at k=5.
+
+**Method**: Two-variant (V0/V1) classification experiment; automated ground-truth scoring; Haiku primary + Sonnet cross-check; 320 LLM calls.
+
+**Verdict**: H-A CONFIRMED on Haiku (Δ=+0.050) but direction reversed on Sonnet (Δ=−0.025). Cross-model tag: `[underpowered]` — models disagree on direction at n=8 AMBIGUOUS fixtures. H-B CONFIRMED (CLEAR ceiling = 1.000). H-D CONFIRMED (no asymmetric bias).
+
+**Implication**: Underpowered — triggered Exp-J replication at n=16.
+
+### Exp-J — Higher-power replication of persona effect (TASK-161)
+
+**Purpose**: Resolve Exp-I's cross-model underpowered tag by doubling AMBIGUOUS fixture set to n=16 (8 from Exp-I + 8 new). Single fixture flip moves Δ by 6.25pp vs 12.5pp in Exp-I.
+
+**Method**: Same V0/V1 prompts as Exp-I; AMBIGUOUS-only run (CLEAR ceiling inherited); Haiku primary + Sonnet cross-check; 320 LLM calls across 64 cells.
+
+**Results**:
+- Haiku: V0=0.938, V1=0.975, Δ=+0.037 (below 5pp threshold)
+- Sonnet: V0=0.975, V1=0.938, Δ=−0.037 (opposite direction)
+- H-D2 CONFIRMED — DO recall = 1.000 in all conditions
+
+**Verdict**: H-A2 **NULL** (Haiku Δ=+0.037 < 0.05). Cross-model consistency: **NULL [cross-model disagreement]** — models disagree on direction after n=16, perfectly symmetric (±0.037). Per pre-registered priority-order rules, this is a definitive NULL.
+
+**Implication**: Do not add the V1 expert persona to loop-backlog decomposer SKILL.md. Classification rules already sufficient; residual errors are idiosyncratic to specific fixtures and do not improve systematically with persona framing. Definitive negative evidence documented in `docs/experiments/exp-j-decomposer-persona.md`.

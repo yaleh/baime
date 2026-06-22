@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-do-12",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "DOC-ONLY",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Assess whether the current DoD shell-command format scales to multi-step tasks\n- Document findings and recommendations in docs/dod-format-assessment.md",
+  "subtaskHint": "Assess whether the current DoD shell-command format scales to multi-step tasks",
+  "ground_truth_rationale": "Assessment of a format's scalability is analysis/research — the natural output is a written assessment document, not a source file change. DOC-ONLY per explicit rule: 'reading, researching, writing prose docs'.",
+  "tricky_aspect": "'Scales' sounds like a performance engineering task; 'shell-command format' sounds technical; 'multi-step tasks' might suggest implementing a new format; model must recognize this is assessment/analysis work"
+}

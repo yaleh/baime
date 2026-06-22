@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-cc-11",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "CODE-CHANGE",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Update the decomposer's output schema to include a confidence field\n- Regenerate type definitions from the updated schema",
+  "subtaskHint": "Update the decomposer's output schema to include a confidence field",
+  "ground_truth_rationale": "The decomposer's output schema is defined in SKILL.md — updating it is CODE-CHANGE per explicit rule (any SKILL.md). Adding a confidence field to a schema embedded in SKILL.md produces a file change.",
+  "tricky_aspect": "'Update schema' sounds like documentation work; 'confidence field' sounds like writing a spec; model must infer that SKILL.md contains the schema definition"
+}

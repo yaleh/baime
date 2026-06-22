@@ -1,0 +1,68 @@
+{
+  "generated": "2026-06-22T23:14:30.754Z",
+  "data_source": "measured",
+  "experiment": "Exp-J",
+  "fixture_count": 16,
+  "fixture_class": "AMBIGUOUS only (CLEAR ceiling inherited from Exp-I)",
+  "models": {
+    "claude-haiku-4-5-20251001": {
+      "V0": {
+        "accuracy_ambig": 0.938,
+        "accuracy_overall": 0.938,
+        "cc_recall": 0.875,
+        "do_recall": 1
+      },
+      "V1": {
+        "accuracy_ambig": 0.975,
+        "accuracy_overall": 0.975,
+        "cc_recall": 0.95,
+        "do_recall": 1
+      }
+    },
+    "claude-sonnet-4-6": {
+      "V0": {
+        "accuracy_ambig": 0.975,
+        "accuracy_overall": 0.975,
+        "cc_recall": 0.95,
+        "do_recall": 1
+      },
+      "V1": {
+        "accuracy_ambig": 0.938,
+        "accuracy_overall": 0.938,
+        "cc_recall": 0.875,
+        "do_recall": 1
+      }
+    }
+  },
+  "hypotheses": {
+    "H-A2": {
+      "description": "V1 AMBIG accuracy >= V0 AMBIG accuracy + 5pp (n=16 AMBIGUOUS)",
+      "V0_obs": 0.938,
+      "V1_obs": 0.975,
+      "delta": 0.037,
+      "verdict": "NULL"
+    },
+    "H-B2": {
+      "description": "Both V0 and V1 achieve >= 0.90 on CLEAR fixtures",
+      "status": "INHERITED_FROM_EXP_I: CONFIRMED",
+      "note": "CLEAR fixtures not re-run in Exp-J; Exp-I measured V0_clear=1.000, V1_clear=1.000 (both models)"
+    },
+    "H-C2": {
+      "description": "V1 overall accuracy >= V0 overall accuracy + 5pp (AMBIGUOUS-only run)",
+      "V0_obs": 0.938,
+      "V1_obs": 0.975,
+      "delta": 0.037,
+      "verdict": "NULL",
+      "note": "Equivalent to H-A2 since all fixtures are AMBIGUOUS"
+    },
+    "H-D2": {
+      "description": "V1 DO recall not degraded > 10pp vs V0",
+      "V0_obs": 1,
+      "V1_obs": 1,
+      "delta": 0,
+      "verdict": "CONFIRMED"
+    }
+  },
+  "cross_model_consistency": "NULL [cross-model disagreement] — models disagree on direction after n=16 (Haiku: Δ=0.037, Sonnet: Δ=-0.037)",
+  "V_meta_experiment": 0.97
+}

@@ -1,0 +1,9 @@
+{
+  "id": "decomp-ambig-do-09",
+  "fixtureClass": "AMBIGUOUS",
+  "expectedClass": "DOC-ONLY",
+  "epicPlanExcerpt": "Sub-Task Decomposition:\n- Benchmark how long each loop-backlog phase takes across 10 recent epics\n- Record findings in latency-log.md",
+  "subtaskHint": "Benchmark how long each loop-backlog phase takes across 10 recent epics",
+  "ground_truth_rationale": "Benchmarking is a measurement and analysis task — the output is a latency report or doc entry, not a source file change. DOC-ONLY per explicit rule: 'scope is exclusively reading, researching, writing prose docs'.",
+  "tricky_aspect": "'Benchmark' sounds like running code or a script; the phrase could suggest writing a benchmarking script; model must recognize that measurement-recording is prose/doc output, not code modification"
+}
