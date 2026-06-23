@@ -24,6 +24,16 @@ cd baime && ./scripts/install/install.sh
 
 Restart Claude Code after installation.
 
+### Prerequisites for loop-backlog workflow
+
+The loop-backlog autonomous worker requires the [`backlog.md`](https://backlog.md) CLI:
+
+```bash
+npm install -g backlog.md
+```
+
+After installing, run `/backlog-setup` in your project root to initialize the `backlog/` directory (see [Backlog + Loop Workflow](#backlog--loop-workflow) below).
+
 ---
 
 ## What's Included
@@ -96,6 +106,18 @@ The workflow coach works without any other tools installed. If you also have [me
 
 ---
 
+## Creating Skills with BAIME
+
+BAIME uses its own OCA (Observe → Codify → Automate) methodology to develop new skills:
+
+1. **Observe** — run `/methodology-bootstrapping` on a repeated workflow to extract its pattern
+2. **Codify** — write the pattern as a `SKILL.md` spec (pseudocode + implementation)
+3. **Automate** — invoke the skill via `/skill-name`; use `/task-to-backlog` or `/feature-to-backlog` to queue skill improvements as backlog tasks
+
+Skills live in `plugin/skills/<name>/SKILL.md`. The `loop-backlog` worker can execute skill-creation tasks autonomously when they are queued as `kind:basic` tasks.
+
+---
+
 ## Backlog + Loop Workflow
 
 Use the backlog-integrated skills to set up an autonomous task execution pipeline.
@@ -116,6 +138,17 @@ Convert feature requests or general tasks into structured backlog items with pha
 /feature-to-backlog Add OAuth2 login support
 /task-to-backlog Update the project README with workflow documentation
 ```
+
+**Two task granularities:**
+- `kind:basic` — single-scope tasks; the worker executes them directly in an isolated git worktree and merges on success
+- `kind:epic` — large cross-cutting work; the worker calls `/epic-to-backlog` to decompose the epic into `kind:basic` children, then executes each child autonomously
+
+Epic lifecycle:
+```
+Epic: Ready → Epic: Decomposing → [Basic: Ready → Basic: In Progress → Basic: Done] → Epic: Evaluating → Epic: Done
+```
+
+Use `/epic-to-backlog "Refactor auth module"` for epics and `/feature-to-backlog "Add OAuth2 login"` for individual basic tasks.
 
 Move tasks to `Ready` when they are ready for execution:
 
@@ -154,6 +187,27 @@ backlog browser --port 6422 --no-open
 ```
 
 Tasks flow through: `Ready` → `In Progress` → `Done` (or `Needs Human` if the worker gets stuck and needs manual intervention).
+
+---
+
+## Measurement & Self-Improvement
+
+BAIME measures and improves its own development process.
+
+### Self-Reference
+BAIME's research subject is BAIME itself — the OCA methodology is used to develop the OCA methodology; `loop-backlog` drives its own evolution. This is not a metaphor: the git log is the evidence.
+
+### GCL (Gate Comprehension Load)
+GCL measures cognitive density at human gate decisions: `GCL = E + C + H` where E = explicit context read from the task file, C = cross-boundary context requiring external lookups, H = hidden premises recoverable only from background knowledge. As automation deepens, human gate frequency falls but per-gate cognitive load rises — GCL tracks whether oversight remains substantively engaged. See `docs/research/gcl-synthesis.md`.
+
+### meta-cc Session Analysis
+The [`meta-cc`](https://github.com/yaleh/meta-cc) MCP server exposes Claude Code session history for self-analysis: tool-call frequency, context switches, token trends, error patterns. The `@workflow-coach` agent uses this data for workflow diagnostics without requiring external instrumentation.
+
+### Skill Quality Experiments
+Skill designs are validated through fixture-based oracle experiments (Exp-A to Exp-K), measuring accuracy deltas from specific design choices (e.g., whether an `## Implementation` section improves plan-gate accuracy). A seven-layer acceptance checklist (`docs/llm-capability-measurement-methodology.md`) gates experimental conclusions: metric triad / statistical validity / difficulty stratification / ground truth / deployment fidelity / meta-validation / provenance.
+
+### Bootstrapping
+`loop-backlog` currently processes BAIME's own backlog — skill development, experiment execution, and documentation updates — using the same Basic/Epic dual-track it provides to other projects. Every new skill that lands enters the next OCA cycle.
 
 ---
 
