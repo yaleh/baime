@@ -80,15 +80,45 @@
 - **H4 动态**：H=0 的任务均为"全 DoD 机械可验证"任务，H=1 的任务均包含主观阈值判断——与 H4 细化裁定（规则类 H 可被 artifact 外化，判断类 H 持续存在）一致。
 - **H4 局限**：观测期内 artifact 覆盖未变化（恒定 6 个 gcl-research 文件），无法通过 artifact 增量验证 H4。
 
+## 框架修订：GCL 的服务目标重构（2026-06-23）
+
+**Human oversight 不应被当作天然基准；它只是当前治理结构中的一种 gate actor。**
+
+GCL 最终要服务的不是"保护人类监督的地位"，而是衡量：**一个 gate 是否以可持续成本产生了足够独立、可追责、可校准的监督信号。**
+
+在这个框架下，"降低 GCL"和"提升监督质量"是可以解耦的工程变量。最优 gate 设计是在 **evidence independence**（监督证据与被监督系统信息源的独立程度）最大化的前提下，把 GCL 维持在人类可持续参与的区间——而不是无限压低 GCL。
+
+Automation bias 也因此从"人类被 AI 欺骗"的窄问题，扩展为**监督通道和被监督系统的信息源发生耦合**的一般性失效模式。无论 gate actor 是人还是机器，只要证据源不独立，这种失效就会出现。
+
+见 docs/research/gcl-complete-observation-mechanism.md §5 的 H5 / H6 完整表述。
+
+---
+
+## 新增假设
+
+### H5：GCL 存在监督有效性下界
+
+> 当 GCL 被 Scope− 压得过低（H=0、C=0），gate 退化为 rubber stamp，escape rate 上升。
+
+**状态**：待验证。需 gcl-events.jsonl + escape_rate 字段（TASK-176 增量 2）建立后实测。
+
+### H6：监督有效性主要取决于 evidence independence，而非 gate actor 是否为人类
+
+> 一个 gate 的监督质量，由其证据来源与被监督系统的信息独立程度决定。人类 gate 如果只消费 agent summary，可能比具备独立测试、独立模型、独立日志通道的 automated gate 监督质量更低。
+
+**状态**：待验证。需 gcl-events.jsonl 增加 `evidence_independence` 字段后实测。
+
+---
+
 ## 下一步
 
 1. **首次 premise-ledger 对比验证**（TASK-151 已完成仪器建设，TASK-152 已执行首批分析）：✓ 已验证，见 docs/research/gcl-selfReport-analysis.md。后续需积累更多样本，扩展到 proposal gate 和 epic-evaluate gate 类型。
 
-2. **增加语料范围**：将语料扩展到更长时间窗口（>2 天）和更多任务类型，特别是 task-to-backlog 产生的 doc-only 任务
+2. **完整观测机制建设**（TASK-176，Epic: Backlog）：结构化事件日志 + 可复现分析脚本 + 可靠性采样 + escape rate 配对 + H5/H6 验证实验 + 闭环告警。详见 docs/research/gcl-complete-observation-mechanism.md。
 
-3. **收窄 gate 实验**：设计一个对照实验——对比"全 proposal 评审"（当前）与"仅 DoD 机械验证"（Scope−）的 gate 可靠性，实证验证 Scope− 是否在保持可靠性的同时降低 GCL
+3. **收窄 gate 实验**：设计对照实验——对比"全 proposal 评审"（当前）与"仅 DoD 机械验证"（Scope−）的 gate 可靠性，同时控制 evidence independence，实证验证 H5 边界。
 
-4. **规则类隐性项外化**：对 H 均值贡献最大的隐性项（系统不变量、judge 标准）考虑建立 `docs/ARCHITECTURE.md`，作为 Artifact+ 的实施路径
+4. **规则类隐性项外化**：对 H 均值贡献最大的隐性项（系统不变量、judge 标准）建立 `docs/ARCHITECTURE.md`，作为 Artifact+ 的实施路径，同时提升 evidence independence。
 
 ---
 
@@ -102,6 +132,8 @@
 | 4. H2 验证 | docs/research/gcl-drivers.md | ✓ H2 confirmed |
 | 5. H4 验证 | docs/research/gcl-intervention.md | ✓ H4 null（细化）|
 | 6. 综合与回灌 | docs/research/gcl-synthesis.md（本文）| ✓ 完成 |
+| 7. 首批自报分析 | docs/research/gcl-selfReport-analysis.md | ✓ 完成（N=13，TASK-152）|
+| 8. 完整观测机制 | docs/research/gcl-complete-observation-mechanism.md | 进行中（TASK-176）|
 
 参考文档：
 - docs/baime-software-engineering-capability-analysis.md §7.3（研究动机）
