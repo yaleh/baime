@@ -5,6 +5,10 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Monitor, Agent
 contracts:
   - grep: "Monitor(persistent=true"
     target: self
+  - grep: "description=\""
+    target: self
+  - grep: "description : String"
+    target: self
   - not-grep: "schedule("
     target: self
   - grep: "loop-stop"
@@ -51,7 +55,7 @@ contracts:
 
 -- External primitives (provided by the Claude Code harness / shell environment;
 -- not implemented in this skill)
-Monitor      :: { persistent : Bool, command : String } → Event
+Monitor      :: { persistent : Bool, command : String, description : String } → Event
 exists       :: Path → Bool
 fromClaudeMd :: () → RawText
 
@@ -107,7 +111,10 @@ workerLoop() = {
     -- No basic task to claim; block persistently and dispatch the next daemon event.
     -- The unified daemon (basic-daemon.js v8) emits FIVE channels; this one worker
     -- session handles all of them (no separate loop-meta session needed).
-    event: Monitor(persistent=true),
+    event: Monitor(persistent=true,
+        command="tail -f -n 0 \"$DAEMON_LOG\"",
+        description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+      ),
     | stopSentinel()                            → return Stopped
     | event matches "basic-ready:TASK-*"        → workerLoop()              -- re-claim & execute
     | event matches "epic-ready:TASK-*"         → epicDecompose(extractId(event)); workerLoop()
@@ -955,7 +962,10 @@ Monitor tails that file:
 ```bash
 # Foreground tail — Monitor reads its stdout as the event stream.
 # -n 0 prevents stale log replay on restart (starts from end of file).
-Monitor(persistent=true, command="tail -f -n 0 \"$DAEMON_LOG\"")
+Monitor(persistent=true,
+    command="tail -f -n 0 \"$DAEMON_LOG\"",
+    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+  )
 ```
 
 Any output line matching `basic-ready:TASK-*` is the wake-up signal; re-enter `workerLoop()`.
@@ -1276,7 +1286,10 @@ The top-level orchestration using claimBatch, background Agent spawning, and ser
 
 if [ -z "$CLAIMED_TASK_IDS" ]; then
   # No basic task to claim — block on the daemon event stream (all three channels).
-  # Monitor(persistent=true, command="tail -f -n 0 \"$DAEMON_LOG\"")
+  # Monitor(persistent=true,
+  #   command="tail -f -n 0 \"$DAEMON_LOG\"",
+  #   description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+  # )
   # On basic-ready:TASK-N      → re-enter workerLoop (claim & execute).
   # On epic-ready:TASK-N       → epicDecompose(extractId), then re-enter workerLoop.
   # On child-done:TASK-N       → onChildDone(extractId), then re-enter workerLoop.
@@ -1650,8 +1663,16 @@ The `daemonBootstrap` section will restart the daemon automatically on the next
 `/loop-backlog` invocation. The PID file (`backlog/.basic-daemon.pid`) is managed
 by the daemon itself and removed on exit.
 
-Use `Monitor(persistent=true, command="tail -f -n 0 \"$DAEMON_LOG\"")` to wait for basic-ready
-events. The daemon appends `basic-ready:TASK-N` lines to `backlog/.basic-daemon.log`; `tail -f -n 0`
+Use the following Monitor call to wait for daemon events:
+
+```
+Monitor(persistent=true,
+    command="tail -f -n 0 \"$DAEMON_LOG\"",
+    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+  )
+```
+
+The daemon appends event lines to `backlog/.basic-daemon.log`; `tail -f -n 0`
 runs in the foreground so Monitor receives each line as an event immediately (starting from the
 end of the file to prevent stale event replay on restart).
 The daemon subprocess exits only when `backlog/.loop-stop` is written (or the parent process dies).
