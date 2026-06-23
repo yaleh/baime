@@ -71,9 +71,18 @@
 
 ---
 
+## GCL-self-report 首批验证结果（TASK-152）
+
+**已完成**：TASK-152 收集了 TASK-151 部署后的首批 13 个 premise-ledger 自报事件，与 gcl-corpus.md 基线进行了系统比对。详见 docs/research/gcl-selfReport-analysis.md。
+
+**关键发现**：
+- **偏差方向**：所有 13 个事件的 delta_H 均为负值（均值 −1.46），估算基线系统性高估了 H。部分原因是新任务规模更小（E: 6.31 vs 基线 12.3），自然产生更少隐性前提。
+- **H4 动态**：H=0 的任务均为"全 DoD 机械可验证"任务，H=1 的任务均包含主观阈值判断——与 H4 细化裁定（规则类 H 可被 artifact 外化，判断类 H 持续存在）一致。
+- **H4 局限**：观测期内 artifact 覆盖未变化（恒定 6 个 gcl-research 文件），无法通过 artifact 增量验证 H4。
+
 ## 下一步
 
-1. **首次 premise-ledger 对比验证**（TASK-151 已完成仪器建设）：从下一个经过 feature-to-backlog 或 epic-to-backlog reviewLoop 的 gate 事件中读取 task Notes 的 `GCL-self-report` 行，将自报 H 值与 gcl-corpus.md 同类事件的估算 H 值对比，验证估算方法的系统偏差方向；持续累积自报数据以验证 H4 的动态版本（判断类隐性项是否随 artifact 增加而持续涌现）
+1. **首次 premise-ledger 对比验证**（TASK-151 已完成仪器建设，TASK-152 已执行首批分析）：✓ 已验证，见 docs/research/gcl-selfReport-analysis.md。后续需积累更多样本，扩展到 proposal gate 和 epic-evaluate gate 类型。
 
 2. **增加语料范围**：将语料扩展到更长时间窗口（>2 天）和更多任务类型，特别是 task-to-backlog 产生的 doc-only 任务
 
