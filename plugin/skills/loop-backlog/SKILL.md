@@ -33,6 +33,25 @@ contracts:
 
 ## Spec
 
+-- External primitives (provided by the Claude Code harness / shell environment;
+-- not implemented in this skill)
+Monitor      :: { persistent : Bool, command : String } → Event
+exists       :: Path → Bool
+fromClaudeMd :: () → RawText
+
+-- Business logic signatures
+ensureDaemonScript :: () → ()  -- intentional primitive: implemented in Implementation section
+daemonBootstrap :: () → ()  -- intentional primitive: implemented in Implementation section
+inProgressTasks :: () → [Task]  -- spec gap: no implementation body defined
+stopSentinel :: () → Bool  -- spec gap: no implementation body defined
+createWorktree :: Task → Path  -- spec gap: no implementation body defined
+readyTasks :: () → [Task]  -- spec gap: no implementation body defined
+followDescription :: (Description, Context) → ()  -- spec gap: no implementation body defined
+appendNote :: (Task, String) → ()  -- spec gap: no implementation body defined
+reset :: (Task, Status) → ()  -- spec gap: no implementation body defined
+removeWorktree :: Task → ()  -- spec gap: no implementation body defined
+checkDod :: (Task, Int) → ()  -- spec gap: no implementation body defined
+
 Config :: {
   symlinks    : [Path]   -- dirs to symlink into worktree ([] = none)
   maxParallel : Int      -- max concurrent background agents (default 2)
