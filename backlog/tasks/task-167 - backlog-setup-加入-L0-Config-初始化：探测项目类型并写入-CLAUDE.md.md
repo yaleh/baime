@@ -1,14 +1,14 @@
 ---
 id: TASK-167
 title: backlog-setup 加入 L0 Config 初始化：探测项目类型并写入 CLAUDE.md
-status: 'Basic: Backlog'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-23 07:42'
-updated_date: '2026-06-23 07:49'
+updated_date: '2026-06-23 08:23'
 labels:
   - 'kind:basic'
 dependencies: []
-ordinal: 108000
+ordinal: 1000
 ---
 
 ## Description
@@ -108,6 +108,10 @@ premise-ledger:
 [E] Scope discipline: All Phase A steps are directly backed by Goals 1–5.
 [E] File paths: plugin/skills/backlog-setup/SKILL.md and scripts/validate-plugin.sh both exist.
 GCL-self-report: E=9 C=0 H=0
+
+claimed: 2026-06-23T08:19:56Z
+
+Completed: 2026-06-23T08:23:57Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

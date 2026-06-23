@@ -3,10 +3,10 @@ id: TASK-162
 title: >-
   Run Exp-K: prompt completeness ablation — persona effect under P-minimal /
   P-rules / P-full on decomposer AMBIGUOUS classification
-status: 'Basic: Backlog'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-23 00:36'
-updated_date: '2026-06-23 11:00'
+updated_date: '2026-06-23 11:03'
 labels:
   - 'kind:basic'
 dependencies: []
@@ -122,6 +122,28 @@ exp-k: H-K1 CONFIRMED — Δ(P-minimal)=+0.237 vs Δ(P-rules)=+0.025 on Haiku, S
 
 Phase 5 ✓ 2026-06-23T11:00:47Z
 docs written, exp-k note added
+
+## Execution Summary
+Result: Done
+Phases: 1 (hypotheses+commit), 2 (prompts.ts), 3 (run-exp-k.ts), 4 (960 LLM calls), 5 (docs+task-note)
+
+## Key Findings
+
+Exp-K measured:
+- Haiku P-minimal: V0=0.700, V1=0.938, Δ=+0.237 (large persona effect without rules)
+- Haiku P-rules: V0=0.938, V1=0.963, Δ=+0.025 (small effect with rules)
+- Haiku P-full: V0=0.975, V1=0.950, Δ=−0.025 (no effect with rules+examples)
+- Sonnet P-minimal: V0=0.875, V1=0.875, Δ=0.000 (no effect; higher baseline)
+- Sonnet P-rules: V0=0.950, V1=0.938, Δ=−0.012
+- Sonnet P-full: V0=1.000, V1=1.000, Δ=0.000 (ceiling)
+
+H-K1 CONFIRMED: Δ_minimal > Δ_rules (both models agree)
+H-K2 NULL [cross-model disagreement] [underpowered]
+H-K3 NULL [partial] (Haiku positive, Sonnet zero)
+
+Persona is a rule-substitute not a rule-augment. No change to production decomposer warranted.
+
+Completed: 2026-06-23T11:03:01Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
