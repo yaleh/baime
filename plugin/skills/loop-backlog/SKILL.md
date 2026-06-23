@@ -91,15 +91,10 @@ detectLang :: () → Lang  -- see spec-stdlib § detectLang
 
 data Outcome = Done CommitHash | NeedsHuman Reason | Idle | Stopped
 
-ensureDaemonTest :: () → ()
--- Write scripts/basic-daemon.test.js if it doesn't exist or is outdated.
--- Runs node on the test file to verify the daemon helpers are correct.
-
 workerLoop :: () → Outcome
 workerLoop() = {
   cfg:    loadConfig(),
   _:      ensureDaemonScript(),
-  _:      ensureDaemonTest(),
   _:      daemonBootstrap(),
   _:      reap(inProgressTasks()),
   tasks:  claimBatch(cfg.maxParallel),
@@ -270,11 +265,11 @@ createSubTask(parent, spec) = {
 
 -- verifySubTaskDod: R1 guard — every child of the epic carries a shell-gate DoD.
 verifySubTaskDod :: TaskId → Bool
-verifySubTaskDod(id) = shell("bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" " + id) == 0
+verifySubTaskDod(id) = shell("bash "$BAIME_SCRIPTS/verify-subtask-dod.sh" " + id) == 0
 
 -- allDodPass: measured slice — every done child's DoD shell-gates exit 0 (re-run).
 allDodPass :: [Task] → Bool
-allDodPass(done) = ∀c ∈ done: shell("bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" " + c.id) == 0
+allDodPass(done) = ∀c ∈ done: shell("bash "$BAIME_SCRIPTS/verify-subtask-dod.sh" " + c.id) == 0
 
 reap :: [Task] → ()
 reap(tasks) = ∀t ∈ tasks
@@ -542,329 +537,59 @@ fi
 
 ### ensureDaemonScript
 
-Write the daemon script to `scripts/basic-daemon.js` (or `scripts/basic-daemon.cjs` in
-ESM projects where `"type": "module"` is set in package.json), overwriting if the version
-tag does not match. Node.js is guaranteed available on every Claude Code install; no
-runtime dependency needed.
+Resolve the BAIME plugin scripts directory and set `DAEMON_SCRIPT` to the bundled
+`basic-daemon.js`. The daemon script is already present in the BAIME plugin installation;
+no file is written to the target project.
 
 ```bash
-# Detect ESM project; use .cjs extension to avoid CJS/ESM conflict
-if grep -q '"type"[[:space:]]*:[[:space:]]*"module"' "${REPO_ROOT}/package.json" 2>/dev/null; then
-  DAEMON_EXT="cjs"
-else
-  DAEMON_EXT="js"
+resolveBaimeScripts() {
+  # 1. Project-scope plugin install
+  local proj_scripts="${REPO_ROOT}/.claude/plugins/baime/scripts"
+  if [ -d "$proj_scripts" ]; then echo "$proj_scripts"; return 0; fi
+
+  # 2. Parse extraKnownMarketplaces from user settings for a baime path
+  for settings_file in "${HOME}/.claude/settings.json" "${HOME}/.claude/settings.local.json"; do
+    if [ -f "$settings_file" ]; then
+      local baime_path
+      baime_path=$(python3 -c "
+import json, sys
+try:
+  d = json.load(open('$settings_file'))
+  for mp in d.get('extraKnownMarketplaces', []):
+    p = mp.get('path', '')
+    if 'baime' in p:
+      import os
+      scripts = os.path.join(p, 'scripts')
+      if os.path.isdir(scripts):
+        print(scripts)
+        sys.exit(0)
+except Exception:
+  pass
+" 2>/dev/null || true)
+      if [ -n "$baime_path" ]; then echo "$baime_path"; return 0; fi
+    fi
+  done
+
+  # 3. XDG data home fallback
+  local xdg_scripts="${XDG_DATA_HOME:-${HOME}/.local/share}/baime/scripts"
+  if [ -d "$xdg_scripts" ]; then echo "$xdg_scripts"; return 0; fi
+
+  echo "ensureDaemonScript: ERROR — cannot locate BAIME plugin scripts directory." >&2
+  echo "  Checked: ${REPO_ROOT}/.claude/plugins/baime/scripts" >&2
+  echo "  Checked: extraKnownMarketplaces in ~/.claude/settings.json / settings.local.json" >&2
+  echo "  Checked: ${XDG_DATA_HOME:-${HOME}/.local/share}/baime/scripts" >&2
+  return 1
+}
+
+BAIME_SCRIPTS=$(resolveBaimeScripts) || exit 1
+DAEMON_SCRIPT="$BAIME_SCRIPTS/basic-daemon.js"
+
+# Migration notice: if the old written copy exists, inform the user it's no longer needed.
+if [ -f "${REPO_ROOT}/scripts/basic-daemon.js" ] || [ -f "${REPO_ROOT}/scripts/basic-daemon.cjs" ]; then
+  echo "# Note: scripts/basic-daemon.js (or .cjs) is no longer needed by loop-backlog;" \
+       "the plugin-bundled copy at $DAEMON_SCRIPT is used instead." \
+       "You may safely delete it."
 fi
-DAEMON_SCRIPT="${REPO_ROOT}/scripts/basic-daemon.${DAEMON_EXT}"
-DAEMON_VERSION="v8"
-
-NEED_WRITE=true
-if [ -f "$DAEMON_SCRIPT" ]; then
-  FILE_VER=$(head -3 "$DAEMON_SCRIPT" | grep -oP '(?<=daemon-version: )v\d+' || true)
-  [ "$FILE_VER" = "$DAEMON_VERSION" ] && NEED_WRITE=false
-fi
-
-if [ "$NEED_WRITE" = "true" ]; then
-  mkdir -p "${REPO_ROOT}/scripts"
-  cat > "$DAEMON_SCRIPT" << 'DAEMON_EOF'
-#!/usr/bin/env node
-// daemon-version: v8
-/**
- * basic-daemon.js — UNIFIED B″ poller. Polls backlog tasks dir and emits FIVE
- * event channels to stdout:
- *
- *   basic-ready:TASK-N       kind:basic AND status "Basic: Ready"   → worker executes task
- *   epic-ready:TASK-N        kind:epic  AND status "Epic: Ready"    → worker auto-decomposes
- *   child-done:TASK-N        kind:basic AND status "Basic: Done" AND has parent_task_id
- *                                                                   → worker re-checks parent epic
- *   proposal-approved:TASK-N status "Basic: Plan" or "Epic: Plan" AND marker file
- *                            backlog/.ftb-awaiting-plan-TASK-N exists → worker runs plan draft
- *   plan-approved:TASK-N     status "Basic: Backlog"/"Basic: Ready"/"Epic: Backlog" AND marker
- *                            backlog/.ftb-awaiting-backlog-TASK-N exists → worker runs finalise
- */
-'use strict';
-const fs   = require('fs');
-const path = require('path');
-
-const BASIC_READY_STATUS = 'basic: ready';
-const EPIC_READY_STATUS  = 'epic: ready';
-const BASIC_DONE_STATUS  = 'basic: done';
-
-function parseArgs(argv) {
-  const args = {
-    tasksDir: 'backlog/tasks',
-    pidFile:  'backlog/.basic-daemon.pid',
-    stopFile: 'backlog/.loop-stop',
-    interval: 0.5,
-  };
-  for (let i = 2; i < argv.length; i++) {
-    switch (argv[i]) {
-      case '--tasks-dir':  args.tasksDir = argv[++i]; break;
-      case '--pid-file':   args.pidFile  = argv[++i]; break;
-      case '--stop-file':  args.stopFile = argv[++i]; break;
-      case '--interval':   args.interval = parseFloat(argv[++i]); break;
-    }
-  }
-  return args;
-}
-
-function parseTaskId(filename) {
-  const base = path.basename(filename, path.extname(filename)).toUpperCase();
-  for (const part of base.split(/\s+/)) {
-    if (/^TASK-\d+(\.\d+)*$/.test(part)) return part;
-  }
-  const m = base.match(/\bTASK-(\d+(?:\.\d+)*)\b/);
-  return m ? `TASK-${m[1]}` : null;
-}
-
-function readTaskMeta(filepath) {
-  try {
-    const content = fs.readFileSync(filepath, 'utf8');
-    const m = content.match(/^---\n([\s\S]*?)^---/m);
-    if (!m) return null;
-    const fm = m[1];
-    const statusMatch = fm.match(/^status:\s*(.+)$/m);
-    const status = statusMatch ? statusMatch[1].trim().replace(/['"]/g, '').toLowerCase() : null;
-    const parentMatch = content.match(/^parent_task_id:\s*(.+)$/m);
-    const parent_task_id = parentMatch ? parentMatch[1].trim().toUpperCase() : null;
-    let labels = [];
-    const inlineLabels = fm.match(/^labels:\s*\[([^\]]*)\]/m);
-    if (inlineLabels) {
-      labels = inlineLabels[1].split(',').map(s => s.trim().replace(/['"]/g, '')).filter(Boolean);
-    } else {
-      const blockMatch = fm.match(/^labels:\s*\n((?:  - .+\n?)*)/m);
-      if (blockMatch) {
-        labels = blockMatch[1].split('\n')
-          .map(l => l.replace(/^\s+-\s+/, '').trim().replace(/['"]/g, ''))
-          .filter(Boolean);
-      }
-    }
-    const hasKindBasic = labels.includes('kind:basic');
-    const hasKindEpic  = labels.includes('kind:epic');
-    return { status, hasKindBasic, hasKindEpic, parent_task_id };
-  } catch { /* unreadable */ }
-  return null;
-}
-
-function isBasicReady(filepath) {
-  const meta = readTaskMeta(filepath);
-  if (!meta) return false;
-  return meta.hasKindBasic && !meta.hasKindEpic && meta.status === BASIC_READY_STATUS;
-}
-
-function isEpicReady(filepath) {
-  const meta = readTaskMeta(filepath);
-  if (!meta) return false;
-  return meta.hasKindEpic && !meta.hasKindBasic && meta.status === EPIC_READY_STATUS;
-}
-
-function isChildDone(filepath) {
-  const meta = readTaskMeta(filepath);
-  if (!meta) return false;
-  return meta.hasKindBasic && !meta.hasKindEpic
-      && meta.status === BASIC_DONE_STATUS && !!meta.parent_task_id;
-}
-
-function scanIds(tasksDir, predicate) {
-  const out = new Set();
-  let entries;
-  try { entries = fs.readdirSync(tasksDir); } catch { return out; }
-  for (const entry of entries) {
-    if (!entry.endsWith('.md')) continue;
-    const id = parseTaskId(entry);
-    if (id && predicate(path.join(tasksDir, entry))) out.add(id);
-  }
-  return out;
-}
-
-function scanBasicReadyIds(tasksDir) { return scanIds(tasksDir, isBasicReady); }
-
-const PROPOSAL_APPROVED_STATUSES = new Set(['basic: plan', 'epic: plan']);
-const PLAN_APPROVED_STATUSES     = new Set(['basic: backlog', 'basic: ready', 'epic: backlog']);
-
-function isProposalApproved(filepath, backlogDir) {
-  const meta = readTaskMeta(filepath);
-  if (!meta) return false;
-  if (!PROPOSAL_APPROVED_STATUSES.has(meta.status)) return false;
-  const id = parseTaskId(filepath);
-  if (!id) return false;
-  return fs.existsSync(path.join(backlogDir, `.ftb-awaiting-plan-${id}`))
-      || fs.existsSync(path.join(backlogDir, `.etb-awaiting-plan-${id}`));
-}
-
-function isPlanApproved(filepath, backlogDir) {
-  const meta = readTaskMeta(filepath);
-  if (!meta) return false;
-  if (!PLAN_APPROVED_STATUSES.has(meta.status)) return false;
-  const id = parseTaskId(filepath);
-  if (!id) return false;
-  return fs.existsSync(path.join(backlogDir, `.ftb-awaiting-backlog-${id}`))
-      || fs.existsSync(path.join(backlogDir, `.etb-awaiting-backlog-${id}`));
-}
-
-const args       = parseArgs(process.argv);
-const intervalMs = Math.round(args.interval * 1000);
-
-const pidDir = path.dirname(args.pidFile);
-if (pidDir) fs.mkdirSync(pidDir, { recursive: true });
-fs.writeFileSync(args.pidFile, String(process.pid));
-
-function removePid() { try { fs.unlinkSync(args.pidFile); } catch { /* gone */ } }
-process.on('exit',    removePid);
-process.on('SIGTERM', () => process.exit(0));
-process.on('SIGINT',  () => process.exit(0));
-
-const backlogDir = path.dirname(args.pidFile);
-const channels = [
-  { prefix: 'basic-ready',       predicate: f => isBasicReady(f),                   notified: new Set() },
-  { prefix: 'epic-ready',        predicate: f => isEpicReady(f),                    notified: new Set() },
-  { prefix: 'child-done',        predicate: f => isChildDone(f),                    notified: new Set() },
-  { prefix: 'proposal-approved', predicate: f => isProposalApproved(f, backlogDir), notified: new Set() },
-  { prefix: 'plan-approved',     predicate: f => isPlanApproved(f, backlogDir),     notified: new Set() },
-];
-
-const timer = setInterval(() => {
-  if (fs.existsSync(args.stopFile)) { clearInterval(timer); process.exit(0); }
-  for (const ch of channels) {
-    const ids = scanIds(args.tasksDir, ch.predicate);
-    for (const id of ch.notified) { if (!ids.has(id)) ch.notified.delete(id); }
-    for (const id of [...ids].filter(id => !ch.notified.has(id)).sort()) {
-      process.stdout.write(`${ch.prefix}:${id}\n`);
-      ch.notified.add(id);
-    }
-  }
-}, intervalMs);
-DAEMON_EOF
-  echo "ensureDaemonScript: wrote $DAEMON_SCRIPT (${DAEMON_VERSION})"
-fi
-```
-
-### ensureDaemonTest
-
-Write the unit-test file `scripts/basic-daemon.test.js` if it does not exist,
-then run it. Tests cover the pure helper functions. Run this immediately after
-`ensureDaemonScript` so a broken daemon is caught before the daemon is launched.
-
-```bash
-TEST_EXT="${DAEMON_EXT:-js}"
-TEST_SCRIPT="${REPO_ROOT}/scripts/basic-daemon.test.${TEST_EXT}"
-
-if [ ! -f "$TEST_SCRIPT" ]; then
-  cat > "$TEST_SCRIPT" << 'TEST_EOF'
-#!/usr/bin/env node
-// Unit tests for basic-daemon.js helper functions.
-// Run with: node scripts/basic-daemon.test.js
-'use strict';
-const fs   = require('fs');
-const path = require('path');
-const os   = require('os');
-
-// ── inline copies of the pure helpers (keep in sync with daemon) ──────────────
-
-function parseTaskId(filename) {
-  const base = path.basename(filename, path.extname(filename)).toUpperCase();
-  for (const part of base.split(/\s+/)) {
-    if (/^TASK-\d+(\.\d+)*$/.test(part)) return part;
-  }
-  const m = base.match(/\bTASK-(\d+(?:\.\d+)*)\b/);
-  return m ? `TASK-${m[1]}` : null;
-}
-
-function isBasicReady(filepath) {
-  try {
-    const content = fs.readFileSync(filepath, 'utf8');
-    const m = content.match(/^---\n([\s\S]*?)^---/m);
-    if (!m) return false;
-    const fm = m[1];
-    const statusMatch = fm.match(/^status:\s*(.+)$/m);
-    const status = statusMatch ? statusMatch[1].trim().toLowerCase() : null;
-    if (status !== 'basic: ready') return false;
-    const inlineLabels = fm.match(/^labels:\s*\[([^\]]*)\]/m);
-    if (inlineLabels) {
-      const labels = inlineLabels[1].split(',').map(s => s.trim().replace(/['"]/g, '')).filter(Boolean);
-      return labels.includes('kind:basic') && !labels.includes('kind:epic');
-    }
-  } catch { /* unreadable */ }
-  return false;
-}
-
-function scanBasicReadyIds(tasksDir) {
-  const ready = new Set();
-  let entries;
-  try { entries = fs.readdirSync(tasksDir); } catch { return ready; }
-  for (const entry of entries) {
-    if (!entry.endsWith('.md')) continue;
-    const id = parseTaskId(entry);
-    if (id && isBasicReady(path.join(tasksDir, entry))) ready.add(id);
-  }
-  return ready;
-}
-
-// ── test harness ──────────────────────────────────────────────────────────────
-
-let passed = 0, failed = 0;
-function assert(desc, actual, expected) {
-  const ok = JSON.stringify(actual) === JSON.stringify(expected);
-  if (ok) { process.stdout.write(`  ✓ ${desc}\n`); passed++; }
-  else     { process.stderr.write(`  ✗ ${desc}\n    expected: ${JSON.stringify(expected)}\n    got:      ${JSON.stringify(actual)}\n`); failed++; }
-}
-
-// ── parseTaskId ───────────────────────────────────────────────────────────────
-process.stdout.write('parseTaskId\n');
-assert('simple prefix',       parseTaskId('task-3 - do something.md'),             'TASK-3');
-assert('upper already',       parseTaskId('TASK-10 - title.md'),                   'TASK-10');
-assert('embedded id',         parseTaskId('sprint-TASK-7-notes.md'),               'TASK-7');
-assert('no id returns null',  parseTaskId('README.md'),                            null);
-assert('multi-digit',         parseTaskId('task-42 - long title here.md'),         'TASK-42');
-
-// ── isBasicReady ──────────────────────────────────────────────────────────────
-process.stdout.write('isBasicReady\n');
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bd-test-'));
-
-const basicReadyFile = path.join(tmp, 'ready.md');
-fs.writeFileSync(basicReadyFile,
-  '---\nstatus: Basic: Ready\nlabels: [kind:basic]\n---\n# Task\n');
-assert('basic ready with kind:basic', isBasicReady(basicReadyFile), true);
-
-const epicFile = path.join(tmp, 'epic.md');
-fs.writeFileSync(epicFile,
-  '---\nstatus: Basic: Ready\nlabels: [kind:basic, kind:epic]\n---\n# Task\n');
-assert('kind:epic excluded', isBasicReady(epicFile), false);
-
-const doneFile = path.join(tmp, 'done.md');
-fs.writeFileSync(doneFile,
-  '---\nstatus: Basic: Done\nlabels: [kind:basic]\n---\n# Task\n');
-assert('basic done → false', isBasicReady(doneFile), false);
-
-// ── scanBasicReadyIds ─────────────────────────────────────────────────────────
-process.stdout.write('scanBasicReadyIds\n');
-const dir = path.join(tmp, 'tasks');
-fs.mkdirSync(dir);
-
-fs.writeFileSync(path.join(dir, 'task-1 - alpha.md'),
-  '---\nstatus: Basic: Ready\nlabels: [kind:basic]\n---\n');
-fs.writeFileSync(path.join(dir, 'task-2 - beta.md'),
-  '---\nstatus: Basic: Done\nlabels: [kind:basic]\n---\n');
-fs.writeFileSync(path.join(dir, 'task-3 - gamma.md'),
-  '---\nstatus: Basic: Ready\nlabels: [kind:basic]\n---\n');
-fs.writeFileSync(path.join(dir, 'not-a-task.txt'),
-  '---\nstatus: Basic: Ready\nlabels: [kind:basic]\n---\n');  // ignored
-
-const ids = scanBasicReadyIds(dir);
-assert('finds basic ready tasks', [...ids].sort(), ['TASK-1', 'TASK-3']);
-assert('skips done tasks',        ids.has('TASK-2'), false);
-assert('skips non-md files',      ids.size, 2);
-
-assert('missing dir → empty', [...scanBasicReadyIds(path.join(tmp, 'no-such-dir'))].length, 0);
-
-// ── cleanup + result ──────────────────────────────────────────────────────────
-fs.rmSync(tmp, { recursive: true });
-process.stdout.write(`\n${passed} passed, ${failed} failed\n`);
-process.exit(failed > 0 ? 1 : 0);
-TEST_EOF
-  echo "ensureDaemonTest: wrote $TEST_SCRIPT"
-fi
-
-node "$TEST_SCRIPT"
 ```
 
 ### daemonBootstrap
@@ -1545,7 +1270,7 @@ STEP 5 — Create children:
   Do not create children that already exist (idempotent). Record all created TASK-ids.
 
 STEP 6 — R1 guard (verify every child has a shell-gate DoD):
-  Run: bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" ${EPIC_ID}
+  Run: bash "$BAIME_SCRIPTS/verify-subtask-dod.sh" ${EPIC_ID}
 
 STEP 7a — R1 PASS: advance to Awaiting Children:
   Run: backlog task edit ${EPIC_ID} --status "Epic: Awaiting Children" \
@@ -1628,7 +1353,7 @@ onChildDone() {
 
   # Measured slice: re-run every child's DoD shell-gate
   local DOD_OK=true
-  bash "${REPO_ROOT}/scripts/verify-subtask-dod.sh" "$EPIC_ID" >/dev/null 2>&1 || DOD_OK=false
+  bash "$BAIME_SCRIPTS/verify-subtask-dod.sh" "$EPIC_ID" >/dev/null 2>&1 || DOD_OK=false
   local VERDICT="ITERATE"
   if [ "$NEEDS" -eq 0 ] && [ "$DOD_OK" = "true" ]; then VERDICT="FINISH"; fi
 

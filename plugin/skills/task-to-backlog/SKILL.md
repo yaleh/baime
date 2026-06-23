@@ -96,6 +96,37 @@ reviewPlan(P) = {
 ```bash
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+resolveBaimeScripts() {
+  local proj_scripts="${REPO_ROOT}/.claude/plugins/baime/scripts"
+  if [ -d "$proj_scripts" ]; then echo "$proj_scripts"; return 0; fi
+  for settings_file in "${HOME}/.claude/settings.json" "${HOME}/.claude/settings.local.json"; do
+    if [ -f "$settings_file" ]; then
+      local baime_path
+      baime_path=$(python3 -c "
+import json, sys
+try:
+  d = json.load(open('$settings_file'))
+  for mp in d.get('extraKnownMarketplaces', []):
+    p = mp.get('path', '')
+    if 'baime' in p:
+      import os
+      scripts = os.path.join(p, 'scripts')
+      if os.path.isdir(scripts):
+        print(scripts)
+        sys.exit(0)
+except Exception:
+  pass
+" 2>/dev/null || true)
+      if [ -n "$baime_path" ]; then echo "$baime_path"; return 0; fi
+    fi
+  done
+  local xdg_scripts="${XDG_DATA_HOME:-${HOME}/.local/share}/baime/scripts"
+  if [ -d "$xdg_scripts" ]; then echo "$xdg_scripts"; return 0; fi
+  echo "resolveBaimeScripts: ERROR — cannot locate BAIME plugin scripts directory." >&2
+  return 1
+}
+BAIME_SCRIPTS=$(resolveBaimeScripts) || exit 1
+
 L0_SECTION=$(awk '/^## L0 Config/{found=1; next} found && /^## /{exit} found{print}' \
   "${REPO_ROOT}/CLAUDE.md" 2>/dev/null)
 
@@ -148,7 +179,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
 Write the manifest to `$TMPDIR/task-to-backlog-manifest.json`, then validate it:
 
 ```bash
-bash "${REPO_ROOT}/scripts/skill-lint.sh" --manifest "$TMPDIR/task-to-backlog-manifest.json"
+bash "$BAIME_SCRIPTS/skill-lint.sh" --manifest "$TMPDIR/task-to-backlog-manifest.json"
 ```
 
 If validation fails, stop and report the error before proceeding.
@@ -324,13 +355,13 @@ Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
 >
 > **Step D — Run Layer 0-2 validation gate**:
 > ```bash
-> bash "${REPO_ROOT}/scripts/validate-plugin.sh"
+> bash "$BAIME_SCRIPTS/validate-plugin.sh"
 > ```
 > If validation fails, fix any SKILL.md contracts or internals before proceeding.
 >
 > Add the validation DoD item to the task:
 > ```bash
-> backlog task edit <TASK_ID> --dod "bash "${REPO_ROOT}/scripts/validate-plugin.sh""
+> backlog task edit <TASK_ID> --dod "bash "$BAIME_SCRIPTS/validate-plugin.sh""
 > ```
 >
 > **Step E — Print completion**:
