@@ -1,10 +1,10 @@
 ---
 id: TASK-141
 title: '建立可重用定量实验基础设施：cap:experiment 能力、通�'
-status: 'Epic: Evaluating'
+status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-22 03:13'
-updated_date: '2026-06-22 12:28'
+updated_date: '2026-06-23 06:24'
 labels:
   - 'kind:epic'
 dependencies: []
@@ -178,4 +178,6 @@ cap:evaluate=recommendation:FINISH | done=6 needsHuman=0 | all children Basic: D
 RECOMMENDATION: FINISH.
 To finish: set status → Epic: Done.
 To iterate: set status → Epic: Proposal or Epic: Plan and re-run /epic-to-backlog.
+
+2026-06-23 手动关闭：全部 6 个子任务 Basic: Done，evaluator 输出 RECOMMENDATION: FINISH。
 <!-- SECTION:NOTES:END -->

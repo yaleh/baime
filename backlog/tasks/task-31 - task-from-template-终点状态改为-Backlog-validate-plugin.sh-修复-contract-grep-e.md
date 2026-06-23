@@ -1,11 +1,12 @@
 ---
 id: TASK-31
 title: task-from-template 终点状态改为 Backlog + validate-plugin.sh 修复 contract grep -e
-status: "Basic: Backlog"
+status: 'Basic: Backlog'
 assignee: []
 created_date: '2026-06-18 09:51'
+updated_date: '2026-06-23 06:28'
 labels:
-  - kind:basic
+  - 'kind:basic'
 dependencies: []
 modified_files:
   - plugin/skills/task-from-template/SKILL.md
@@ -114,6 +115,99 @@ result = subprocess.run(['grep', '-q', '-e', pattern, target_file], capture_outp
 - 不修改其他 skill、agent 或 CI 文件
 - Phase B 必须先于 Phase A 的 contract 验证（或同批提交后一起验证）
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+# Plan: task-from-template 终点状态改为 Backlog + validate-plugin.sh 修复 contract grep -e
+
+## Background
+
+Two related fixes identified via code review:
+
+1. `task-from-template` 创建的 task 落地状态为 `Ready`，会被 `loop-backlog` 立即拾取执行，绕过人工审查窗口。应改为 `Backlog`，与 `feature-to-backlog` / `task-to-backlog` 保持一致。
+
+2. `scripts/validate-plugin.sh` 的 contract 验证逻辑将 pattern 直接作为 `grep` 的第三个参数传入；当 pattern 以 `--` 开头时（如 `--status "Backlog"`），`grep` 将其解析为选项，返回 exit code 2（error），导致 contract 检查误报 FAIL。应改为 `grep -q -e <pattern>`。
+
+两个问题合并实现：Phase B 改 validate-plugin.sh，Phase A 改 SKILL.md（Phase A 的 contracts 依赖 Phase B 的修复才能通过验证）。
+
+注意：Haskell Spec 节用裸 `Ready`/`Backlog`，bash 实现节用完整列名 `Basic: Ready`/`Basic: Backlog`（当前列名）。TASK-139 后续会将 `Basic:` 前缀整体替换为 `Job:`，本 task 不处理该重命名。
+
+## Phase B: 修复 scripts/validate-plugin.sh contract grep 调用
+
+文件：`scripts/validate-plugin.sh`，`validate_contracts()` Python 内嵌脚本中两处（第 333 行、第 343 行）。
+
+将：
+```python
+result = subprocess.run(['grep', '-q', pattern, target_file], capture_output=True)
+```
+改为：
+```python
+result = subprocess.run(['grep', '-q', '-e', pattern, target_file], capture_output=True)
+```
+
+两处均需修改（`grep` 分支和 `not-grep` 分支）。
+
+### DoD
+- [ ] `grep -qF "'-e', pattern" scripts/validate-plugin.sh`
+
+## Phase A: 修改 plugin/skills/task-from-template/SKILL.md
+
+共四处修改：
+
+**第 3 行** — frontmatter description：
+- `"Creates a Ready-status backlog task` → `"Creates a Backlog-status backlog task`
+
+**第 42 行** — Spec `taskFromTemplate` 末尾注释：
+- `return:   task   -- status: Ready` → `return:   task   -- status: Backlog`
+
+**第 66 行** — Spec `createTask` 函数体：
+- `" --status Ready"` → `" --status Backlog"`
+
+**第 212 行** — bash 实现 Step 5（完整列名）：
+- `--status "Basic: Ready" \` → `--status "Basic: Backlog" \`
+
+**第 233 行** — bash Step 6 echo：
+- `echo "✅ Task $TASK_ID created with status Ready."` → `echo "✅ Task $TASK_ID created with status Backlog."`
+
+同时在 frontmatter 中添加 contracts 块（紧接 `allowed-tools` 行之后，`---` 之前）：
+```yaml
+contracts:
+  - grep: '--status "Basic: Backlog"'
+    target: self
+  - not-grep: '--status "Basic: Ready"'
+    target: self
+```
+
+### DoD
+- [ ] `grep -q 'Backlog-status' plugin/skills/task-from-template/SKILL.md`
+- [ ] `grep -q 'contracts:' plugin/skills/task-from-template/SKILL.md`
+- [ ] `bash -c '! grep -qF -- "--status \"Basic: Ready\"" plugin/skills/task-from-template/SKILL.md'`
+- [ ] `bash -c '! grep -qF -- "--status Ready" plugin/skills/task-from-template/SKILL.md'`
+- [ ] `grep -qF '"Basic: Backlog"' plugin/skills/task-from-template/SKILL.md`
+
+## Constraints
+
+- 只修改 `plugin/skills/task-from-template/SKILL.md` 和 `scripts/validate-plugin.sh`
+- Haskell Spec 节用裸 `Backlog`；bash 实现节用完整列名 `Basic: Backlog`（当前列名）
+- TASK-139（Basic→Job 重命名）是后续独立任务，本 task 不处理
+- Phase B 必须先于或与 Phase A 同批提交，否则 contracts 验证会因缺少 -e 而误报 FAIL
+
+## Acceptance Gate
+- [ ] `bash scripts/validate-plugin.sh`
+- [ ] `grep -q 'Backlog-status' plugin/skills/task-from-template/SKILL.md`
+- [ ] `grep -q 'contracts:' plugin/skills/task-from-template/SKILL.md`
+- [ ] `bash -c '! grep -qF -- "--status \"Basic: Ready\"" plugin/skills/task-from-template/SKILL.md'`
+- [ ] `grep -qF "'-e', pattern" scripts/validate-plugin.sh`
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-06-23 验证：两个问题均仍存在。task-from-template/SKILL.md 第 42/66/233 行使用 --status Ready，第 212 行使用 --status "Basic: Ready"。scripts/validate-plugin.sh 第 333/343 行均为 subprocess.run(['grep', '-q', pattern, ...]) 缺少 -e flag。描述和 DoD 仍然准确，可直接执行。
+
+2026-06-23 更新 Plan：补充第 212 行的完整列名修改（Basic: Ready → Basic: Backlog）；更新 contracts 中的 pattern 为完整列名；更新 DoD 增加 Basic: Ready 缺少测试；说明 TASK-139 进行 Basic→Job 重命名是后续任务。
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
