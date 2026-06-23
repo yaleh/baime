@@ -169,7 +169,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
   "entry_point": "<resolveOrCreate|createTask>",
   "skip_draft": "<true if entry_point==\"resolveOrCreate\">",
   "field_writes": [
-    { "tool": "backlog task edit", "field": "planSet", "source": "$TMPDIR/ttb-plan.md" },
+    { "tool": "backlog task edit", "field": "plan", "source": "$TMPDIR/ttb-plan.md" },
     { "tool": "backlog task edit", "field": "status", "value": "Basic: Backlog" }
   ],
   "phases_to_execute": ["<entry_point>", "reviewLoop", "finalise"]
@@ -273,7 +273,7 @@ Spawn Task agent:
 > 4. Update task:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/ttb-plan.md)" \
+>      --plan "$(cat $TMPDIR/ttb-plan.md)" \
 >      --status "Basic: Plan"
 >    ```
 
@@ -319,7 +319,7 @@ Each iteration — spawn Task agent:
 >
 > 3b. ANY fail: fix `$TMPDIR/ttb-plan.md`, update task plan:
 >    ```bash
->    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ttb-plan.md)"
+>    backlog task edit <TASK_ID> --plan "$(cat $TMPDIR/ttb-plan.md)"
 >    ```
 >    Write `NEEDS_REVISION` to verdict file.
 
@@ -348,7 +348,7 @@ Spawn Task agent (pass `CFG_DOC_PATH`, `TASK_ID`, `SLUG` as literal values):
 > done < $TMPDIR/ttb-dod-cmds.txt
 >
 > backlog task edit <TASK_ID> \
->   --planSet "$(cat $TMPDIR/ttb-plan.md)" \
+>   --plan "$(cat $TMPDIR/ttb-plan.md)" \
 >   --status "Basic: Backlog" \
 >   "${DOD_ARGS[@]}"
 > ```

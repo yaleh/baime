@@ -830,7 +830,7 @@ append a structured note to the worktree summary file:
 **Execution Summary**: Before writing the signal file, write a final summary section:
   printf '## Execution Summary\nResult: Done|Needs Human\nCommit: <hash or no changes>\n<ordered list of Phase and DoD outcomes>\n' >> ${TWT}/.agent-summary-${TID}
 
-Do NOT run `backlog task edit` with --status, --planSet, --dod, --set-field, or --check-dod.
+Do NOT run `backlog task edit` with --status, --dod, or --check-dod. (--planSet and --set-field do not exist in the backlog CLI; see ADR-006.)
 You MAY run `backlog task edit <TASK_ID> --append-notes "..."` to record Phase checkpoints and DoD results.
 The worker (main branch) handles all status transitions and field writes.
 
@@ -1339,7 +1339,13 @@ STEP 5 — Create children:
    For DOC-ONLY children:    run the /task-to-backlog skill with the child title
 
    After each skill creates the child and returns its TASK-ID:
-   - Set parent: backlog task edit <CHILD_ID> --set-field parent_task_id ${EPIC_ID}
+   - Set parent: the CLI has no --parent flag on edit; patch the task frontmatter file directly:
+     ```bash
+     CHILD_FILE=$(backlog task view "${CHILD_ID}" --plain | grep -oP 'File: \K.+')
+     if ! grep -q '^parent_task_id:' "$CHILD_FILE"; then
+       sed -i "/^id: ${CHILD_ID}/a parent_task_id: ${EPIC_ID}" "$CHILD_FILE"
+     fi
+     ```
    - Set label:  backlog task edit <CHILD_ID> --label kind:basic
    - Do NOT set status to Basic: Ready — leave children at their created status
 

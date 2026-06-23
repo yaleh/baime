@@ -235,7 +235,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
   "entry_point": "createEpicTask",
   "skip_draft": false,
   "field_writes": [
-    { "tool": "backlog task edit", "field": "planSet", "source": "$TMPDIR/etb-plan.md" },
+    { "tool": "backlog task edit", "field": "plan", "source": "$TMPDIR/etb-plan.md" },
     { "tool": "backlog task edit", "field": "status", "value": "Epic: Backlog" }
   ],
   "phases_to_execute": ["createEpicTask", "proposalLoop", "planLoop", "finalise"]
@@ -331,7 +331,7 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 > 4a. ALL criteria pass:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/etb-proposal.md)" \
+>      --plan "$(cat $TMPDIR/etb-proposal.md)" \
 >      --append-notes "Epic proposal self-review: APPROVED"
 >    echo "APPROVED" > $TMPDIR/etb-proposal-verdict.txt
 >    ```
@@ -352,7 +352,7 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 > 4b. ANY criterion fails AND round < 3: fix the failing sections in `$TMPDIR/etb-proposal.md`,
 >    update task:
 >    ```bash
->    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/etb-proposal.md)"
+>    backlog task edit <TASK_ID> --plan "$(cat $TMPDIR/etb-proposal.md)"
 >    echo "NEEDS_REVISION" > $TMPDIR/etb-proposal-verdict.txt
 >    ```
 >    Increment round and repeat from **Round start**.
@@ -360,7 +360,7 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 > 4c. ANY criterion fails AND round == 3: update task and stop:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/etb-proposal.md)" \
+>      --plan "$(cat $TMPDIR/etb-proposal.md)" \
 >      --status "Epic: Needs Human" \
 >      --append-notes "Epic proposal self-review did not converge after 3 rounds. Manual review required."
 >    echo "NEEDS_REVISION" > $TMPDIR/etb-proposal-verdict.txt
@@ -440,7 +440,7 @@ Spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL`, `CFG_DOC_PATH` as literal
 > 4. Update task:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/etb-plan.md)" \
+>      --plan "$(cat $TMPDIR/etb-plan.md)" \
 >      --status "Epic: Plan"
 >    ```
 
@@ -492,7 +492,7 @@ Each iteration — spawn Task agent with `run_in_background=true` (self-chaining
 > 3b. ANY fail: fix `$TMPDIR/etb-plan.md` (and `$TMPDIR/etb-proposal.md` if needed),
 >    update task plan:
 >    ```bash
->    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/etb-plan.md)"
+>    backlog task edit <TASK_ID> --plan "$(cat $TMPDIR/etb-plan.md)"
 >    echo "NEEDS_REVISION" > $TMPDIR/etb-plan-verdict.txt
 >    ```
 >    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
@@ -517,7 +517,7 @@ Run the following bash commands directly (no agent spawn needed — all steps ar
 } > $TMPDIR/etb-combined.md
 
 backlog task edit <TASK_ID> \
-  --planSet "$(cat $TMPDIR/etb-combined.md)" \
+  --plan "$(cat $TMPDIR/etb-combined.md)" \
   --status "Epic: Backlog" \
   --append-notes "cap:propose=approved"
 ```

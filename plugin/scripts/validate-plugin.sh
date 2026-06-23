@@ -818,6 +818,70 @@ else
 fi
 rm -f /tmp/verify-experiment-provenance-out.txt
 
+# ── Layer 0: backlog CLI flag whitelist ───────────────────────────────────────
+
+echo ""
+echo "=== Layer 0: backlog CLI Flag Whitelist ==="
+
+CLI_CONTRACT="$REPO_ROOT/scripts/backlog-cli-contract.json"
+if [ ! -f "$CLI_CONTRACT" ]; then
+    fail "backlog-cli-contract.json not found at scripts/backlog-cli-contract.json"
+else
+    python3 - "$CLI_CONTRACT" "$REPO_ROOT/plugin/skills" <<'PYEOF'
+import json, re, sys, os
+
+contract_path, skills_dir = sys.argv[1], sys.argv[2]
+contract = json.load(open(contract_path))
+create_flags = set(contract.get("backlog task create", []))
+edit_flags   = set(contract.get("backlog task edit", []))
+
+errors = []
+
+for root, dirs, files in os.walk(skills_dir):
+    dirs.sort()
+    for fname in sorted(files):
+        if fname != "SKILL.md":
+            continue
+        skill_name = os.path.basename(root)
+        fpath = os.path.join(root, fname)
+        with open(fpath) as f:
+            lines = f.readlines()
+        for lineno, raw in enumerate(lines, 1):
+            line = raw.rstrip()
+            # Strip markdown quoting ("> ") and leading whitespace to get the shell text
+            shell_text = re.sub(r'^(>\s*)+', '', line).lstrip()
+            # Skip shell comment lines and prose (lines that don't start with 'backlog')
+            if shell_text.startswith("#"):
+                continue
+            # Only match lines where 'backlog task create/edit' is the actual command
+            # being invoked — i.e. shell_text starts with 'backlog task' (after stripping
+            # bash continuation whitespace/indentation). Prose mentions like "Do NOT run
+            # backlog task edit with --foo" will not start with 'backlog task'.
+            for cmd, allowed in [("backlog task create", create_flags),
+                                  ("backlog task edit",   edit_flags)]:
+                if not shell_text.startswith(cmd):
+                    continue
+                # Extract all --flag tokens from the line
+                flags_on_line = re.findall(r'--[a-zA-Z][a-zA-Z-]*', shell_text)
+                for flag in flags_on_line:
+                    if flag not in allowed:
+                        errors.append(f"[{skill_name}] SKILL.md:{lineno}: invalid flag '{flag}' for '{cmd}'")
+
+if errors:
+    for e in errors:
+        print(f"  FAIL: {e}")
+    sys.exit(1)
+else:
+    print(f"  PASS: all backlog task create/edit flags are in whitelist")
+    sys.exit(0)
+PYEOF
+    if [ $? -eq 0 ]; then
+        : # pass already printed
+    else
+        ERRORS=$((ERRORS + 1))
+    fi
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""

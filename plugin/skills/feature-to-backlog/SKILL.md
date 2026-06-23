@@ -204,7 +204,7 @@ Before executing any phase, generate a manifest JSON that describes the planned 
   "entry_point": "createTask",
   "skip_draft": false,
   "field_writes": [
-    { "tool": "backlog task edit", "field": "planSet", "source": "$TMPDIR/ftb-plan.md" },
+    { "tool": "backlog task edit", "field": "plan", "source": "$TMPDIR/ftb-plan.md" },
     { "tool": "backlog task edit", "field": "status", "value": "Basic: Backlog" }
   ],
   "phases_to_execute": ["createTask", "proposalLoop", "planLoop", "finalise"]
@@ -293,7 +293,7 @@ If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 > 4. After all criteria pass (or after 3 rounds), update the task and stop:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/ftb-proposal.md)" \
+>      --plan "$(cat $TMPDIR/ftb-proposal.md)" \
 >      --status "Basic: Proposal"
 >    echo "APPROVED" > $TMPDIR/ftb-proposal-verdict.txt
 >    ```
@@ -382,7 +382,7 @@ Spawn Task agent (pass `CFG_TEST_CMD`, `CFG_TEST_ALL`, `CFG_DOC_PATH` as literal
 > 4. Update task:
 >    ```bash
 >    backlog task edit <TASK_ID> \
->      --planSet "$(cat $TMPDIR/ftb-plan.md)" \
+>      --plan "$(cat $TMPDIR/ftb-plan.md)" \
 >      --status "Basic: Plan"
 >    ```
 
@@ -440,7 +440,7 @@ pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
 > 3b. ANY fail: fix `$TMPDIR/ftb-plan.md` (and `$TMPDIR/ftb-proposal.md` if needed),
 >    update task plan:
 >    ```bash
->    backlog task edit <TASK_ID> --planSet "$(cat $TMPDIR/ftb-plan.md)"
+>    backlog task edit <TASK_ID> --plan "$(cat $TMPDIR/ftb-plan.md)"
 >    echo "NEEDS_REVISION" > $TMPDIR/ftb-plan-verdict.txt
 >    ```
 >    If `<N>` < 8: spawn next iteration as background agent (`run_in_background=true`) with N+1 and STOP.
@@ -473,7 +473,7 @@ done < $TMPDIR/ftb-dod-cmds.txt
 } > $TMPDIR/ftb-combined.md
 
 backlog task edit <TASK_ID> \
-  --planSet "$(cat $TMPDIR/ftb-combined.md)" \
+  --plan "$(cat $TMPDIR/ftb-combined.md)" \
   --status "Basic: Backlog" \
   "${DOD_ARGS[@]}"
 ```
