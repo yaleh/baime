@@ -23,17 +23,19 @@ const BASIC_DONE_STATUS  = 'basic: done';
 
 function parseArgs(argv) {
   const args = {
-    tasksDir: 'backlog/tasks',
-    pidFile:  'backlog/.basic-daemon.pid',
-    stopFile: 'backlog/.loop-stop',
-    interval: 0.5,
+    tasksDir:          'backlog/tasks',
+    pidFile:           'backlog/.basic-daemon.pid',
+    stopFile:          'backlog/.loop-stop',
+    interval:          0.5,
+    heartbeatInterval: 60,
   };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
-      case '--tasks-dir':  args.tasksDir = argv[++i]; break;
-      case '--pid-file':   args.pidFile  = argv[++i]; break;
-      case '--stop-file':  args.stopFile = argv[++i]; break;
-      case '--interval':   args.interval = parseFloat(argv[++i]); break;
+      case '--tasks-dir':          args.tasksDir          = argv[++i]; break;
+      case '--pid-file':           args.pidFile           = argv[++i]; break;
+      case '--stop-file':          args.stopFile          = argv[++i]; break;
+      case '--interval':           args.interval          = parseFloat(argv[++i]); break;
+      case '--heartbeat-interval': args.heartbeatInterval = parseFloat(argv[++i]); break;
     }
   }
   return args;
@@ -135,6 +137,7 @@ function isPlanApproved(filepath, backlogDir) {
 
 const args       = parseArgs(process.argv);
 const intervalMs = Math.round(args.interval * 1000);
+const heartbeatMs = Math.round(args.heartbeatInterval * 1000);
 
 const pidDir = path.dirname(args.pidFile);
 if (pidDir) fs.mkdirSync(pidDir, { recursive: true });
@@ -165,3 +168,8 @@ const timer = setInterval(() => {
     }
   }
 }, intervalMs);
+
+const heartbeatTimer = setInterval(() => {
+  if (fs.existsSync(args.stopFile)) { clearInterval(heartbeatTimer); process.exit(0); }
+  process.stdout.write(`heartbeat:${Date.now()}\n`);
+}, heartbeatMs);

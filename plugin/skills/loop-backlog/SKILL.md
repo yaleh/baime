@@ -111,8 +111,8 @@ workerLoop() = {
     -- session handles all of them (no separate loop-meta session needed).
     _:      stopStaleMon(),
     event: Monitor(persistent=true,
-        command="tail -f -n 0 \"$DAEMON_LOG\"",
-        description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+        command="tail -c +${OFFSET} -f \"$DAEMON_LOG\"",
+        description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, plan-approved:TASK-N, or heartbeat:TIMESTAMP) has arrived from the backlog task board. heartbeat:TIMESTAMP events are emitted every 60s as no-ops for re-attach. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
       ),
     | stopSentinel()                            → return Stopped
     | event matches "basic-ready:TASK-*"        → workerLoop()              -- re-claim & execute
@@ -120,6 +120,7 @@ workerLoop() = {
     | event matches "child-done:TASK-*"         → onChildDone(extractId(event)); workerLoop()
     | event matches "proposal-approved:TASK-*"  → startPlanDraft(extractId(event)); workerLoop()
     | event matches "plan-approved:TASK-*"      → startFinalise(extractId(event));  workerLoop()
+    | event matches "heartbeat:*"               → workerLoop()              -- no-op: wake-up only
     | otherwise                                 → workerLoop(),             -- noise: loop back
 
   -- Parallel: create worktrees and spawn one background agent per task
@@ -643,6 +644,39 @@ if [ "$DAEMON_RUNNING" = "false" ]; then
   DPID=$(cat "$PID_FILE" 2>/dev/null || true)
   echo "daemonBootstrap: started basic-daemon (pid ${DPID:-unknown})"
 fi
+
+CHECKPOINT_FILE="${BACKLOG_DIR}/.loop-checkpoint"
+OFFSET=$(cat "$CHECKPOINT_FILE" 2>/dev/null || echo 0)
+# Clamp to actual file size (protects against log rotation or truncation)
+LOG_SIZE=$(wc -c < "$DAEMON_LOG" 2>/dev/null || echo 0)
+if [ "$OFFSET" -gt "$LOG_SIZE" ]; then OFFSET=0; fi
+echo "daemonBootstrap: resuming from byte offset $OFFSET (log size $LOG_SIZE)"
+
+# Clean up stale merge-lock (may be left if /clear killed the worker mid-merge)
+MERGE_LOCK="${BACKLOG_DIR}/.merge-lock"
+if [ -f "$MERGE_LOCK" ]; then
+  LOCK_PID=$(cat "$MERGE_LOCK" 2>/dev/null || echo "")
+  if [ -z "$LOCK_PID" ] || ! kill -0 "$LOCK_PID" 2>/dev/null; then
+    rm -f "$MERGE_LOCK"
+    echo "daemonBootstrap: removed stale merge-lock (pid ${LOCK_PID:-unknown} not alive)"
+  fi
+fi
+
+ACTIVE_AGENTS_FILE="${BACKLOG_DIR}/.active-agents"
+if [ -f "$ACTIVE_AGENTS_FILE" ]; then
+  ACTIVE_TMP=$(mktemp)
+  while IFS= read -r TID; do
+    [ -z "$TID" ] && continue
+    SIGNAL="${BACKLOG_DIR}/.agent-done-${TID}"
+    STATUS=$(backlog task view "$TID" --plain 2>/dev/null \
+      | grep -oP '(?<=Status:)\s*\S[^\n]+' | xargs 2>/dev/null || echo "")
+    if [ ! -f "$SIGNAL" ] && echo "$STATUS" | grep -q "In Progress"; then
+      echo "$TID" >> "$ACTIVE_TMP"
+    fi
+  done < "$ACTIVE_AGENTS_FILE"
+  mv "$ACTIVE_TMP" "$ACTIVE_AGENTS_FILE"
+  echo "daemonBootstrap: active-agents reconciled: $(cat "$ACTIVE_AGENTS_FILE" | xargs)"
+fi
 ```
 
 ### reap
@@ -698,11 +732,12 @@ Monitor tails that file:
 
 ```bash
 # Foreground tail — Monitor reads its stdout as the event stream.
-# -n 0 prevents stale log replay on restart (starts from end of file).
+# -c +${OFFSET} resumes from the checkpointed byte offset (0 = start of file).
 Monitor(persistent=true,
-    command="tail -f -n 0 \"$DAEMON_LOG\"",
-    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+    command="tail -c +${OFFSET} -f \"$DAEMON_LOG\"",
+    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, plan-approved:TASK-N, or heartbeat:TIMESTAMP) has arrived from the backlog task board. heartbeat:TIMESTAMP events are emitted every 60s as no-ops for re-attach. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
   )
+echo $(wc -c < "$DAEMON_LOG" 2>/dev/null || echo 0) > "$CHECKPOINT_FILE"
 ```
 
 Any output line matching `basic-ready:TASK-*` is the wake-up signal; re-enter `workerLoop()`.
@@ -1024,22 +1059,26 @@ The top-level orchestration using claimBatch, background Agent spawning, and ser
 if [ -z "$CLAIMED_TASK_IDS" ]; then
   # No basic task to claim — block on the daemon event stream (all five channels).
   # Monitor(persistent=true,
-  #   command="tail -f -n 0 \"$DAEMON_LOG\"",
-  #   description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+  #   command="tail -c +${OFFSET} -f \"$DAEMON_LOG\"",
+  #   description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, plan-approved:TASK-N, or heartbeat:TIMESTAMP) has arrived from the backlog task board. heartbeat:TIMESTAMP events are emitted every 60s as no-ops for re-attach. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
   # )
+  # After Monitor returns, record the new checkpoint offset:
+  # echo $(wc -c < "$DAEMON_LOG" 2>/dev/null || echo 0) > "$CHECKPOINT_FILE"
   # On basic-ready:TASK-N      → re-enter workerLoop (claim & execute).
   # On epic-ready:TASK-N       → epicDecompose(extractId), then re-enter workerLoop.
   # On child-done:TASK-N       → onChildDone(extractId), then re-enter workerLoop.
   # On proposal-approved:TASK-N → startPlanDraft(extractId), then re-enter workerLoop.
   # On plan-approved:TASK-N    → startFinalise(extractId), then re-enter workerLoop.
+  # On heartbeat:TIMESTAMP     → no-op: wake-up only, re-enter workerLoop.
   # Dispatch is handled by the Monitor event loop; this bash section exits to let the
   # Monitor dispatch call the appropriate handler function.
   # Example dispatch (in the Monitor event handler):
   #   case "$EVENT" in
-  #     epic-ready:*)      epicDecompose "${EVENT#epic-ready:}" ;;
-  #     child-done:*)      onChildDone "${EVENT#child-done:}" ;;
+  #     heartbeat:*)         : ;;                                        # no-op: wake-up only
+  #     epic-ready:*)        epicDecompose "${EVENT#epic-ready:}" ;;
+  #     child-done:*)        onChildDone "${EVENT#child-done:}" ;;
   #     proposal-approved:*) startPlanDraft "${EVENT#proposal-approved:}" ;;
-  #     plan-approved:*)   startFinalise "${EVENT#plan-approved:}" ;;
+  #     plan-approved:*)     startFinalise "${EVENT#plan-approved:}" ;;
   #   esac
   exit 0
 fi
@@ -1068,16 +1107,39 @@ for TASK_ID in $CLAIMED_TASK_IDS; do
 
   # Spawn background agent — run_in_background=true
   Agent(run_in_background=true, prompt="$AGENT_PROMPT")
+  echo "$TASK_ID" >> "${REPO_ROOT}/backlog/.active-agents"
 done
 
 # 3. Wait for all agents to write their signal files
 waitForAgents "$CLAIMED_TASK_IDS"
 
+# Merge-lock helpers: ensure only one worker serialises git merges at a time.
+# This protects against /clear leaving a partial merge in the main worktree.
+MERGE_LOCK="${REPO_ROOT}/backlog/.merge-lock"
+
+acquire_merge_lock() {
+  if [ -f "$MERGE_LOCK" ]; then
+    LOCK_PID=$(cat "$MERGE_LOCK" 2>/dev/null || echo "")
+    if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
+      echo "acquire_merge_lock: waiting for pid $LOCK_PID..."
+      while [ -f "$MERGE_LOCK" ] && kill -0 "$LOCK_PID" 2>/dev/null; do sleep 1; done
+    fi
+    rm -f "$MERGE_LOCK"
+  fi
+  echo $$ > "$MERGE_LOCK"
+}
+
+release_merge_lock() { rm -f "$MERGE_LOCK"; }
+
 # 4. Serial merge: read signal, merge or escalate, delete signal file
+acquire_merge_lock
 for TASK_ID in $CLAIMED_TASK_IDS; do
   SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
   SIGNAL_CONTENT=$(cat "$SIGNAL_FILE" 2>/dev/null || echo "needs-human: signal file missing")
   rm -f "$SIGNAL_FILE"
+  ACTIVE_TMP=$(mktemp)
+  grep -v "^${TASK_ID}$" "${REPO_ROOT}/backlog/.active-agents" > "$ACTIVE_TMP" 2>/dev/null || true
+  mv "$ACTIVE_TMP" "${REPO_ROOT}/backlog/.active-agents"
 
   BRANCH="${TASK_BRANCHES[$TASK_ID]}"
   WORKTREE="${TASK_WORKTREES[$TASK_ID]}"
@@ -1163,6 +1225,7 @@ To continue: answer in Implementation Notes, then set status → Basic: Ready."
       >> "${REPO_ROOT}/backlog/.caps/${TASK_ID}"
   fi
 done
+release_merge_lock
 ```
 
 ### verifyDodInWorkerLoop
@@ -1404,14 +1467,14 @@ Use the following Monitor call to wait for daemon events:
 
 ```
 Monitor(persistent=true,
-    command="tail -f -n 0 \"$DAEMON_LOG\"",
-    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+    command="tail -c +${OFFSET} -f \"$DAEMON_LOG\"",
+    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, plan-approved:TASK-N, or heartbeat:TIMESTAMP) has arrived from the backlog task board. heartbeat:TIMESTAMP events are emitted every 60s as no-ops for re-attach. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
   )
 ```
 
-The daemon appends event lines to `backlog/.basic-daemon.log`; `tail -f -n 0`
-runs in the foreground so Monitor receives each line as an event immediately (starting from the
-end of the file to prevent stale event replay on restart).
+The daemon appends event lines to `backlog/.basic-daemon.log`; `tail -c +${OFFSET} -f`
+runs in the foreground so Monitor receives each line as an event immediately (resuming from
+the checkpointed byte offset to prevent stale event replay on restart).
 The daemon subprocess exits only when `backlog/.loop-stop` is written (or the parent process dies).
 
 To stop the Monitor from outside the skill, call `TaskStop <monitor-task-id>`.

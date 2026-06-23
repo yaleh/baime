@@ -5,3 +5,7 @@ experiments/skill-quality/.env
 experiments/skill-quality/artifacts/runs/
 backlog/.caps
 backlog/.*
+# loop-backlog runtime state (also matched by backlog/.* above; listed explicitly for clarity)
+backlog/.loop-checkpoint
+backlog/.merge-lock
+backlog/.active-agents
