@@ -18,6 +18,9 @@ contracts:
   - grep: "config.yml"
     target: self
     description: "Implementation must edit config.yml directly (backlog column add removed in CLI v1.45+)"
+  - grep: "initL0Config"
+    target: self
+    description: "L0 Config initialisation step must remain present"
 ---
 
 λ() → backlogSetup()
@@ -40,6 +43,7 @@ backlogSetup() = {
   _:       initProject(),
   missing: verifyColumns(REQUIRED_COLUMNS),
   _:       addColumns(missing),
+  _:       initL0Config(),
   _:       seedExamples(),
   _:       printSummary()
 }
@@ -69,6 +73,30 @@ verifyColumns(required) = required ∖ existingColumns()
 
 addColumns :: [String] → ()
 addColumns(cols) = ∀col ∈ cols: backlog column add col
+
+-- Detects project type from marker files and appends ## L0 Config to CLAUDE.md.
+-- Idempotent: skips if ## L0 Config already present.
+-- Pauses for human confirmation before writing.
+initL0Config :: () → ()
+initL0Config() =
+  | grep -q "## L0 Config" CLAUDE.md → skip
+  | otherwise → {
+      type:  detectProjectType(),
+      block: renderL0Block(type),
+      _:     printProposed(block),
+      _:     awaitConfirmation(),
+      _:     appendOrCreateClaudeMd(block)
+    }
+
+detectProjectType :: () → ProjectType
+detectProjectType() =
+  | exists("scripts/validate-plugin.sh") → baime
+  | exists("package.json")               → node
+  | exists("go.mod")                     → go
+  | exists("Cargo.toml")                 → rust
+  | exists("pyproject.toml")             → python
+  | exists("Makefile")                   → make
+  | otherwise                            → unknown
 
 ## Implementation
 
@@ -164,6 +192,90 @@ if missing:
 else:
     print("All required columns already present.")
 PYEOF
+```
+
+### initL0Config
+
+```bash
+# Idempotency guard: skip if ## L0 Config already present
+if grep -q "## L0 Config" CLAUDE.md 2>/dev/null; then
+  echo "✓ CLAUDE.md already contains ## L0 Config — skipping"
+else
+  # Detection: probe marker files in priority order
+  if [ -f "scripts/validate-plugin.sh" ]; then
+    PROJECT_TYPE="baime"
+    TEST_CMD="bash scripts/validate-plugin.sh"
+    TEST_ALL="bash scripts/validate-plugin.sh"
+    DOC_PATH="docs"
+    WORKTREE_SYMLINKS=""
+  elif [ -f "package.json" ]; then
+    PROJECT_TYPE="node"
+    TEST_CMD="npm test"
+    TEST_ALL="npm test"
+    DOC_PATH="docs"
+    WORKTREE_SYMLINKS="node_modules"
+  elif [ -f "go.mod" ]; then
+    PROJECT_TYPE="go"
+    TEST_CMD="go test ./..."
+    TEST_ALL="go test ./..."
+    DOC_PATH="docs"
+    WORKTREE_SYMLINKS=""
+  elif [ -f "Cargo.toml" ]; then
+    PROJECT_TYPE="rust"
+    TEST_CMD="cargo test"
+    TEST_ALL="cargo test"
+    DOC_PATH="docs"
+    WORKTREE_SYMLINKS=""
+  elif [ -f "pyproject.toml" ]; then
+    PROJECT_TYPE="python"
+    TEST_CMD="pytest"
+    TEST_ALL="pytest"
+    DOC_PATH="docs"
+    WORKTREE_SYMLINKS=""
+  elif [ -f "Makefile" ]; then
+    PROJECT_TYPE="make"
+    TEST_CMD="make test"
+    TEST_ALL="make test"
+    DOC_PATH="docs"
+    WORKTREE_SYMLINKS=""
+  else
+    PROJECT_TYPE="unknown"
+    TEST_CMD="<fill in>"
+    TEST_ALL="<fill in>"
+    DOC_PATH="docs"
+    WORKTREE_SYMLINKS=""
+  fi
+
+  # Render proposed block
+  L0_BLOCK="## L0 Config
+
+test-cmd: ${TEST_CMD}
+test-all: ${TEST_ALL}
+doc-path: ${DOC_PATH}
+worktree-symlinks: ${WORKTREE_SYMLINKS}"
+
+  echo ""
+  echo "Detected project type: ${PROJECT_TYPE}"
+  echo ""
+  echo "Proposed ## L0 Config block to append to CLAUDE.md:"
+  echo "────────────────────────────────────────"
+  echo "${L0_BLOCK}"
+  echo "────────────────────────────────────────"
+  echo ""
+  printf "Write this block to CLAUDE.md? [y/N] "
+  read -r CONFIRM
+  if [ "${CONFIRM}" = "y" ] || [ "${CONFIRM}" = "Y" ]; then
+    if [ ! -f "CLAUDE.md" ]; then
+      printf "%s\n" "${L0_BLOCK}" > CLAUDE.md
+      echo "✓ Created CLAUDE.md with ## L0 Config"
+    else
+      printf "\n%s\n" "${L0_BLOCK}" >> CLAUDE.md
+      echo "✓ Appended ## L0 Config to CLAUDE.md"
+    fi
+  else
+    echo "Skipped — edit CLAUDE.md manually to add ## L0 Config"
+  fi
+fi
 ```
 
 ### seedExamples
@@ -264,18 +376,10 @@ echo ""
 echo "All required columns are ready."
 echo ""
 echo "Next steps:"
-echo "  1. Add an '## L0 Config' section to CLAUDE.md (optional — skip to auto-detect):"
-echo ""
-echo "     ## L0 Config"
-echo "     test-cmd: <per-phase test runner, e.g. pytest -k>"
-echo "     test-all: <full suite, e.g. pytest>"
-echo "     worktree-symlinks: <dirs to symlink, e.g. node_modules, or: none>"
-echo "     doc-path: docs"
-echo ""
-echo "  2. Create your first task:"
+echo "  1. Create your first task:"
 echo "     /feature-to-backlog <feature description>"
 echo ""
-echo "  3. Move the task to Ready, then start the worker:"
+echo "  2. Move the task to Ready, then start the worker:"
 echo "     /loop-backlog"
 echo ""
 echo "─── Web UI ────────────────────────────────"
@@ -297,8 +401,9 @@ echo "     Always use the CLI commands above."
 - The script is idempotent: running it multiple times only adds truly missing columns.
   The seed step is also idempotent: skipped if `backlog/docs/` or `backlog/decisions/`
   already contain any files.
-- The `## L0 Config` section in CLAUDE.md is optional. Without it, `feature-to-backlog`
-  and `loop-backlog` auto-detect the project language and choose sensible defaults.
+- `backlog-setup` auto-detects the project type and appends a `## L0 Config` block to
+  CLAUDE.md (with human confirmation). The step is idempotent — it skips if the block
+  already exists.
 - Web UI content areas and their CLI commands:
   - TASKS     → `backlog task create`
   - DOCUMENTS → `backlog document create` (stores in `backlog/docs/`)
