@@ -213,6 +213,7 @@ else
   # New topic path — create task
   backlog task create "$TITLE" \
     --status "Basic: Proposal" \
+    --label "kind:basic" \
     --description "<topic>" \
     --plain
   # Extract task ID from output line `Task TASK-N`. Write to $TMPDIR/ftb-task-id.txt.
