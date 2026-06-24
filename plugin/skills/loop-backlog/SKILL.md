@@ -815,6 +815,33 @@ buildExecutePrompt() {
   local TBRANCH="$5"
   local TSIGNAL="$6"
 
+  # Pre-dispatch enrichment: inject Archguard Risk Context (advisory, non-blocking).
+  # Cap at 3 files per claim to keep latency < 3s. Skip silently if helpers unavailable.
+  local RISK_BLOCK=""
+  local _PARSE_SCRIPT="${REPO_ROOT}/scripts/lib/parse-task-files.js"
+  local _FETCH_SCRIPT="${REPO_ROOT}/scripts/lib/fetch-risk-context.js"
+  if [ -f "$_PARSE_SCRIPT" ] && [ -f "$_FETCH_SCRIPT" ] && command -v node >/dev/null 2>&1; then
+    local _FILES
+    _FILES=$(node "$_PARSE_SCRIPT" "$TDESC" 2>/dev/null | \
+      node -e "const d=require('fs').readFileSync('/dev/stdin','utf8').trim(); \
+               const arr=d?JSON.parse(d):[]; \
+               process.stdout.write(arr.slice(0,3).join('\n'));" 2>/dev/null || true)
+    if [ -n "$_FILES" ]; then
+      local _FILE_ARGS=()
+      while IFS= read -r _f; do
+        [ -n "$_f" ] && _FILE_ARGS+=("$_f")
+      done <<< "$_FILES"
+      RISK_BLOCK=$(node "$_FETCH_SCRIPT" "${_FILE_ARGS[@]}" 2>/dev/null || true)
+    fi
+  fi
+
+  # Build optional risk block suffix (empty string → omit section entirely)
+  local _RISK_SECTION=""
+  if [ -n "$RISK_BLOCK" ]; then
+    _RISK_SECTION="
+${RISK_BLOCK}"
+  fi
+
   cat <<PROMPT_EOF
 You are a background task agent. Your only job is to execute the task described below.
 
@@ -827,7 +854,7 @@ Signal file: ${TSIGNAL}
 
 ## Description
 ${TDESC}
-
+${_RISK_SECTION}
 ## Constraints
 - Work exclusively inside the worktree at: ${TWT}
 - Do NOT run git merge or git push
