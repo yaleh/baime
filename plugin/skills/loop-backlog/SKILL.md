@@ -591,12 +591,7 @@ except Exception:
 BAIME_SCRIPTS=$(resolveBaimeScripts) || exit 1
 DAEMON_SCRIPT="$BAIME_SCRIPTS/basic-daemon.js"
 
-# Migration notice: if the old written copy exists, inform the user it's no longer needed.
-if [ -f "${REPO_ROOT}/scripts/basic-daemon.js" ] || [ -f "${REPO_ROOT}/scripts/basic-daemon.cjs" ]; then
-  echo "# Note: scripts/basic-daemon.js (or .cjs) is no longer needed by loop-backlog;" \
-       "the plugin-bundled copy at $DAEMON_SCRIPT is used instead." \
-       "You may safely delete it."
-fi
+# DAEMON_SCRIPT is always resolved from the plugin-resident BAIME_SCRIPTS path above.
 ```
 
 ### acquireLoopLock
@@ -819,9 +814,7 @@ buildExecutePrompt() {
   # Cap at 3 files per claim to keep latency < 3s. Skip silently if helpers unavailable.
   local RISK_BLOCK=""
   local _PARSE_SCRIPT="${BAIME_SCRIPTS}/../skills/loop-backlog/lib/parse-task-files.js"
-  [ ! -f "$_PARSE_SCRIPT" ] && _PARSE_SCRIPT="${REPO_ROOT}/scripts/lib/parse-task-files.js"
   local _FETCH_SCRIPT="${BAIME_SCRIPTS}/../skills/loop-backlog/lib/fetch-risk-context.js"
-  [ ! -f "$_FETCH_SCRIPT" ] && _FETCH_SCRIPT="${REPO_ROOT}/scripts/lib/fetch-risk-context.js"
   if [ -f "$_PARSE_SCRIPT" ] && [ -f "$_FETCH_SCRIPT" ] && command -v node >/dev/null 2>&1; then
     local _FILES
     _FILES=$(node "$_PARSE_SCRIPT" "$TDESC" 2>/dev/null | \

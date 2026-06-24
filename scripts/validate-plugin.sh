@@ -882,6 +882,96 @@ PYEOF
     fi
 fi
 
+# ── ADR Lint Layer ────────────────────────────────────────────────────────────
+
+echo ""
+echo "=== ADR Lint Layer ==="
+python3 - <<'PYEOF'
+import os, re, subprocess, sys, tempfile
+
+repo_root = os.environ.get("REPO_ROOT", os.getcwd())
+adr_dir = os.path.join(repo_root, "docs", "adr")
+errors = 0
+warnings = 0
+
+adr_files = sorted(f for f in os.listdir(adr_dir) if re.match(r'ADR-\d+.*\.md$', f))
+
+def extract_frontmatter(path):
+    with open(path) as f:
+        content = f.read()
+    m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+    return m.group(1) if m else None
+
+def get_field(fm, key):
+    m = re.search(rf'^{key}:\s*(.+)$', fm, re.MULTILINE)
+    return m.group(1).strip() if m else None
+
+def get_lint_block(fm):
+    # Extract multiline lint: | block
+    m = re.search(r'^lint:\s*\|\n((?:  .+\n?)*)', fm, re.MULTILINE)
+    if m:
+        # De-indent by 2 spaces
+        lines = m.group(1).split('\n')
+        return '\n'.join(l[2:] if l.startswith('  ') else l for l in lines).rstrip()
+    # Check for lint: null or lint: absent
+    m2 = re.search(r'^lint:\s*(null)?\s*$', fm, re.MULTILINE)
+    if m2:
+        return None
+    return None
+
+for fname in adr_files:
+    fpath = os.path.join(adr_dir, fname)
+    fm = extract_frontmatter(fpath)
+    if fm is None:
+        print(f"  ADVISORY: {fname} — no frontmatter found")
+        warnings += 1
+        continue
+
+    enforcement = get_field(fm, 'enforcement')
+    if enforcement is None:
+        print(f"  ADVISORY: {fname} — missing enforcement field")
+        warnings += 1
+        continue
+
+    if enforcement == 'static':
+        lint = get_lint_block(fm)
+        if lint is None:
+            print(f"  FAIL: {fname} — enforcement: static but no lint block")
+            errors += 1
+            continue
+        # Write lint to temp file and execute from REPO_ROOT
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as tf:
+            tf.write('#!/bin/bash\nset -e\n')
+            tf.write(lint + '\n')
+            tfname = tf.name
+        try:
+            result = subprocess.run(
+                ['bash', tfname],
+                cwd=repo_root,
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                print(f"  PASS: ADR lint: {fname}")
+            else:
+                print(f"  FAIL: ADR lint: {fname}")
+                for line in (result.stdout + result.stderr).strip().split('\n')[:5]:
+                    if line:
+                        print(f"    {line}")
+                errors += 1
+        finally:
+            os.unlink(tfname)
+    elif enforcement == 'advisory':
+        print(f"  ADVISORY: {fname} — enforcement: advisory (no automatic lint)")
+        warnings += 1
+    # semantic/runtime: silently skip
+
+sys.exit(errors)
+PYEOF
+ADR_LINT_EXIT=$?
+if [ $ADR_LINT_EXIT -ne 0 ]; then
+    ERRORS=$((ERRORS + ADR_LINT_EXIT))
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
