@@ -297,6 +297,58 @@ If `$TMPDIR/ftb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >      --status "Basic: Proposal"
 >    echo "APPROVED" > $TMPDIR/ftb-proposal-verdict.txt
 >    ```
+>    在写 APPROVED 时，把 verdict 扩展为结构化前提账本（premise-ledger）：
+>    对你检查的每条 criterion，追加一行 `[E|C|H] <criterion>: <你判断所凭的前提>`，
+>    分类规则：E=该前提可直接从本任务 task 文件读到；C=须跳转外部 task/doc/parent 才能确认；
+>    H=任何 artifact 都没有、靠背景知识或记忆推断。
+>    末尾追加一行 `GCL-self-report: E=<n> C=<n> H=<n>`（各类计数）。
+>    写法示例：
+>      backlog task edit <TASK_ID> --append-notes "Proposal self-review: APPROVED
+>      premise-ledger:
+>      [E] background lines: 背景段行数从 proposal 文件直接数
+>      [C] goal verifiability: 须对照每条 Goal 判断是否可验证
+>      [H] feasibility 基准: 何为'可行'靠背景知识判断
+>      GCL-self-report: E=1 C=1 H=1"
+>    Immediately after writing the GCL-self-report note, append one line to `docs/research/gcl-events.jsonl`
+>    (gate_type=proposal, task_kind=basic):
+>    ```bash
+>    python3 -c "
+> import json, datetime
+> record = {
+>   'task_id': '<TASK_ID>',
+>   'gate_type': 'proposal',
+>   'task_kind': 'basic',
+>   'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+>   'E': <E>, 'C': <C>, 'H': <H>, 'GCL': <E>+<C>+<H>,
+>   'reviewer_model': 'claude-sonnet-4-6',
+>   'sample_run_id': None,
+>   'evidence_independence': 'low',
+>   'gate_actor_type': 'llm',
+>   'premise_lines': <count of premise-ledger lines>
+> }
+> with open('docs/research/gcl-events.jsonl', 'a') as f:
+>     f.write(json.dumps(record) + '\n')
+> "
+>    ```
+>    Replace `<TASK_ID>`, `<E>`, `<C>`, `<H>` with the actual values from the self-report.
+>
+>    **Reliability sampling (~10% of gates):** After appending the primary JSONL record above,
+>    check whether this task falls in the ~10% reliability sample:
+>    ```python
+>    import hashlib
+>    if int(hashlib.md5('<TASK_ID>'.encode()).hexdigest(), 16) % 10 == 0:
+>    ```
+>    If and only if the condition is true, perform a second independent GCL self-report pass:
+>    - Re-read the same gate content (proposal) with fresh eyes, as if reviewing it for the first time.
+>    - Produce a second premise-ledger with its own E/C/H counts (may differ from run 1).
+>    - Append a second JSONL line to `docs/research/gcl-events.jsonl` with the same fields but
+>      `'sample_run_id': '<TASK_ID>-r2'` (instead of `None`).
+>    - Log `intra-rater-variance: |H_run1 - H_run2|` by appending to the task notes:
+>      ```bash
+>      backlog task edit <TASK_ID> --append-notes "reliability-sample: intra-rater-variance H=|<H_run1>-<H_run2>|=<diff>"
+>      ```
+>    If the condition is false, skip this block entirely (no second pass, no extra JSONL line).
+>
 >    Print: "Proposal APPROVED. Proceeding to plan draft."
 >
 > Rules: Background must state WHY, not just WHAT. Each Goal must be verifiable.

@@ -1442,6 +1442,37 @@ onChildDone() {
   backlog task edit "$EPIC_ID" \
     --append-notes "cap:evaluate=recommendation:${VERDICT} | done=${DONE}/${TOTAL} needsHuman=${NEEDS} dod_pass=${DOD_OK} | data_source: measured" \
     --append-notes "RECOMMENDATION: ${VERDICT}. To finish: set status → Epic: Done. To iterate: set status → Epic: Proposal or Epic: Plan and re-run /epic-to-backlog."
+
+  # GCL-self-report: epic-evaluate gate premise-ledger
+  # Record premise evidence for the FINISH/ITERATE recommendation:
+  # E = measured from artifact (child statuses, DoD shell results)
+  # C = cross-referenced child task files
+  # H = judgment calls (what constitutes "sufficient" completion)
+  local GCL_E=2 GCL_C=1 GCL_H=1  # typical split: child status counts (E), DoD pass result (E), child file content (C), completeness judgment (H)
+  backlog task edit "$EPIC_ID" --append-notes "epic-evaluate GCL-self-report:
+premise-ledger:
+[E] child done count: ${DONE}/${TOTAL} 直接从任务状态读取
+[E] dod_pass: ${DOD_OK} 直接从 verify-subtask-dod.sh 输出读取
+[C] child DoD content: 须读取各子任务文件确认 DoD 命令
+[H] FINISH/ITERATE 充分性基准: 何为'足够完成'靠背景知识判断
+GCL-self-report: E=${GCL_E} C=${GCL_C} H=${GCL_H}"
+  python3 -c "
+import json, datetime
+record = {
+  'task_id': '${EPIC_ID}',
+  'gate_type': 'epic-evaluate',
+  'task_kind': 'epic',
+  'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+  'E': ${GCL_E}, 'C': ${GCL_C}, 'H': ${GCL_H}, 'GCL': ${GCL_E}+${GCL_C}+${GCL_H},
+  'reviewer_model': 'shell-script',
+  'sample_run_id': None,
+  'evidence_independence': 'high',
+  'gate_actor_type': 'script',
+  'premise_lines': 4
+}
+with open('${REPO_ROOT}/docs/research/gcl-events.jsonl', 'a') as f:
+    f.write(json.dumps(record) + '\n')
+" 2>/dev/null || true
   # soft halt: stay at Epic: Evaluating; cap:evaluate guard makes daemon re-emits no-ops.
 }
 ```

@@ -347,7 +347,8 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >      [C] decomposition coverage: 子任务覆盖了 Goals（须对照每条 Goal）
 >      [H] epic 粒度基准: 何为'合理的 epic 粒度'靠背景知识判断
 >      GCL-self-report: E=1 C=2 H=1"
->    Immediately after writing the GCL-self-report note, append one line to `docs/research/gcl-events.jsonl`:
+>    Immediately after writing the GCL-self-report note, append one line to `docs/research/gcl-events.jsonl`
+>    (gate_type=proposal, task_kind=epic):
 >    ```bash
 >    python3 -c "
 > import json, datetime
