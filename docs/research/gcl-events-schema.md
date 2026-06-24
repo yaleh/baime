@@ -21,6 +21,35 @@
 | evidence_independence | string | gate 证据来源与被审系统的独立程度（H6 字段） | "high" \| "low" \| "unknown" |
 | gate_actor_type | string | gate 执行者类型（H7 字段） | "human" \| "llm" \| "hybrid" \| "tool" |
 | premise_lines | integer \| null | premise-ledger 中的前提条目总数；未记录时为 null | null 或 ≥ 0 |
+| escape_rate | integer | gate 通过后该任务是否发生逃逸（0=无逃逸，1=逃逸） | 0 \| 1 |
+
+## escape_rate 定义
+
+**逃逸（escape_rate=1）**：gate 通过后，任务满足以下任一条件：
+
+1. 任务状态曾到达 `Basic: Needs Human`（reaper 触发的人工干预）
+2. 任务 Notes 中出现 `Requeued by reaper` 或等效的 reaper 重新排队记录
+
+**无逃逸（escape_rate=0）**：gate 通过后任务成功完成，无上述逃逸迹象。保守原则：无明确逃逸证据的记录默认为 0。
+
+**提取方法**：
+
+```bash
+# 检查任务是否曾处于 Needs Human 状态或被 reaper 重新排队
+backlog task view TASK-N --plain | grep -iE 'Needs Human|Requeued by reaper'
+
+# 批量检查所有 gcl-events.jsonl 中的任务
+python3 -c "
+import json, subprocess
+recs = [json.loads(l) for l in open('docs/research/gcl-events.jsonl')]
+task_ids = sorted(set(r['task_id'] for r in recs))
+for tid in task_ids:
+    out = subprocess.run(['backlog', 'task', 'view', tid, '--plain'],
+                        capture_output=True, text=True).stdout
+    escaped = 1 if any(kw in out for kw in ['Needs Human', 'Requeued by reaper']) else 0
+    print(f'{tid}: escape_rate={escaped}')
+"
+```
 
 ## 说明
 
