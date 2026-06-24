@@ -982,6 +982,72 @@ Error: $(echo "$LAST_ERROR" | head -5)
 done
 ```
 
+### verifyDod → meta-cc-digest (Gate Evidence Pack)
+
+After all DoD items pass, the agent MUST collect process evidence from meta-cc and append
+a Gate Evidence Pack to the task Notes. This provides evidence independent of agent
+self-reporting (data_source: meta-cc-session).
+
+**Agent protocol** (follow the MCP guide in `plugin/skills/loop-backlog/meta-cc-digest.sh`):
+
+```bash
+# Step 1: locate the current session directory
+SESSION_DIR=$(mcp__plugin_meta-cc_meta-cc__get_session_directory)
+
+# Step 2: collect the three evidence signals
+FILE_ACTIVITY=$(mcp__plugin_meta-cc_meta-cc__query_file_activity --session_dir "$SESSION_DIR" 2>/dev/null || echo "")
+ERROR_DATA=$(mcp__plugin_meta-cc_meta-cc__analyze_errors --session_dir "$SESSION_DIR" 2>/dev/null || echo "")
+EDIT_SEQ=$(mcp__plugin_meta-cc_meta-cc__query_edit_sequences --session_dir "$SESSION_DIR" 2>/dev/null || echo "")
+
+# Step 3: compute SCOPE_DIFF by comparing FILE_ACTIVITY to task Implementation Plan file refs
+# (files appearing in FILE_ACTIVITY but not mentioned in the task plan → out-of-scope)
+
+# Step 4a: if all signals collected, append structured Gate Evidence Pack
+if [ -n "$FILE_ACTIVITY" ] || [ -n "$ERROR_DATA" ] || [ -n "$EDIT_SEQ" ]; then
+  backlog task edit "$TASK_ID" --append-notes "## Gate Evidence Pack
+FILE_ACTIVITY: ${FILE_ACTIVITY:-none}
+ERROR_COUNT: ${ERROR_DATA:-0}
+EDIT_OSCILLATION: ${EDIT_SEQ:-none}
+SCOPE_DIFF: ${SCOPE_DIFF:-none}
+data_source: meta-cc-session"
+else
+  # Step 4b: graceful degradation — meta-cc unavailable, do not block gate
+  backlog task edit "$TASK_ID" --append-notes "## Gate Evidence Pack
+meta-cc-digest: unavailable (reason: MCP tools returned empty)
+data_source: meta-cc-session"
+fi
+
+# Step 5: conditionally wire evidence_independence into gcl-events.jsonl
+# (see meta-cc-digest.sh --help for the full wiring protocol)
+JSONL="${REPO_ROOT}/docs/research/gcl-events.jsonl"
+if [ -f "$JSONL" ] && grep -q '"evidence_independence"' "$JSONL" 2>/dev/null; then
+  python3 -c "
+import json
+lines = open('${JSONL}').readlines()
+updated = []
+last_idx = None
+for i, line in enumerate(lines):
+    try:
+        r = json.loads(line)
+        if r.get('task_id') == '${TASK_ID}':
+            last_idx = i
+    except Exception:
+        pass
+    updated.append(line)
+if last_idx is not None:
+    r = json.loads(updated[last_idx])
+    r['evidence_independence'] = 'meta-cc-grounded'
+    updated[last_idx] = json.dumps(r) + '\n'
+open('${JSONL}', 'w').writelines(updated)
+" 2>/dev/null || true
+else
+  backlog task edit "$TASK_ID" --append-notes "gcl-evidence-independence: meta-cc-grounded (pending jsonl)"
+fi
+```
+
+On any MCP call failure: append `meta-cc-digest: unavailable (reason: <msg>)` and continue
+without blocking the gate transition. The meta-cc digest is advisory evidence, never a gate blocker.
+
 ### conditionalCommit
 
 ```bash
@@ -1464,6 +1530,45 @@ onChildDone() {
   bash "$BAIME_SCRIPTS/verify-subtask-dod.sh" "$EPIC_ID" >/dev/null 2>&1 || DOD_OK=false
   local VERDICT="ITERATE"
   if [ "$NEEDS" -eq 0 ] && [ "$DOD_OK" = "true" ]; then VERDICT="FINISH"; fi
+
+  # epicEvaluate meta-cc aggregate digest: gather process evidence across child tasks
+  # before writing the FINISH/ITERATE recommendation. Caps at 10 children to bound
+  # MCP call volume; sets digest_truncated: true if more children exist.
+  CHILD_IDS_LIST=$(childrenOf "$EPIC_ID" | head -10)
+  CHILD_COUNT_TOTAL=$(childrenOf "$EPIC_ID" | wc -l | xargs)
+  DIGEST_TRUNCATED=false
+  if [ "$CHILD_COUNT_TOTAL" -gt 10 ]; then DIGEST_TRUNCATED=true; fi
+
+  EPIC_EVIDENCE_PACK="## Epic Gate Evidence Pack (meta-cc aggregate)"
+  EPIC_EVIDENCE_PACK="${EPIC_EVIDENCE_PACK}
+digest_truncated: ${DIGEST_TRUNCATED}"
+
+  SESSION_DIR=$(mcp__plugin_meta-cc_meta-cc__get_session_directory 2>/dev/null || echo "")
+  if [ -n "$SESSION_DIR" ]; then
+    for CHILD_ID in $CHILD_IDS_LIST; do
+      [ -z "$CHILD_ID" ] && continue
+      C_FILE_ACTIVITY=$(mcp__plugin_meta-cc_meta-cc__query_file_activity --session_dir "$SESSION_DIR" 2>/dev/null || echo "")
+      C_ERROR_DATA=$(mcp__plugin_meta-cc_meta-cc__analyze_errors --session_dir "$SESSION_DIR" 2>/dev/null || echo "")
+      C_EDIT_SEQ=$(mcp__plugin_meta-cc_meta-cc__query_edit_sequences --session_dir "$SESSION_DIR" 2>/dev/null || echo "")
+      if [ -n "$C_FILE_ACTIVITY" ] || [ -n "$C_ERROR_DATA" ] || [ -n "$C_EDIT_SEQ" ]; then
+        EPIC_EVIDENCE_PACK="${EPIC_EVIDENCE_PACK}
+${CHILD_ID}: FILE_ACTIVITY=${C_FILE_ACTIVITY:-none} ERROR_COUNT=${C_ERROR_DATA:-0} EDIT_OSCILLATION=${C_EDIT_SEQ:-none}"
+      else
+        EPIC_EVIDENCE_PACK="${EPIC_EVIDENCE_PACK}
+${CHILD_ID}: meta-cc-digest: unavailable"
+      fi
+    done
+    EPIC_EVIDENCE_PACK="${EPIC_EVIDENCE_PACK}
+evidence_independence: meta-cc-grounded
+data_source: meta-cc-session"
+  else
+    EPIC_EVIDENCE_PACK="${EPIC_EVIDENCE_PACK}
+meta-cc-digest: unavailable (reason: SESSION_DIR not found)
+evidence_independence: meta-cc-grounded (pending)
+data_source: meta-cc-session"
+  fi
+
+  backlog task edit "$EPIC_ID" --append-notes "$EPIC_EVIDENCE_PACK"
 
   backlog task edit "$EPIC_ID" \
     --append-notes "cap:evaluate=recommendation:${VERDICT} | done=${DONE}/${TOTAL} needsHuman=${NEEDS} dod_pass=${DOD_OK} | data_source: measured" \
