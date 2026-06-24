@@ -435,6 +435,27 @@ pass `CFG_TEST_CMD`, `CFG_TEST_ALL` as literal values):
 >      [C] file paths exist: 引用的外部文件经 search 确认
 >      [H] DoD 充分性基准: 何为'足够'靠背景知识判断
 >      GCL-self-report: E=2 C=1 H=1"
+>    Immediately after writing the GCL-self-report note, append one line to `docs/research/gcl-events.jsonl`:
+>    ```bash
+>    python3 -c "
+> import json, datetime
+> record = {
+>   'task_id': '<TASK_ID>',
+>   'gate_type': 'plan',
+>   'task_kind': 'basic',
+>   'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+>   'E': <E>, 'C': <C>, 'H': <H>, 'GCL': <E>+<C>+<H>,
+>   'reviewer_model': 'claude-sonnet-4-6',
+>   'sample_run_id': None,
+>   'evidence_independence': 'low',
+>   'gate_actor_type': 'llm',
+>   'premise_lines': <count of premise-ledger lines>
+> }
+> with open('docs/research/gcl-events.jsonl', 'a') as f:
+>     f.write(json.dumps(record) + '\n')
+> "
+>    ```
+>    Replace `<TASK_ID>`, `<E>`, `<C>`, `<H>` with the actual values from the self-report.
 >    Print: "Plan APPROVED. Proceeding to finalise."
 >
 > 3b. ANY fail: fix `$TMPDIR/ftb-plan.md` (and `$TMPDIR/ftb-proposal.md` if needed),

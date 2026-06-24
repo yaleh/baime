@@ -347,6 +347,27 @@ If `$TMPDIR/etb-entry-point.txt` contains `PlanLoop`: skip phase 1b and phases 2
 >      [C] decomposition coverage: 子任务覆盖了 Goals（须对照每条 Goal）
 >      [H] epic 粒度基准: 何为'合理的 epic 粒度'靠背景知识判断
 >      GCL-self-report: E=1 C=2 H=1"
+>    Immediately after writing the GCL-self-report note, append one line to `docs/research/gcl-events.jsonl`:
+>    ```bash
+>    python3 -c "
+> import json, datetime
+> record = {
+>   'task_id': '<TASK_ID>',
+>   'gate_type': 'proposal',
+>   'task_kind': 'epic',
+>   'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+>   'E': <E>, 'C': <C>, 'H': <H>, 'GCL': <E>+<C>+<H>,
+>   'reviewer_model': 'claude-sonnet-4-6',
+>   'sample_run_id': None,
+>   'evidence_independence': 'low',
+>   'gate_actor_type': 'llm',
+>   'premise_lines': <count of premise-ledger lines>
+> }
+> with open('docs/research/gcl-events.jsonl', 'a') as f:
+>     f.write(json.dumps(record) + '\n')
+> "
+>    ```
+>    Replace `<TASK_ID>`, `<E>`, `<C>`, `<H>` with the actual values from the self-report.
 >    Print: "Proposal APPROVED. Proceeding to epic plan draft."
 >
 > 4b. ANY criterion fails AND round < 3: fix the failing sections in `$TMPDIR/etb-proposal.md`,
@@ -487,6 +508,27 @@ Each iteration — spawn Task agent with `run_in_background=true` (self-chaining
 >      [C] goal coverage: 须对照 proposal Goals 逐条验证
 >      [H] sequencing 合理性: 依赖顺序靠背景知识判断
 >      GCL-self-report: E=1 C=2 H=1"
+>    Immediately after writing the GCL-self-report note, append one line to `docs/research/gcl-events.jsonl`:
+>    ```bash
+>    python3 -c "
+> import json, datetime
+> record = {
+>   'task_id': '<TASK_ID>',
+>   'gate_type': 'plan',
+>   'task_kind': 'epic',
+>   'timestamp': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+>   'E': <E>, 'C': <C>, 'H': <H>, 'GCL': <E>+<C>+<H>,
+>   'reviewer_model': 'claude-sonnet-4-6',
+>   'sample_run_id': None,
+>   'evidence_independence': 'low',
+>   'gate_actor_type': 'llm',
+>   'premise_lines': <count of premise-ledger lines>
+> }
+> with open('docs/research/gcl-events.jsonl', 'a') as f:
+>     f.write(json.dumps(record) + '\n')
+> "
+>    ```
+>    Replace `<TASK_ID>`, `<E>`, `<C>`, `<H>` with the actual values from the self-report.
 >    Print: "Plan APPROVED. Proceeding to finalise."
 >
 > 3b. ANY fail: fix `$TMPDIR/etb-plan.md` (and `$TMPDIR/etb-proposal.md` if needed),
