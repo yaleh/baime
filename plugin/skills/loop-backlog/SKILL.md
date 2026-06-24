@@ -1514,4 +1514,42 @@ runs in the foreground so Monitor receives each line as an event immediately (re
 the checkpointed byte offset to prevent stale event replay on restart).
 The daemon subprocess exits only when `backlog/.loop-stop` is written (or the parent process dies).
 
+## GCL Drift Alerting
+
+The loop-backlog heartbeat can be used to run a daily GCL health check. On each
+`heartbeat:*` event the worker already calls `workerLoop()` as a no-op; agents that
+wish to monitor GCL drift should run `scripts/gcl-report.sh` as a side-effect:
+
+```bash
+bash scripts/gcl-report.sh
+# Exits 0 when GCL mean is within the configured safe range.
+# Exits 1 and prints "ALERT: GCL mean=X is outside safe range [lower, upper]"
+# when drift is detected. Alert thresholds are read from:
+#   docs/research/gcl-alert-config.json  (default)
+#   $ALERT_CONFIG                        (override via env var)
+```
+
+### Alert configuration
+
+`docs/research/gcl-alert-config.json` contains the two-sided bounds:
+
+```json
+{ "lower_bound": 5, "upper_bound": 25 }
+```
+
+Override by setting `ALERT_CONFIG=/path/to/custom.json` before invoking the script.
+
+### Daily schedule (recommended)
+
+To run the GCL drift check once per day outside of an active loop session, add a
+crontab entry in the project environment:
+
+```
+# GCL drift alert — runs at 07:00 UTC every day
+0 7 * * * cd /path/to/repo && bash scripts/gcl-report.sh >> logs/gcl-report.log 2>&1
+```
+
+A non-zero exit from `scripts/gcl-report.sh` indicates the GCL mean has drifted
+outside the configured range and warrants human review of `docs/research/gcl-events.jsonl`.
+
 To stop the Monitor from outside the skill, call `TaskStop <monitor-task-id>`.

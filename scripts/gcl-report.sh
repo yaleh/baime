@@ -183,3 +183,61 @@ print("=" * 70)
 print("End of report")
 print("=" * 70)
 PYEOF
+
+# ── Alert check ───────────────────────────────────────────────────────────────
+# Read alert config (configurable via ALERT_CONFIG env var)
+ALERT_CONFIG="${ALERT_CONFIG:-docs/research/gcl-alert-config.json}"
+
+# Compute overall GCL mean and compare against alert thresholds
+GCL_MEAN_VAL=$(python3 - "$JSONL_FILE" <<'PYEOF2'
+import sys, json
+
+jsonl_file = sys.argv[1]
+try:
+    with open(jsonl_file) as f:
+        raw_lines = [l.strip() for l in f if l.strip()]
+except FileNotFoundError:
+    print("N/A")
+    sys.exit(0)
+
+events = []
+for line in raw_lines:
+    try:
+        events.append(json.loads(line))
+    except json.JSONDecodeError:
+        pass
+
+gcls = [ev.get("GCL") for ev in events if ev.get("GCL") is not None]
+if not gcls:
+    print("N/A")
+    sys.exit(0)
+
+m = sum(gcls) / len(gcls)
+print(f"{m:.2f}")
+PYEOF2
+)
+
+if [ "$GCL_MEAN_VAL" != "N/A" ] && [ -f "$ALERT_CONFIG" ]; then
+    python3 - "$GCL_MEAN_VAL" "$ALERT_CONFIG" <<'PYEOF3'
+import sys, json
+
+gcl_mean = float(sys.argv[1])
+config_path = sys.argv[2]
+
+try:
+    with open(config_path) as f:
+        cfg = json.load(f)
+    lower = cfg.get("lower_bound", 5)
+    upper = cfg.get("upper_bound", 25)
+except Exception as e:
+    print(f"Warning: could not read alert config {config_path}: {e}", file=sys.stderr)
+    sys.exit(0)
+
+if gcl_mean < lower or gcl_mean > upper:
+    print(f"ALERT: GCL mean={gcl_mean:.2f} is outside safe range [{lower}, {upper}]")
+    sys.exit(1)
+else:
+    print(f"GCL mean={gcl_mean:.2f} is within safe range [{lower}, {upper}]")
+    sys.exit(0)
+PYEOF3
+fi
