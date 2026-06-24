@@ -66,7 +66,8 @@ ensureDaemonScript :: () → ()  -- intentional primitive: implemented in Implem
 daemonBootstrap :: () → ()  -- intentional primitive: implemented in Implementation section
 inProgressTasks :: () → [Task]  -- spec gap: no implementation body defined
 stopSentinel :: () → Bool  -- spec gap: no implementation body defined
-stopStaleMon :: () → ()  -- stop any orphaned Monitor tasks from prior /clear iterations
+stopStaleMon :: () → ()  -- stop any orphaned Monitor tail processes (safe because acquireLoopLock guarantees single-instance)
+acquireLoopLock :: () → ()  -- flock-based single-instance guard; exits 1 if another loop is already running
 createWorktree :: Task → Path  -- spec gap: no implementation body defined
 readyTasks :: () → [Task]  -- spec gap: no implementation body defined
 followDescription :: (Description, Context) → ()  -- spec gap: no implementation body defined
@@ -96,6 +97,7 @@ data Outcome = Done CommitHash | NeedsHuman Reason | Idle | Stopped
 
 workerLoop :: () → Outcome
 workerLoop() = {
+  _:      acquireLoopLock(),
   cfg:    loadConfig(),
   _:      ensureDaemonScript(),
   _:      daemonBootstrap(),
@@ -597,14 +599,38 @@ if [ -f "${REPO_ROOT}/scripts/basic-daemon.js" ] || [ -f "${REPO_ROOT}/scripts/b
 fi
 ```
 
+### acquireLoopLock
+
+Single-instance enforcement: only one loop-backlog per repo at a time.
+Called at the very start of `workerLoop()`, before any other action.
+The OS releases the flock automatically on any exit (clean, crash, or SIGKILL).
+
+```bash
+# Single-instance enforcement: only one loop-backlog per repo at a time.
+# The OS releases the flock automatically on any exit (clean, crash, or SIGKILL).
+REPO_ROOT=$(git rev-parse --show-toplevel)
+BACKLOG_DIR="${REPO_ROOT}/backlog"
+exec 9> "${BACKLOG_DIR}/.loop-lock"
+flock -n 9 || {
+  echo "[loop-backlog] ERROR: Another instance is already running on this repo." >&2
+  echo "[loop-backlog] Stop the running loop first: touch backlog/.loop-stop" >&2
+  exit 1
+}
+```
+
 ### stopStaleMon
 
-Before creating a new Monitor, stop any existing Monitor tasks from prior iterations
-(e.g., left over after a /clear). Use TaskList to find running tasks whose description
-starts with "loop-backlog daemon notification", then stop each with TaskStop.
+Kill any orphaned Monitor tail processes watching the daemon log before creating a new Monitor.
+Safe because `acquireLoopLock()` guarantees at most one loop-backlog instance per repo —
+there are no "other legitimate instances" to protect.
 
-This prevents duplicate Monitor instances from watching the same daemon log concurrently.
-After TaskStop calls complete, proceed to the Monitor call immediately.
+```bash
+# Kill any orphaned Monitor tail processes watching this daemon log.
+# Safe because acquireLoopLock() guarantees at most one loop-backlog instance
+# per repo — there are no "other legitimate instances" to protect.
+pkill -f "tail.*${DAEMON_LOG}" 2>/dev/null || true
+sleep 0.5
+```
 
 ### daemonBootstrap
 
