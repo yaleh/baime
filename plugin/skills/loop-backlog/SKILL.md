@@ -818,8 +818,10 @@ buildExecutePrompt() {
   # Pre-dispatch enrichment: inject Archguard Risk Context (advisory, non-blocking).
   # Cap at 3 files per claim to keep latency < 3s. Skip silently if helpers unavailable.
   local RISK_BLOCK=""
-  local _PARSE_SCRIPT="${REPO_ROOT}/scripts/lib/parse-task-files.js"
-  local _FETCH_SCRIPT="${REPO_ROOT}/scripts/lib/fetch-risk-context.js"
+  local _PARSE_SCRIPT="${BAIME_SCRIPTS}/../skills/loop-backlog/lib/parse-task-files.js"
+  [ ! -f "$_PARSE_SCRIPT" ] && _PARSE_SCRIPT="${REPO_ROOT}/scripts/lib/parse-task-files.js"
+  local _FETCH_SCRIPT="${BAIME_SCRIPTS}/../skills/loop-backlog/lib/fetch-risk-context.js"
+  [ ! -f "$_FETCH_SCRIPT" ] && _FETCH_SCRIPT="${REPO_ROOT}/scripts/lib/fetch-risk-context.js"
   if [ -f "$_PARSE_SCRIPT" ] && [ -f "$_FETCH_SCRIPT" ] && command -v node >/dev/null 2>&1; then
     local _FILES
     _FILES=$(node "$_PARSE_SCRIPT" "$TDESC" 2>/dev/null | \
@@ -1818,10 +1820,10 @@ The daemon subprocess exits only when `backlog/.loop-stop` is written (or the pa
 
 The loop-backlog heartbeat can be used to run a daily GCL health check. On each
 `heartbeat:*` event the worker already calls `workerLoop()` as a no-op; agents that
-wish to monitor GCL drift should run `scripts/gcl-report.sh` as a side-effect:
+wish to monitor GCL drift should run `$BAIME_SCRIPTS/gcl-report.sh` as a side-effect:
 
 ```bash
-bash scripts/gcl-report.sh
+bash "$BAIME_SCRIPTS/gcl-report.sh"
 # Exits 0 when GCL mean is within the configured safe range.
 # Exits 1 and prints "ALERT: GCL mean=X is outside safe range [lower, upper]"
 # when drift is detected. Alert thresholds are read from:
@@ -1846,10 +1848,10 @@ crontab entry in the project environment:
 
 ```
 # GCL drift alert — runs at 07:00 UTC every day
-0 7 * * * cd /path/to/repo && bash scripts/gcl-report.sh >> logs/gcl-report.log 2>&1
+0 7 * * * cd /path/to/repo && bash "$BAIME_SCRIPTS/gcl-report.sh" >> logs/gcl-report.log 2>&1
 ```
 
-A non-zero exit from `scripts/gcl-report.sh` indicates the GCL mean has drifted
+A non-zero exit from `$BAIME_SCRIPTS/gcl-report.sh` indicates the GCL mean has drifted
 outside the configured range and warrants human review of `docs/research/gcl-events.jsonl`.
 
 To stop the Monitor from outside the skill, call `TaskStop <monitor-task-id>`.
