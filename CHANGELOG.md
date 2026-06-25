@@ -5,6 +5,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-06-25
+
+### Added
+- `loop-backlog`: level-triggered pulse predicates with self-clearing — replaces unconditional heartbeat; daemon re-attaches automatically after `/clear` and stays silent when idle (TASK-197)
+- `loop-backlog`: flock-based single-instance guard and simplified `stopStaleMon` — prevents duplicate daemon processes (TASK-187)
+- `loop-backlog`: prefix-agnostic task ID extraction — removes hardcoded `TASK-` prefix; supports arbitrary project prefixes via path + field anchors (TASK-198)
+- `loop-backlog`: Monitor lifecycle hardening — TaskStop tracking, cold-start checkpoint, heartbeat filter, Monitor contracts + smoke test (TASK-196)
+- `loop-backlog`: pre-dispatch enrichment — archguard change-risk injection into worker context at claim time (TASK-183)
+- `loop-backlog`: meta-cc-digest gate evidence pack injected into proposal/plan/epic-evaluate gates (TASK-182)
+- `GCL`: `gcl-events.jsonl` schema + historical backfill of 13+ gate events (TASK-176.1)
+- `GCL`: premise-ledger `gcl-events.jsonl` append hook on gate approval (TASK-176.2)
+- `GCL`: `gcl-report.sh` reproducible analysis script (TASK-176.3)
+- `GCL`: escape-rate field in `gcl-events.jsonl` (TASK-176.4)
+- `GCL`: ~10% reliability sampling protocol in gate hooks (TASK-176.5)
+- `GCL`: H5/H6/H7 hypothesis validation experiment (TASK-176.6)
+- `GCL`: premise-ledger extension to proposal and epic-evaluate gates (TASK-176.7)
+- `GCL`: scheduled GCL drift alerting in `gcl-report.sh` (TASK-176.8)
+- `GCL`: posterior feedback pipeline linking git history + meta-cc session records to quantify gate escape rate and delta_H (TASK-194)
+- `ADR-008`: frontmatter schema for all ADRs; migrated ADR-001–007 to new schema (TASK-192, TASK-193)
+- `ADR-008`: ADR Lint Layer in `validate-plugin.sh` (TASK-192)
+- `ADR-009`: pulse-predicate self-clearing architectural decision record
+- `experiments/skill-quality/lib`: shared `config-builder.ts` consolidating duplicate buildConfig boilerplate across exp-h/i/j/k (TASK-199)
+- `experiments/lib`: generic `runner.ts`, `timing.ts` session-log extractor, `cap:experiment` capability facet (TASK-153, TASK-154, TASK-156)
+- `backlog-setup`: `initL0Config` — auto-detects project type and writes L0 Config block into CLAUDE.md (TASK-167)
+- `plugin/scripts`: enrichment helpers and read-out scripts moved into plugin bundle (TASK-191)
+- `declared-vs-actual-report.sh`: cross-task scope deviation script scanning all backlog tasks (TASK-190)
+- `docs/loop-backlog-report.md`: BAIME loop-backlog mechanism report for AI-assisted software development (TASK-200)
+- `docs/research`: gate-temporal-portfolio, H8 insight-task evaluation set, GCL synthesis and self-report analysis updates
+
+### Changed
+- `loop-backlog`: Monitor command-level heartbeat filter (not dispatch-level); cold-start EOF replay guard
+- `README.md`: updated to reflect current BAIME capabilities, loop-backlog workflow, and GCL measurement
+- `CLAUDE.md`: operational conventions for build, loop-backlog, experiments, and session analysis
+- `docs/baime-self-reference-analysis.md`: expanded with bidirectional cross-references to grounding-infrastructure
+
+### Fixed
+- `loop-backlog`: self-clearing pulse predicates prevent stale predicate accumulation across `/clear` cycles
+- `loop-backlog`: cold-start EOF replay — Monitor no longer re-dispatches events from previous sessions on restart
+
 ## [1.4.0] - 2026-06-20
 
 ### Added
