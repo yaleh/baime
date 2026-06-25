@@ -115,12 +115,12 @@ workerLoop() = {
 
   if (empty(tasks)):
     -- No basic task to claim; block persistently and dispatch the next daemon event.
-    -- The unified daemon (basic-daemon.js v8) emits FIVE channels; this one worker
+    -- The unified daemon (basic-daemon.js v9) emits FIVE channels; this one worker
     -- session handles all of them (no separate loop-meta session needed).
     _:      stopStaleMon(),
     event: Monitor(persistent=true,
         command="tail -c +${OFFSET} -f \"$DAEMON_LOG\" | grep --line-buffered -E \"^(basic-ready|epic-ready|child-done|proposal-approved|plan-approved):\"",
-        description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Heartbeat lines are suppressed by the grep filter. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+        description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Event lines may re-emit roughly every 60s while a task stays actionable — this re-emit is the normal re-attach signal for an idle session (e.g. after /clear). Non-event lines are filtered out. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
       ),
     | stopSentinel()                            → return Stopped
     | event matches "basic-ready:TASK-*"        → workerLoop()              -- re-claim & execute
@@ -785,7 +785,7 @@ Monitor tails that file:
 MONITOR_TASK_ID_FILE="${BACKLOG_DIR}/.monitor-task-id"
 Monitor(persistent=true,
     command="tail -c +${OFFSET} -f \"$DAEMON_LOG\" | grep --line-buffered -E \"^(basic-ready|epic-ready|child-done|proposal-approved|plan-approved):\"",
-    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Heartbeat lines are suppressed by the grep filter. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Event lines may re-emit roughly every 60s while a task stays actionable — this re-emit is the normal re-attach signal for an idle session (e.g. after /clear). Non-event lines are filtered out. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
   )
 # After Monitor returns its task ID, save it for stopStaleMon in the next session:
 # MONITOR_TASK_ID=$(... extract from Monitor result ...)
@@ -1206,7 +1206,7 @@ if [ -z "$CLAIMED_TASK_IDS" ]; then
   # No basic task to claim — block on the daemon event stream (all five channels).
   # Monitor(persistent=true,
   #   command="tail -c +${OFFSET} -f \"$DAEMON_LOG\" | grep --line-buffered -E \"^(basic-ready|epic-ready|child-done|proposal-approved|plan-approved):\"",
-  #   description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Heartbeat lines are suppressed by the grep filter. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+  #   description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Event lines may re-emit roughly every 60s while a task stays actionable — this re-emit is the normal re-attach signal for an idle session (e.g. after /clear). Non-event lines are filtered out. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
   # )
   # After Monitor returns, record the new checkpoint offset:
   # echo $(wc -c < "$DAEMON_LOG" 2>/dev/null || echo 0) > "$CHECKPOINT_FILE"
@@ -1215,7 +1215,7 @@ if [ -z "$CLAIMED_TASK_IDS" ]; then
   # On child-done:TASK-N       → onChildDone(extractId), then re-enter workerLoop.
   # On proposal-approved:TASK-N → startPlanDraft(extractId), then re-enter workerLoop.
   # On plan-approved:TASK-N    → startFinalise(extractId), then re-enter workerLoop.
-  # Heartbeat lines are suppressed by the grep filter and never reach Monitor.
+  # Non-event lines are filtered out by the grep filter and never reach Monitor.
   # Dispatch is handled by the Monitor event loop; this bash section exits to let the
   # Monitor dispatch call the appropriate handler function.
   # Example dispatch (in the Monitor event handler):
@@ -1748,7 +1748,7 @@ When the human confirms FINISH by setting status → `Epic: Done` after reviewin
 RECOMMENDATION note, the worker MUST record `gate_actor_type=human` for H7 measurement.
 
 This transition is NOT automated — the human sets status manually. The worker detects
-it on the next `child-done` or `heartbeat` event by observing the status change.
+it on the next `child-done` event or the next pulse re-emit by observing the status change.
 
 **When `onChildDone` or a re-enter of `workerLoop` observes `Epic: Done` on a task
 that previously had `Epic: Evaluating`**, write the human confirmation gate event:
@@ -1831,22 +1831,23 @@ Use the following Monitor call to wait for daemon events:
 ```
 Monitor(persistent=true,
     command="tail -c +${OFFSET} -f \"$DAEMON_LOG\" | grep --line-buffered -E \"^(basic-ready|epic-ready|child-done|proposal-approved|plan-approved):\"",
-    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Heartbeat lines are suppressed by the grep filter. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
+    description="loop-backlog daemon notification. An event line (basic-ready:TASK-N, epic-ready:TASK-N, child-done:TASK-N, proposal-approved:TASK-N, or plan-approved:TASK-N) has arrived from the backlog task board. Event lines may re-emit roughly every 60s while a task stays actionable — this re-emit is the normal re-attach signal for an idle session (e.g. after /clear). Non-event lines are filtered out. If this is a new Claude session, invoke /loop-backlog in the project root to resume the worker loop — it will re-claim and dispatch this event automatically."
   )
 ```
 
 The daemon appends event lines to `backlog/.basic-daemon.log`; `tail -c +${OFFSET} -f`
 piped through `grep --line-buffered` runs in the foreground so Monitor receives only
 actionable event lines immediately (resuming from the checkpointed byte offset to prevent
-stale event replay on restart). Heartbeat lines are filtered out at this layer to prevent
-idle notifications every 60s.
+stale event replay on restart). Non-event lines are filtered out at this layer; the daemon
+is idle-silent when no tasks are actionable.
 The daemon subprocess exits only when `backlog/.loop-stop` is written (or the parent process dies).
 
 ## GCL Drift Alerting
 
-The loop-backlog heartbeat can be used to run a daily GCL health check. On each
-`heartbeat:*` event the worker already calls `workerLoop()` as a no-op; agents that
-wish to monitor GCL drift should run `$BAIME_SCRIPTS/gcl-report.sh` as a side-effect:
+The loop-backlog ~60s pulse re-emit can be used to run a daily GCL health check. On each
+pulse re-emit the worker re-enters `workerLoop()`; agents that wish to monitor GCL drift
+should run `$BAIME_SCRIPTS/gcl-report.sh` as a side-effect when `workerLoop()` finds no
+actionable tasks:
 
 ```bash
 bash "$BAIME_SCRIPTS/gcl-report.sh"

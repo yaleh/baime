@@ -8,7 +8,7 @@
  *   child-done   kind:basic AND Basic: Done AND has parent_task_id
  *
  * Verifies correct routing, no cross-channel emission, parent_task_id parsing, and that
- * scripts/basic-daemon.js carries daemon-version: v8 and wires all five channels.
+ * scripts/basic-daemon.js carries daemon-version: v9 and wires all five channels.
  *
  * Exits 0 on all pass, non-zero on fail.
  */
@@ -183,13 +183,13 @@ try {
     assert(meta.parent_task_id === 'TASK-42', 'Test 8b: parent_task_id reads correctly');
   }
 
-  // Test 9: unified daemon file carries daemon-version: v8 and wires all five channels
+  // Test 9: unified daemon file carries daemon-version: v9 and wires all five channels
   {
     const daemon = path.join(__dirname, '..', 'plugin', 'scripts', 'basic-daemon.js');
     assert(fs.existsSync(daemon), 'Test 9a: plugin/scripts/basic-daemon.js exists');
     if (fs.existsSync(daemon)) {
       const content = fs.readFileSync(daemon, 'utf8');
-      assert(content.slice(0, 300).includes('daemon-version: v8'), 'Test 9b: basic-daemon.js has daemon-version: v8');
+      assert(content.slice(0, 300).includes('daemon-version: v9'), 'Test 9b: basic-daemon.js has daemon-version: v9');
       assert(content.includes('basic-ready'),       'Test 9c: emits basic-ready');
       assert(content.includes('epic-ready'),        'Test 9d: emits epic-ready');
       assert(content.includes('child-done'),        'Test 9e: emits child-done');

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Unit tests for basic-daemon.js helper functions (v8).
+// Unit tests for basic-daemon.js helper functions (v9).
 // Run with: node scripts/basic-daemon.test.js
 'use strict';
 const fs   = require('fs');
@@ -213,6 +213,86 @@ const planApprovedIds = scanIds(paTasksDir, isPlanApproved(paTasksDir));
 assert('scanIds plan-approved finds TASK-7', planApprovedIds.has('TASK-7'), true);
 assert('scanIds plan-approved finds TASK-10 (FTB)', planApprovedIds.has('TASK-10'), true);
 assert('scanIds plan-approved skips TASK-11 (no marker)', planApprovedIds.has('TASK-11'), false);
+
+// ─── computePulseLines tests ─────────────────────────────────────────────────
+process.stdout.write('computePulseLines\n');
+
+// Local copy of computePulseLines (mirrors plugin/scripts/basic-daemon.js v9)
+function computePulseLines(tasksDir, channels) {
+  const lines = [];
+  for (const ch of channels) {
+    for (const id of [...scanIds(tasksDir, ch.predicate)].sort()) {
+      lines.push(`${ch.prefix}:${id}`);
+    }
+  }
+  return lines;
+}
+
+const pulseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-test-'));
+const pulseTasksDir = path.join(pulseDir, 'tasks');
+fs.mkdirSync(pulseTasksDir);
+
+// empty board → []
+{
+  const channels = [
+    { prefix: 'basic-ready', predicate: f => { const meta = readTaskMeta(f); return meta && meta.hasKindBasic && !meta.hasKindEpic && meta.status === 'basic: ready'; } },
+    { prefix: 'epic-ready',  predicate: f => { const meta = readTaskMeta(f); return meta && meta.hasKindEpic && !meta.hasKindBasic && meta.status === 'epic: ready'; } },
+  ];
+  assert('empty board → []', computePulseLines(pulseTasksDir, channels), []);
+}
+
+// non-actionable tasks (In Progress, Done) → []
+{
+  const ipFile = path.join(pulseTasksDir, 'task-20 - in-progress.md');
+  fs.writeFileSync(ipFile, '---\nstatus: Basic: In Progress\nlabels: [kind:basic]\n---\n');
+  const doneF = path.join(pulseTasksDir, 'task-21 - done.md');
+  fs.writeFileSync(doneF, '---\nstatus: Basic: Done\nlabels: [kind:basic]\n---\n');
+  const channels = [
+    { prefix: 'basic-ready', predicate: f => { const meta = readTaskMeta(f); return meta && meta.hasKindBasic && !meta.hasKindEpic && meta.status === 'basic: ready'; } },
+  ];
+  assert('non-actionable tasks → []', computePulseLines(pulseTasksDir, channels), []);
+}
+
+// one Basic: Ready kind:basic task → ["basic-ready:TASK-22"]
+{
+  const readyFile = path.join(pulseTasksDir, 'task-22 - ready.md');
+  fs.writeFileSync(readyFile, '---\nstatus: Basic: Ready\nlabels: [kind:basic]\n---\n');
+  const channels = [
+    { prefix: 'basic-ready', predicate: f => { const meta = readTaskMeta(f); return meta && meta.hasKindBasic && !meta.hasKindEpic && meta.status === 'basic: ready'; } },
+  ];
+  const result1 = computePulseLines(pulseTasksDir, channels);
+  assert('basic-ready task → basic-ready:TASK-22', result1, ['basic-ready:TASK-22']);
+  // second call returns same array (level-triggered — no notified dependence)
+  const result2 = computePulseLines(pulseTasksDir, channels);
+  assert('pulse independent of notified: re-emits regardless', result2, ['basic-ready:TASK-22']);
+
+  // rewrite to In Progress → []
+  fs.writeFileSync(readyFile, '---\nstatus: Basic: In Progress\nlabels: [kind:basic]\n---\n');
+  assert('task in-progress → []', computePulseLines(pulseTasksDir, channels), []);
+  // restore for later tests
+  fs.writeFileSync(readyFile, '---\nstatus: Basic: Ready\nlabels: [kind:basic]\n---\n');
+}
+
+// mixed board: Basic: Ready (kind:basic) + Epic: Ready (kind:epic) → both events sorted
+{
+  const epicFile2 = path.join(pulseTasksDir, 'task-23 - epic.md');
+  fs.writeFileSync(epicFile2, '---\nstatus: Epic: Ready\nlabels: [kind:epic]\n---\n');
+  const channels = [
+    { prefix: 'basic-ready', predicate: f => { const meta = readTaskMeta(f); return meta && meta.hasKindBasic && !meta.hasKindEpic && meta.status === 'basic: ready'; } },
+    { prefix: 'epic-ready',  predicate: f => { const meta = readTaskMeta(f); return meta && meta.hasKindEpic && !meta.hasKindBasic && meta.status === 'epic: ready'; } },
+  ];
+  assert('mixed board → both events', computePulseLines(pulseTasksDir, channels), ['basic-ready:TASK-22', 'epic-ready:TASK-23']);
+}
+
+// edge-dedup preserved: notified suppresses re-emit (edge timer behaviour)
+{
+  const notified = new Set(['TASK-22']);
+  const ids = scanIds(pulseTasksDir, f => { const meta = readTaskMeta(f); return meta && meta.hasKindBasic && !meta.hasKindEpic && meta.status === 'basic: ready'; });
+  const newIds = [...ids].filter(id => !notified.has(id));
+  assert('edge-dedup preserved: notified suppresses re-emit', newIds, []);
+}
+
+fs.rmSync(pulseDir, { recursive: true });
 
 fs.rmSync(tmp, { recursive: true });
 process.stdout.write(`\n${passed} passed, ${failed} failed\n`);

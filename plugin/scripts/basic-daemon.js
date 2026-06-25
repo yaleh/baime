@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// daemon-version: v8
+// daemon-version: v9
 /**
  * basic-daemon.js — UNIFIED B″ poller. Polls backlog tasks dir and emits FIVE
  * event channels to stdout:
@@ -23,19 +23,20 @@ const BASIC_DONE_STATUS  = 'basic: done';
 
 function parseArgs(argv) {
   const args = {
-    tasksDir:          'backlog/tasks',
-    pidFile:           'backlog/.basic-daemon.pid',
-    stopFile:          'backlog/.loop-stop',
-    interval:          0.5,
-    heartbeatInterval: 60,
+    tasksDir:      'backlog/tasks',
+    pidFile:       'backlog/.basic-daemon.pid',
+    stopFile:      'backlog/.loop-stop',
+    interval:      0.5,
+    pulseInterval: 60,
   };
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
-      case '--tasks-dir':          args.tasksDir          = argv[++i]; break;
-      case '--pid-file':           args.pidFile           = argv[++i]; break;
-      case '--stop-file':          args.stopFile          = argv[++i]; break;
-      case '--interval':           args.interval          = parseFloat(argv[++i]); break;
-      case '--heartbeat-interval': args.heartbeatInterval = parseFloat(argv[++i]); break;
+      case '--tasks-dir':          args.tasksDir      = argv[++i]; break;
+      case '--pid-file':           args.pidFile       = argv[++i]; break;
+      case '--stop-file':          args.stopFile      = argv[++i]; break;
+      case '--interval':           args.interval      = parseFloat(argv[++i]); break;
+      case '--pulse-interval':
+      case '--heartbeat-interval': args.pulseInterval = parseFloat(argv[++i]); break;
     }
   }
   return args;
@@ -137,7 +138,7 @@ function isPlanApproved(filepath, backlogDir) {
 
 const args       = parseArgs(process.argv);
 const intervalMs = Math.round(args.interval * 1000);
-const heartbeatMs = Math.round(args.heartbeatInterval * 1000);
+const pulseMs    = Math.round(args.pulseInterval * 1000);
 
 const pidDir = path.dirname(args.pidFile);
 if (pidDir) fs.mkdirSync(pidDir, { recursive: true });
@@ -149,6 +150,17 @@ process.on('SIGTERM', () => process.exit(0));
 process.on('SIGINT',  () => process.exit(0));
 
 const backlogDir = path.dirname(args.pidFile);
+
+function computePulseLines(tasksDir, channels) {
+  const lines = [];
+  for (const ch of channels) {
+    for (const id of [...scanIds(tasksDir, ch.predicate)].sort()) {
+      lines.push(`${ch.prefix}:${id}`);
+    }
+  }
+  return lines;
+}
+
 const channels = [
   { prefix: 'basic-ready',       predicate: f => isBasicReady(f),                   notified: new Set() },
   { prefix: 'epic-ready',        predicate: f => isEpicReady(f),                    notified: new Set() },
@@ -169,7 +181,9 @@ const timer = setInterval(() => {
   }
 }, intervalMs);
 
-const heartbeatTimer = setInterval(() => {
-  if (fs.existsSync(args.stopFile)) { clearInterval(heartbeatTimer); process.exit(0); }
-  process.stdout.write(`heartbeat:${Date.now()}\n`);
-}, heartbeatMs);
+const pulseTimer = setInterval(() => {
+  if (fs.existsSync(args.stopFile)) { clearInterval(pulseTimer); process.exit(0); }
+  for (const line of computePulseLines(args.tasksDir, channels)) {
+    process.stdout.write(`${line}\n`);
+  }
+}, pulseMs);
