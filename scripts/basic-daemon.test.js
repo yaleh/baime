@@ -8,11 +8,9 @@ const os   = require('os');
 
 function parseTaskId(filename) {
   const base = path.basename(filename, path.extname(filename)).toUpperCase();
-  for (const part of base.split(/\s+/)) {
-    if (/^TASK-\d+(\.\d+)*$/.test(part)) return part;
-  }
-  const m = base.match(/\bTASK-(\d+(?:\.\d+)*)\b/);
-  return m ? `TASK-${m[1]}` : null;
+  const first = base.split(/\s+/)[0];
+  const m = first.match(/^([A-Za-z][A-Za-z0-9]*-\d+(?:\.\d+)*)$/);
+  return m ? m[1] : null;
 }
 
 function isBasicReady(filepath) {
@@ -127,9 +125,10 @@ function assert(desc, actual, expected) {
 process.stdout.write('parseTaskId\n');
 assert('simple prefix',       parseTaskId('task-3 - do something.md'),             'TASK-3');
 assert('upper already',       parseTaskId('TASK-10 - title.md'),                   'TASK-10');
-assert('embedded id',         parseTaskId('sprint-TASK-7-notes.md'),               'TASK-7');
 assert('no id returns null',  parseTaskId('README.md'),                            null);
 assert('multi-digit',         parseTaskId('task-42 - long title here.md'),         'TASK-42');
+assert('back prefix',         parseTaskId('back-511 - some fix.md'),               'BACK-511');
+assert('subpoint id',         parseTaskId('back-217.02 - sub.md'),                 'BACK-217.02');
 
 process.stdout.write('isBasicReady\n');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bd-test-'));
@@ -155,6 +154,15 @@ assert('finds basic ready tasks', [...ids].sort(), ['TASK-1', 'TASK-3']);
 assert('skips done tasks',        ids.has('TASK-2'), false);
 assert('skips non-md files',      ids.size, 2);
 assert('missing dir → empty', [...scanBasicReadyIds(path.join(tmp, 'no-such-dir'))].length, 0);
+
+// ─── prefix-agnostic fixture (back- prefix) ─────────────────────────────────
+process.stdout.write('scanBasicReadyIds prefix-agnostic\n');
+const backDir = path.join(tmp, 'back-tasks');
+fs.mkdirSync(backDir);
+fs.writeFileSync(path.join(backDir, 'back-7 - fix UTF-8 bug.md'), '---\nstatus: Basic: Ready\nlabels: [kind:basic]\n---\n');
+const backIds = scanBasicReadyIds(backDir);
+assert('back- prefix: BACK-7 found',         backIds.has('BACK-7'),  true);
+assert('back- prefix: UTF-8 not an id',      backIds.has('UTF-8'),   false);
 
 // ─── isProposalApproved tests ───────────────────────────────────────────────
 process.stdout.write('isProposalApproved\n');

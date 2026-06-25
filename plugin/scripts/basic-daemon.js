@@ -44,11 +44,9 @@ function parseArgs(argv) {
 
 function parseTaskId(filename) {
   const base = path.basename(filename, path.extname(filename)).toUpperCase();
-  for (const part of base.split(/\s+/)) {
-    if (/^TASK-\d+(\.\d+)*$/.test(part)) return part;
-  }
-  const m = base.match(/\bTASK-(\d+(?:\.\d+)*)\b/);
-  return m ? `TASK-${m[1]}` : null;
+  const first = base.split(/\s+/)[0];
+  const m = first.match(/^([A-Za-z][A-Za-z0-9]*-\d+(?:\.\d+)*)$/);
+  return m ? m[1] : null;
 }
 
 function readTaskMeta(filepath) {
