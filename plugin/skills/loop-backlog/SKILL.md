@@ -456,7 +456,7 @@ echo "cap:execute=done" >> backlog/.caps/TASK-N
 After reaching a terminal status (`Basic: Done` or `Basic: Needs Human`), check if
 `parent_task_id` is set in the task frontmatter. If so, emit a completion note to the parent:
 ```bash
-PARENT=$(backlog task view TASK-N --plain | grep -oP '(?<=parent_task_id: )TASK-\d+(\.\d+)*')
+PARENT=$(backlog task view TASK-N --plain | grep -oP '(?<=^Parent: )[A-Za-z][A-Za-z0-9]*-\d+(\.\d+)*')
 if [ -n "$PARENT" ]; then
   backlog task edit "$PARENT" --append-notes \
     "Sub-task TASK-N reached terminal status: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -728,7 +728,7 @@ echo "daemonBootstrap: baseline checkpoint written (offset=$(cat "$CHECKPOINT_FI
 
 ```bash
 backlog task list --status "Basic: In Progress" --plain \
-  | grep -oP 'TASK-\d+' \
+  | grep -oP '^\s+(\[[A-Z]+\]\s+)?\K[A-Za-z][A-Za-z0-9]*-\d+(\.\d+)*(?= - )' \
   | while read TASK_ID; do
     VIEW=$(backlog task view "$TASK_ID" --plain)
     CLAIMED=$(echo "$VIEW" | grep -oP '(?<=claimed: )\S+' | tail -1)
@@ -767,7 +767,7 @@ while IFS= read -r CANDIDATE_ID; do
     >> "${REPO_ROOT}/backlog/.caps/${CANDIDATE_ID}"
   CLAIMED_TASK_IDS="${CLAIMED_TASK_IDS} ${CANDIDATE_ID}"
   CLAIM_COUNT=$((CLAIM_COUNT + 1))
-done < <(backlog task list --status "Basic: Ready" --plain | grep -oP 'TASK-\d+')
+done < <(backlog task list --status "Basic: Ready" --plain | grep -oP '^\s+(\[[A-Z]+\]\s+)?\K[A-Za-z][A-Za-z0-9]*-\d+(\.\d+)*(?= - )')
 CLAIMED_TASK_IDS=$(echo "$CLAIMED_TASK_IDS" | xargs)  # trim whitespace
 ```
 
@@ -971,7 +971,7 @@ fi
 ### execute → followDescription
 
 ```bash
-TITLE=$(echo "$TASK_VIEW" | grep -oP '(?<=Task TASK-\d+ - ).+' | head -1)
+TITLE=$(echo "$TASK_VIEW" | grep -oP '^Task \S+ - \K.+' | head -1)
 
 # Accumulator for final-summary
 EXECUTION_LOG=""
@@ -1154,7 +1154,7 @@ $(echo -e "$EXECUTION_LOG")"
   echo "cap:execute=done $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     >> "${REPO_ROOT}/backlog/.caps/${TASK_ID}"
   # notifyParentIfAny: check parent_task_id field
-  PARENT=$(backlog task view "$TASK_ID" --plain | grep -oP '(?<=parent_task_id: )TASK-\S+' | head -1)
+  PARENT=$(backlog task view "$TASK_ID" --plain | grep -oP '(?<=^Parent: )[A-Za-z][A-Za-z0-9]*-\d+(\.\d+)*' | head -1)
   if [ -n "$PARENT" ]; then
     backlog task edit "$PARENT" --append-notes \
       "Sub-task ${TASK_ID} completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -1243,7 +1243,7 @@ for TASK_ID in $CLAIMED_TASK_IDS; do
   TASK_BRANCHES[$TASK_ID]="$BRANCH"
 
   TASK_VIEW=$(backlog task view "$TASK_ID" --plain)
-  TASK_TITLE=$(echo "$TASK_VIEW" | grep -oP '(?<=Task TASK-\d+ - ).+' | head -1)
+  TASK_TITLE=$(echo "$TASK_VIEW" | grep -oP '^Task \S+ - \K.+' | head -1)
   TASK_DESC=$(echo "$TASK_VIEW" | awk '/^Description:/,/^(Status|Assignee|Labels|Priority|Due|Created|Updated|Notes):/' | tail -n +2)
   SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
 
@@ -1289,7 +1289,7 @@ for TASK_ID in $CLAIMED_TASK_IDS; do
   BRANCH="${TASK_BRANCHES[$TASK_ID]}"
   WORKTREE="${TASK_WORKTREES[$TASK_ID]}"
   TASK_VIEW=$(backlog task view "$TASK_ID" --plain)
-  TITLE=$(echo "$TASK_VIEW" | grep -oP '(?<=Task TASK-\d+ - ).+' | head -1)
+  TITLE=$(echo "$TASK_VIEW" | grep -oP '^Task \S+ - \K.+' | head -1)
 
   # pre-merge DoD verification (independent of agent signal)
   if [ "$SIGNAL_CONTENT" = "done" ] && [ -d "$WORKTREE" ]; then
@@ -1344,7 +1344,7 @@ for TASK_ID in $CLAIMED_TASK_IDS; do
       echo "cap:execute=done $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         >> "${REPO_ROOT}/backlog/.caps/${TASK_ID}"
       # notifyParentIfAny: check parent_task_id in task frontmatter
-      PARENT=$(backlog task view "$TASK_ID" --plain | grep -oP '(?<=parent_task_id: )TASK-\S+' | head -1)
+      PARENT=$(backlog task view "$TASK_ID" --plain | grep -oP '(?<=^Parent: )[A-Za-z][A-Za-z0-9]*-\d+(\.\d+)*' | head -1)
       if [ -n "$PARENT" ]; then
         backlog task edit "$PARENT" --append-notes \
           "Sub-task ${TASK_ID} completed: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -1433,14 +1433,14 @@ When `Monitor` yields an `epic-ready:` or `child-done:` line, the worker runs th
 handlers instead of claiming a basic task. Both are idempotent via `cap:*` markers.
 
 ```bash
-# extractId: pull TASK-N from an event line like "epic-ready:TASK-12"
-extractId() { echo "$1" | grep -oP 'TASK-\d+(\.\d+)*' | head -1; }
+# extractId: pull ID from an event line like "epic-ready:TASK-12" or "epic-ready:BACK-7"
+extractId() { echo "${1#*:}"; }
 
 # childrenOf EPIC_ID → list of child task IDs (frontmatter parent_task_id == EPIC_ID)
 childrenOf() {
   local EPIC_ID="$1"
   grep -lE "^parent_task_id:\s*${EPIC_ID}\$" "${REPO_ROOT}"/backlog/tasks/*.md 2>/dev/null \
-    | while read -r f; do grep -oP '(?<=^id:\s)TASK-\S+' "$f"; done
+    | while read -r f; do grep -oP '(?<=^id:\s)\S+' "$f"; done
 }
 
 taskStatus() { backlog task view "$1" --plain 2>/dev/null | grep -oP '(?<=Status:).*' \
@@ -1555,7 +1555,7 @@ onChildDone() {
   local CHILD_ID="$1"
   local CHILD_FILE; CHILD_FILE=$(ls "${REPO_ROOT}"/backlog/tasks/${CHILD_ID,,}\ *.md 2>/dev/null | head -1)
   [ -n "$CHILD_FILE" ] || return 0
-  local EPIC_ID; EPIC_ID=$(grep -oP '(?<=^parent_task_id:\s)TASK-\S+' "$CHILD_FILE" | head -1)
+  local EPIC_ID; EPIC_ID=$(grep -oP '(?<=^parent_task_id:\s)\S+' "$CHILD_FILE" | head -1)
   [ -n "$EPIC_ID" ] || return 0
   [ "$(taskStatus "$EPIC_ID")" = "Epic: Awaiting Children" ] || return 0
 
