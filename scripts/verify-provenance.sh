@@ -39,7 +39,16 @@ while IFS= read -r f; do
   # measured iff a data_source line/field says "measured"
   grep -qiE 'data_source["[:space:]]*[:=]["[:space:]]*measured' "$f" || continue
   measured=$((measured + 1))
-  gen="$(grep -oiP 'generated_by["\s]*[:=]["\s]*\K[^",}\s]+' "$f" 2>/dev/null | head -1)"
+  gen="$(awk '
+    BEGIN { IGNORECASE = 1 }
+    /generated_by[[:space:]"]*[:=]/ {
+      line = $0
+      sub(/^.*generated_by[[:space:]"]*[:=][[:space:]"]*/, "", line)
+      sub(/[",}[:space:]].*$/, "", line)
+      print line
+      exit
+    }
+  ' "$f")"
   if [ -z "$gen" ]; then
     offenders+=("$(basename "$f") — no generated_by field")
     continue

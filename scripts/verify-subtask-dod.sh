@@ -30,6 +30,26 @@ if [ -z "$META_ID" ]; then
 fi
 META_ID="$(echo "$META_ID" | tr '[:lower:]' '[:upper:]')"
 
+frontmatterValue() {
+  local key="$1" file="$2"
+  awk -v key="$key" '
+    BEGIN { in_fm=0 }
+    NR == 1 && $0 == "---" { in_fm=1; next }
+    in_fm && $0 == "---" { exit }
+    in_fm {
+      split($0, parts, ":")
+      field = parts[1]
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", field)
+      if (tolower(field) == tolower(key)) {
+        sub(/^[^:]*:[[:space:]]*/, "", $0)
+        gsub(/^[[:space:]"'\''"]+|[[:space:]"'\''"]+$/, "", $0)
+        print $0
+        exit
+      }
+    }
+  ' "$file"
+}
+
 # hasDod: 0 if file has a "## Definition of Done" section containing at least
 # one "- [ ]" checkbox item before the next "## " heading or EOF.
 hasDod() {
@@ -57,10 +77,10 @@ for scan_dir in "$TASKS_DIR" "$ARCHIVE_DIR"; do
   [ -d "$scan_dir" ] || continue
   for f in "$scan_dir"/*.md; do
     [ -f "$f" ] || continue
-    parent="$(grep -oiP '^parent_task_id:\s*\K.+' "$f" 2>/dev/null | head -1 | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+    parent="$(frontmatterValue "parent_task_id" "$f" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
     [ "$parent" = "$META_ID" ] || continue
     children=$((children + 1))
-    cid="$(grep -oiP '^id:\s*\K.+' "$f" 2>/dev/null | head -1 | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+    cid="$(frontmatterValue "id" "$f" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
     [ -n "$cid" ] || cid="$(basename "$f")"
     if ! hasDod "$f"; then
       offenders+=("$cid")

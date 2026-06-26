@@ -1,7 +1,7 @@
 {
   "name": "baime",
-  "version": "1.4.0",
-  "description": "BAIME: Systematic methodology development with 22 validated skills and 4 specialized agents",
+  "version": "1.5.0",
+  "description": "BAIME: Systematic methodology development with 25 validated skills and 4 specialized agents",
   "author": {
     "name": "Yale Huang",
     "url": "https://github.com/yaleh"
